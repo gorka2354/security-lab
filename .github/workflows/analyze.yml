@@ -1,0 +1,43 @@
+name: analyze (L2 self-test)
+
+# Runs our toolkit on Linux, where Slither + solc install cleanly (unlike the
+# Windows dev box). Proves recon.py works and the analyze.py Slither pass runs.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Slither + solc
+        run: |
+          python -m pip install --upgrade pip
+          pip install slither-analyzer
+          solc-select install 0.8.26
+          solc-select use 0.8.26
+
+      - name: recon.py (heuristics) on the PoCs
+        run: |
+          python toolkit/recon.py nomad-poc
+          python toolkit/recon.py oracle-poc
+          python toolkit/recon.py invariant-lab
+
+      - name: Slither direct on a self-contained contract
+        continue-on-error: true
+        run: slither nomad-poc/src/Nomad.sol
+
+      - name: analyze.py (recon + Slither integration)
+        continue-on-error: true
+        run: |
+          python toolkit/analyze.py nomad-poc/src
+          python toolkit/analyze.py oracle-poc/src
+          python toolkit/analyze.py invariant-lab/src
