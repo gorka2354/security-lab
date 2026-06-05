@@ -22,12 +22,12 @@
 **Импакт:** share-price = цена оракула. Если `updater` встал/задержался → депозиты/redeem по **устаревшей** цене → мисприсинг/дренаж (redeem по stale-high). `maxChangeBps` ограничивает скачок, но НЕ staleness (замёрзшая цена ≠ «изменение»).
 **Класс:** [[Оракулы - небезопасное использование Chainlink]] (staleness), наш профильный.
 
-**Статус: INVESTIGATING.** Честные оговорки:
-- Вероятно **known/accepted** (аудит «leading firms»; централизованный trusted `updater` + возможен off-chain heartbeat). Staleness — хрестоматийный finding.
-- Severity скорее **Medium** (нужен downtime updater + дивергенция).
+**Статус: ❌ KNOWN — закрыто (не репортим).**
 
-## Следующий шаг
-- [ ] Сверить с **публичными аудитами YO** (docs.yo.xyz) — это known или нет?
-- [ ] Подтвердить, что staleness не enforced НИГДЕ (keeper/getLatestPrice не ревертят на stale).
-- [ ] PoC на local-fork: заморозить оракул → redeem по stale-price → показать loss.
-- [ ] Если новое и с импактом → finding по [[Шаблон - security finding]] → Immunefi.
+### Верификация
+- [x] **Сверка с аудитами YO** → **Hunter Security, 2025-01-21**: ровно этот класс (gap между уходом средств и обновлением оракула/баланса → неверный `totalAssets()` → over-withdraw / over-mint) **уже описан, команда acknowledged**. По Immunefi known/acknowledged = **не eligible**.
+- [x] Технически подтвердил: волт отбрасывает timestamp во всех 4 местах, staleness не enforced (наша часть верна).
+- Доп. сейфгарды у них: rolling anchor + `maxChangeBps` + auto-pause на больших скачках.
+
+### Вердикт и урок
+Лид был **реальный и верно обоснованный** — мы независимо пришли к находке, которую сделали платные аудиторы Hunter Security. **Метод работает.** Но баг **known/acknowledged** → стоп, не репортим. Дисциплина «лид → проверь known → стоп» сработала идеально (спасла от репорта известного бага).
