@@ -35,6 +35,14 @@ PRIV = re.compile(
 RISK = re.compile(r"verif|verfi|check|sound|constraint|audit|unsafe|vuln|hack|"
                   r"\bbug\b|reentr|overflow|underflow|signature|access|auth", re.I)
 
+# reentrancy primitives
+CALL = re.compile(r"\.call\s*[\{(]|\.transfer\s*\(|\.send\s*\(|\.safeTransfer\w*\s*\(")
+WRITE = re.compile(r"\b\w+(\[[^\]]*\])?\s*(=|\+=|-=)(?!=)|\bdelete\s+\w+")
+GUARD = re.compile(r"nonreentrant|noreentr|reentrancyguard", re.I)
+
+# test/mock/script files are noise when hunting production bugs -> deprioritize
+_TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?)/", re.I)
+
 
 def iter_sol(root):
     for cur, dirs, files in os.walk(root):
@@ -168,6 +176,31 @@ def det_danger(text, rel):
     return out
 
 
+# ── Detector 5: reentrancy (CEI violation) ──
+def det_reentrancy(text, rel):
+    """External call followed by a state write, in a function with no
+    nonReentrant guard -> classic checks-effects-interactions violation."""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        if GUARD.search(blob):
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        cm = CALL.search(body)
+        if not cm:
+            continue
+        if WRITE.search(body[cm.end():]):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "external call THEN state write, no nonReentrant -> reentrancy (CEI)?", 0))
+        else:
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "external call, no nonReentrant guard (FYI)", 2))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -177,6 +210,8 @@ DETECTORS = [
      "Heuristic 3: who SHOULD call this? Compare siblings / old version."),
     ("SUPPLY INTEGRITY (mint/burn entry points)", det_mint,
      "Heuristic 5: can the token be minted from nothing? EVM cousin of Zcash counterfeiting."),
+    ("REENTRANCY (external call then state write)", det_reentrancy,
+     "Heuristic 6: external call before state update (CEI violation), no nonReentrant."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
      "Heuristic 2: staleness(updatedAt) + price>0 + decimals()."),
     ("DANGEROUS primitives", det_danger,
@@ -207,7 +242,10 @@ def main():
            "Priority: [!] high (review first), [.] medium, [ ] low.\n"]
     total = 0
     for title, _, why in DETECTORS:
-        hits = sorted(results[title], key=lambda h: h[4])
+        # deprioritize test/mock/script files (noise for production hunting)
+        hits = [(r, ln, s, n, min(2, p + 1) if _TESTRE.search(r) else p)
+                for (r, ln, s, n, p) in results[title]]
+        hits = sorted(hits, key=lambda h: h[4])
         total += len(hits)
         shown = [h for h in hits if h[4] <= 1][:args.top] or hits[:args.top]
         out.append(f"\n## {title}  ({len(hits)})\n_{why}_\n")
