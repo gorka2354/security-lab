@@ -113,7 +113,26 @@ script"). Sharpened Phase-2 plan:
 here, and the post-audit drift fixes hold. Deep value = full understanding of the vault/adapter
 accounting + verified-complete Critical fix.
 
-### Frontier (not yet deep-read — next session)
-- **copy-trading / collections MATCHING engine** (focus #1) — most complex; audit found the most
-  Low/Info here (3.4.3 arbitrage APR, 3.5.2 RP-DoS). Highest remaining EV, intricate.
-- liquidation math (Liquidate / LiquidateWithReplacement / compensate); oracle adapters v1.5.1..v1.8.
+### Matching engine — self-arbitrage guard (focus #1) — examined, **SOUND**
+The classic self-arb (a user with borrowAPR >= loanAPR for a tenor gets drained: attacker
+borrows cheap + lends dear). Traced the runtime guard end-to-end:
+- `SellCreditMarket.validate` (+ BuyCreditMarket mirror) calls `isLoanAPRGreaterThanBorrowOfferAPRs(lender, loanAPR, tenor)` -> `revert INVERTED_CURVES` if not. Applies on BOTH the new-position and existing-credit paths.
+- `CollectionsManagerView._isAPRLowerThanOfferAPRs` checks `apr` against **ALL** the user's offers:
+  the **collection-based** ones (loop over `userToCollectionIds` x rateProviders) **AND** the
+  **user-defined** one (explicit `getLimitOrderAPR(user, RESERVED_ID, ...)` after the loop). No gap.
+- `try/catch` only skips offers that revert because they don't apply at this `tenor` (out of
+  [minTenor,maxTenor]/maxDueDate) -> not exploitable. validate+execute are atomic (no multicall TOCTOU).
+- APR resolution (`getLimitOrderAPR`): rateProvider base curve + user `offsetAPR`, clamped to [minAPR,maxAPR]; static `validateCopyLimitOrderConfigs` rejects arbitrageable copy setups. Layered correctly.
+**Verdict: comprehensive, no self-arb bypass.** (Initial hypothesis "user-defined offer skipped"
+was WRONG — it IS checked after the loop; read-on saved a false report.)
+
+### Still not deep-read (diminishing EV — all audited)
+- swap math rounding (AccountingLibrary getCashAmountOut/getCreditAmountIn); liquidation
+  (Liquidate / LiquidateWithReplacement / compensate); oracle adapters v1.5.1..v1.8.
+
+## Overall verdict (deep-dive)
+Across every major subsystem examined — vault/adapter accounting, authorization/delegation,
+market shutdown, and the matching self-arb engine — **Rheo @b7714a2 is sound; no novel bug.**
+Expected for 11 audits + Echidna/Medusa/Halmos/Slither. The deliverable is the **quality base**:
+the deep-audit method for vetted protocols + the solvency-invariant-tracing technique + the
+verified-complete Critical fix + a clean understanding of a non-trivial credit-marketplace design.
