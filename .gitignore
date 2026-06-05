@@ -1,0 +1,24 @@
+# external cloned target repos (third-party code, large — not ours to vendor)
+hunts/*/protocol/
+hunts/*/contracts/
+
+# foundry build artifacts / deps
+**/lib/
+**/out/
+**/cache/
+**/artifacts/
+**/foundry.lock
+
+# generated reports
+**/recon-report.md
+**/report.md
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
