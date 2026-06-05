@@ -22,3 +22,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# volume-engine cloned targets + generated queue
+hunts/_volume/

@@ -1,0 +1,7 @@
+# Volume-engine targets:  <name>  <git-url-or-local-path>
+# Local paths (already cloned) are scanned in place; URLs are shallow-cloned.
+# Curate this from in-scope bounty programs (Immunefi etc.). White-hat: read-only.
+
+infrared   hunts/infrared/contracts
+yo         hunts/yo/contracts
+stakelink  https://github.com/stakedotlink/contracts
