@@ -227,12 +227,18 @@ def det_arbcall(text, rel):
             continue
         if not (re.search(r"\baddress\b", blob) and re.search(r"\bbytes\b", blob)):
             continue
+        if "only" in blob.lower():  # access-controlled admin call -> not a drain risk
+            continue
         nxt = text.find("function ", m.end())
         body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        # skip if gated by access control inside the body (admin rescue pattern)
+        if re.search(r"enforceAccessControl|contractOwner|onlyOwner|_checkOwner|"
+                     r"_checkRole|hasRole|msg\.sender\s*[!=]=\s*\w*[Oo]wner", body):
+            continue
         if ARBCALL.search(body):
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
-                        "takes (address + bytes) AND does a low-level call -> arbitrary "
-                        "external call? (route to token.transferFrom = approval drain)", 0))
+                        "PERMISSIONLESS (address + bytes) + low-level call -> arbitrary "
+                        "external call? route to token.transferFrom = approval drain", 0))
     return out
 
 
