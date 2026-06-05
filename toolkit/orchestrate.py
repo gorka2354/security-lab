@@ -99,8 +99,8 @@ def main():
 
     targets = []
     for line in open(a.targets, encoding="utf-8"):
-        line = line.strip()
-        if not line or line.startswith("#"):
+        line = line.split("#", 1)[0].strip()   # drop full-line AND inline comments
+        if not line:
             continue
         parts = line.split(None, 1)
         if len(parts) == 2:

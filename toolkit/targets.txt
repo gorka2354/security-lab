@@ -33,5 +33,13 @@ stakelink  https://github.com/stakedotlink/contracts
 lifi       https://github.com/lifinance/contracts
 debridge   https://github.com/debridge-finance/debridge-contracts-v1
 
+# --- 2026-06-06 batch ("обход района"): staking edge + broad DeFi ---
+# (Code4rena's live slate was all non-EVM/Rust -> skipped; these are EVM open-source + in-scope)
+stakewise   https://github.com/stakewise/v3-core                 # liquid staking ETH/GNO (Immunefi in-scope) -- твоя зона
+symbiotic   https://github.com/symbioticfi/core                  # restaking infra (свежая категория) -- стейкинг
+morpho      https://github.com/morpho-org/morpho-blue            # lending core (Cantina "Midnight" comp live, $400k)
+mellow      https://github.com/mellow-finance/mellow-lrt         # LRT vaults (ERC4626 -> гоняет det_erc4626)
+fluid       https://github.com/Instadapp/fluid-contracts-public  # DEX+lending (Fluid DEX v2 только что в Sherlock)
+
 # --- ADD FRESH TARGETS HERE (name  repo-url) ---
 # example:  newvault  https://github.com/someorg/somevault
