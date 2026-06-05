@@ -95,5 +95,25 @@ script"). Sharpened Phase-2 plan:
 - [ ] **Phase 3 — prove/kill**: PoCs + invariant fuzzing on top hypotheses.
 - [ ] **Phase 4 — disclose/record**: confirmed -> Cantina; FP/known -> ledger + lesson.
 
-## Triage log
-_(verdicts go here as we work — every lead, FP or real, with why)_
+## Triage log — Phase 2 (vault / adapter / authorization / shutdown)
+**Verdict: these subsystems are SOUND at b7714a2.** Deep-read, traced, not assumed.
+
+| Area | What was verified | Verdict |
+|---|---|---|
+| **setVault** (home of the audit Critical) | now does a REAL `fullWithdraw`(old)->`deposit`(new) migration, or `forfeit` (`_setSharesOf 0`); no longer copies `vaultOf` on a no-op transfer | **fix complete** |
+| **ERC4626Adapter** accounting | every fn moves `sharesOf[user]` by exactly the ERC4626 shares minted/burned; `SUM(sharesOf)==vault.balanceOf(tokenVault)`; `SUM(balanceOf)<=totalSupply` via round-down `convertToAssets` | **solvent/correct** |
+| **AaveAdapter** accounting | Aave scaled-balance; double-round-down => dust favors the protocol; `fullWithdraw` sidesteps the precision-DoS (High 3.2.1) by zeroing shares without the revert-check | **solvent/correct** |
+| **reentrancy** (Med 3.3.2) | adapters are `onlyOwner`(=tokenVault); all tokenVault fns `nonReentrant` (+ `nonReentrantView` on balanceOf/totalSupply) | **blocked** |
+| **trust boundary** vault<->adapter | `setSharesOf`/`requestApprove` = `onlyAdapter`; `requestAaveWithdraw` = `onlyAdapterId(AAVE)` | **gated** |
+| **OnBehalfOf delegation** (Size:420/443/460) | `validateX` checks `sizeFactory.isAuthorized(msg.sender, onBehalfOf, Action.X)` per action | **FP (FREI-PI auth)** |
+| **marketShutdown** (freshest, post-audit) | no-op validation BUT `onlyRoleOrSizeFactoryHasRole(DEFAULT_ADMIN_ROLE)`; admin emergency wind-down | **admin-gated, sound** |
+| `transferFrom` unchecked return (vault:227) | `IAdapter.transferFrom` returns void -> nothing to check | **FP (det_unchecked L1 limit)** |
+
+**No novel bug in these areas.** 11 audits + Echidna/Medusa/Halmos/Slither hammered exactly
+here, and the post-audit drift fixes hold. Deep value = full understanding of the vault/adapter
+accounting + verified-complete Critical fix.
+
+### Frontier (not yet deep-read — next session)
+- **copy-trading / collections MATCHING engine** (focus #1) — most complex; audit found the most
+  Low/Info here (3.4.3 arbitrage APR, 3.5.2 RP-DoS). Highest remaining EV, intricate.
+- liquidation math (Liquidate / LiquidateWithReplacement / compensate); oracle adapters v1.5.1..v1.8.
