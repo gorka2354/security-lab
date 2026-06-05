@@ -111,6 +111,34 @@ def det_sibling(text, rel):
             for name, ln, _ in ungated_priv]
 
 
+# ── Detector 2c: supply integrity (mint/burn entry points) ──
+def det_mint(text, rel):
+    """Surfaces every mint/burn entry function with its access-control status.
+    The EVM cousin of the Zcash 'counterfeit from nothing' class: an unprotected
+    or wrongly-bounded mint breaks total-supply integrity. Verify each with a
+    supply invariant (totalSupply <= backing)."""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        if not re.search(r"mint|burn", name, re.I):
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
+        gated = "only" in blob.lower() or re.search(r"msg\.sender|hasRole|_check", body)
+        is_test = bool(re.search(r"(^|/)(test|tests|mock|mocks)", rel, re.I))
+        if gated:
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "mint/burn entry, GATED -> verify the gate + that supply stays bounded",
+                        2 if is_test else 1))
+        else:
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "PUBLIC mint/burn, NO access control -> anyone can mint? (supply integrity)"
+                        + (" [test/mock]" if is_test else ""), 1 if is_test else 0))
+    return out
+
+
 # ── Detector 3: oracle 3-guard checklist ──
 def det_oracle(text, rel):
     out = []
@@ -147,6 +175,8 @@ DETECTORS = [
      "Heuristic 3: in this contract some privileged fns ARE gated, this one is NOT."),
     ("ACCESS CONTROL leads (privileged fn, no modifier)", det_access,
      "Heuristic 3: who SHOULD call this? Compare siblings / old version."),
+    ("SUPPLY INTEGRITY (mint/burn entry points)", det_mint,
+     "Heuristic 5: can the token be minted from nothing? EVM cousin of Zcash counterfeiting."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
      "Heuristic 2: staleness(updatedAt) + price>0 + decimals()."),
     ("DANGEROUS primitives", det_danger,
