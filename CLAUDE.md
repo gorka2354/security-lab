@@ -16,8 +16,10 @@
 ## Где что лежит
 - **База знаний (Obsidian):** `C:\Users\pesto\OneDrive\Документы\Obsidian Vault\Крипто безопасность\`
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
-- **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`.
-- **Тулкит:** `security-lab/toolkit/` (PROMPTS.md, WORKFLOW.md, будущие скрипты).
+- **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
+- **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
+  `recon.py` (L1, 12 детекторов), `ledger.py` (память вердиктов), `scaffold.py` (L3), `analyze.py` (L2).
+- **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
 ## Правила
 - **White-hat жёстко:** тестируем только in-scope авторизованных баунти; ответственное раскрытие; **чужие средства не трогаем**. Известный/исправленный баг ≠ находка.
@@ -25,7 +27,13 @@
 - `forge init` оставляет `script/Counter.s.sol` — удаляй вместе с `src/Counter.sol`.
 - Печатаемый вывод — ASCII (Windows-консоль давится юникодом).
 - После каждого разбора — обновляй vault (паттерн + эвристику в MOC).
+- **Каждый вердикт триажа — в ledger** (`python toolkit/ledger.py add ...`: fp/known/wontfix/todo/real),
+  чтобы тот же лид не всплывал дважды. Найденный по паттерну FP → ещё и фикс точности в детекторе.
+- Для свежести гони `diffscan` против последнего аудит-тега, а не весь репо (баги в audit-drift).
 
 ## Текущий прогресс
-Полный цикл охотника пройден на учебном материале (Nomad bypass, оракул-staleness).
-Дальше: настоящая охота на реальном in-scope таргете (Immunefi) + расширение библиотеки паттернов.
+Построен полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH**
+(recon 12-детекторов → Slither → scaffold+fuzz → L4=я). Память вердиктов (ledger) гасит
+шум. Прогнан на ~7 живых таргетах — все high-signal лиды свелись к FP/known/by-design
+(норма для аудированного кода). Первый живой лид на доверификации: оракул-адаптер stakelink
+(`hunts/stakelink/HUNT.md`). Дальше: свежие in-scope таргеты пачками + доверка лида.

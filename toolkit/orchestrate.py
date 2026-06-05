@@ -18,12 +18,14 @@ import os
 import re
 import subprocess
 
+import ledger  # same folder
 import recon  # same folder
 
 # detector weight by proven hunting value (prio-0 production leads only)
 WEIGHT = {
-    "sibling": 3, "supply integrity": 3, "reentrancy": 2,
-    "disabled": 2, "oracle": 2, "access control leads": 1, "dangerous": 1,
+    "sibling": 3, "supply integrity": 3, "signature": 3, "upgrade": 3,
+    "reentrancy": 2, "disabled": 2, "oracle": 2, "erc4626": 2, "unchecked": 2,
+    "access control leads": 1, "dangerous": 1,
 }
 
 
@@ -69,6 +71,25 @@ def scan(repo):
     return res
 
 
+def suppress(res, target, led):
+    """Drop leads already judged fp/known/wontfix in the ledger. Mutates res in
+    place, returns how many were removed. This is why noise falls every run."""
+    if not led:
+        return 0
+    removed = 0
+    for title in list(res):
+        key = recon.det_key(title)
+        kept = []
+        for f in res[title]:
+            rel, ln, snip, note, prio = f
+            if ledger.is_silenced(ledger.verdict_for(led, target, rel, key, snip)):
+                removed += 1
+            else:
+                kept.append(f)
+        res[title] = kept
+    return removed
+
+
 def main():
     ap = argparse.ArgumentParser(description="Volume engine: scan & rank many targets")
     ap.add_argument("targets", nargs="?", default="toolkit/targets.txt")
@@ -85,6 +106,8 @@ def main():
         if len(parts) == 2:
             targets.append((parts[0], parts[1]))
 
+    led = ledger.load()
+    total_suppressed = 0
     rows = []
     for name, src in targets:
         repo = resolve(name, src, a.workspace)
@@ -92,15 +115,22 @@ def main():
             print(f"[skip]    {name}: clone/path failed")
             continue
         res = scan(repo)
+        sup = suppress(res, name, led)
+        total_suppressed += sup
         score = sum(weight_for(t) * len(v) for t, v in res.items())
         rows.append((score, name, repo, res))
-        print(f"[scanned] {name}: score {score}")
+        tag = f"  (-{sup} suppressed by ledger)" if sup else ""
+        print(f"[scanned] {name}: score {score}{tag}")
 
     rows.sort(key=lambda r: -r[0])
 
+    led_note = (f" {total_suppressed} already-judged leads auto-suppressed "
+                f"(ledger: {len(led)} verdicts)." if led else
+                " (no ledger yet - record verdicts with toolkit/ledger.py)")
     L = ["# Volume triage queue",
-         f"\n{len(rows)} targets scanned (L1, production code only). "
-         f"Deep-dive (L2 Slither / L3 fuzz / L4 me) the top-ranked first.\n",
+         f"\n{len(rows)} targets scanned (L1, production code only)."
+         + led_note +
+         "\nDeep-dive (L2 Slither / L3 fuzz / L4 me) the top-ranked first.\n",
          "## Ranked targets"]
     for score, name, repo, res in rows:
         hot = sum(len(v) for v in res.values())
@@ -115,7 +145,7 @@ def main():
             leads = True
             L.append(f"### {title}  ({len(v)})")
             for rel, ln, snip, note, prio in v[:8]:
-                L.append(f"- `{rel}:{ln}` - {note}")
+                L.append(f"- `{rel}:{ln}`  `{snip}` - {note}")
             if len(v) > 8:
                 L.append(f"  ... and {len(v) - 8} more")
         if not leads:

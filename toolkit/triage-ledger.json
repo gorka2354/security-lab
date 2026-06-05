@@ -1,0 +1,70 @@
+{
+  "entries": [
+    {
+      "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeTokens(...)",
+      "target": "stakelink",
+      "file": "contracts/core/base/RewardsPoolController.sol",
+      "line": 98,
+      "detector": "sibling",
+      "snippet": "function distributeTokens(...)",
+      "verdict": "fp",
+      "reason": "public-good poke: pushes own reward balance to fixed tokenPools, anyone triggers (like harvest)",
+      "date": "2026-06-05"
+    },
+    {
+      "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeToken(...)",
+      "target": "stakelink",
+      "file": "contracts/core/base/RewardsPoolController.sol",
+      "line": 108,
+      "detector": "sibling",
+      "snippet": "function distributeToken(...)",
+      "verdict": "fp",
+      "reason": "public-good poke: own balance to fixed pool, token must be supported",
+      "date": "2026-06-05"
+    },
+    {
+      "sig": "stakelink|contracts/core/integrations/WLSTUSDCChainlinkPriceAdapter.sol|oracle|latestRoundData",
+      "target": "stakelink",
+      "file": "contracts/core/integrations/WLSTUSDCChainlinkPriceAdapter.sol",
+      "line": 43,
+      "detector": "oracle",
+      "snippet": "latestRoundData",
+      "verdict": "todo",
+      "reason": "REAL pattern: no price>0 + MASKS staleness (stamps block.timestamp). Deployed mainnet. Impact needs external consumer - see hunts/stakelink/HUNT.md",
+      "date": "2026-06-05"
+    },
+    {
+      "sig": "stakelink|contracts/core/integrations/WLSTUnderlyingChainlinkPriceAdapter.sol|oracle|latestRoundData",
+      "target": "stakelink",
+      "file": "contracts/core/integrations/WLSTUnderlyingChainlinkPriceAdapter.sol",
+      "line": 37,
+      "detector": "oracle",
+      "snippet": "latestRoundData",
+      "verdict": "todo",
+      "reason": "same oracle-adapter family as WLSTUSDC; verify price>0/staleness - see hunts/stakelink/HUNT.md",
+      "date": "2026-06-05"
+    },
+    {
+      "sig": "stakelink|contracts/core/priorityPool/WithdrawalPool.sol|sibling|function updateWithdrawalBatchIdCutoff(...)",
+      "target": "stakelink",
+      "file": "contracts/core/priorityPool/WithdrawalPool.sol",
+      "line": 424,
+      "detector": "sibling",
+      "snippet": "function updateWithdrawalBatchIdCutoff(...)",
+      "verdict": "fp",
+      "reason": "public-good bookkeeping poke, no fund movement / no user-controlled destination",
+      "date": "2026-06-05"
+    },
+    {
+      "sig": "stakelink|contracts/linkStaking/CommunityVCS.sol|sibling|function claimRewards(...)",
+      "target": "stakelink",
+      "file": "contracts/linkStaking/CommunityVCS.sol",
+      "line": 161,
+      "detector": "sibling",
+      "snippet": "function claimRewards(...)",
+      "verdict": "fp",
+      "reason": "public-good: claims Chainlink rewards to address(this), receiver hardcoded, _minRewards is slippage guard",
+      "date": "2026-06-05"
+    }
+  ]
+}

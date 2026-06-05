@@ -242,6 +242,102 @@ def det_arbcall(text, rel):
     return out
 
 
+# ── Detector 7: signature / ecrecover (replay, malleability, no expiry) ──
+def det_signature(text, rel):
+    """Raw ecrecover has two classic bugs: (1) a malformed/empty signature
+    recovers to address(0) -> if not rejected it can impersonate; (2) without a
+    nonce the signed message is REPLAYABLE, without a deadline it never expires.
+    OZ's ECDSA.recover handles (1); raw ecrecover does not."""
+    if "ecrecover" not in text:
+        return []
+    has_zero = bool(re.search(r"address\(0\)|\bECDSA\b|tryRecover", text))
+    has_nonce = bool(re.search(r"\bnonce", text, re.I))
+    has_deadline = bool(re.search(r"deadline|expir|validUntil|validAfter", text, re.I))
+    out = []
+    for m in re.finditer(r"\becrecover\s*\(", text):
+        miss = []
+        if not has_zero:
+            miss.append("address(0) check (malleable/empty sig)")
+        if not has_nonce:
+            miss.append("nonce (replay)")
+        if not has_deadline:
+            miss.append("deadline (no expiry)")
+        note = ("raw ecrecover, file MISSING: " + ", ".join(miss)) if miss else \
+               "raw ecrecover but file has zero/nonce/deadline guards (review)"
+        out.append((rel, lineno(text, m.start()), "ecrecover(...)", note, 0 if miss else 2))
+    return out
+
+
+# ── Detector 8: upgrade safety (unprotected UUPS) ──
+def det_upgrade(text, rel):
+    """UUPS proxies gate upgrades in _authorizeUpgrade. If its body has no owner/
+    role check, ANYONE can swap the implementation -> total takeover or brick.
+    Also flags upgradeTo* declared without gating and without _authorizeUpgrade."""
+    out = []
+    for m in re.finditer(r"function\s+_authorizeUpgrade\s*(\([^{};]*?)\{", text, re.S):
+        blob = m.group(1)
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 240)]
+        gated = ("only" in blob.lower() or re.search(
+            r"msg\.sender|hasRole|_checkRole|_checkOwner|owner\(\)|require|revert", body))
+        if not gated:
+            out.append((rel, lineno(text, m.start()), "function _authorizeUpgrade(...)",
+                        "UUPS _authorizeUpgrade with NO access check -> anyone upgrades the "
+                        "impl (total takeover / brick)", 0))
+    if not re.search(r"_authorizeUpgrade", text):
+        for m in re.finditer(r"function\s+(upgradeTo\w*)\s*(\([^{};]*?)\{", text, re.S):
+            if "only" not in m.group(2).lower():
+                out.append((rel, lineno(text, m.start()), f"function {m.group(1)}(...)",
+                            "upgradeTo* with no onlyX and no _authorizeUpgrade -> unguarded upgrade", 0))
+    return out
+
+
+# ── Detector 9: unchecked ERC20 return (silent transfer failure) ──
+def det_unchecked(text, rel):
+    """A bare ERC20 transfer/transferFrom whose bool return is dropped. Non-
+    standard tokens (USDT, ZRX, OMG) return false instead of reverting, so the
+    transfer silently fails while the contract assumes success -> accounting
+    corruption / fund loss. Fix = OpenZeppelin SafeERC20."""
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith("//") or s.startswith("*") or s.startswith("/*"):
+            continue
+        m = re.search(r"\.transfer(From)?\s*\(", s)
+        if not m or "safeTransfer" in s or "payable" in s or "super." in s:
+            continue                       # SafeERC20 / ETH / token's own override
+        head = s[:m.start()]
+        if re.search(r"=|require|assert|return|\bif\b|&&|\|\||\?", head):
+            continue                       # return value captured or checked
+        if "," not in s[m.end():]:
+            continue                       # 1 arg => ETH x.transfer(amt) (reverts), skip
+        out.append((rel, i, s[:90],
+                    "ERC20 transfer/transferFrom return ignored -> use SafeERC20 "
+                    "(USDT/ZRX return false, not revert)", 0))
+    return out
+
+
+# ── Detector 10: ERC4626 first-depositor inflation ──
+def det_erc4626(text, rel):
+    """ERC4626 vaults can be hit by the first-depositor 'inflation attack': the
+    attacker mints 1 wei of shares, donates assets to skew the share price, and
+    later deposits round down to 0 shares (stolen). Mitigations: override
+    _decimalsOffset() (OZ virtual shares) or seed dead shares / a minimum. Flag
+    vaults with none -> verify by hand."""
+    if not re.search(r"\bERC4626\b", text):
+        return []
+    protected = bool(re.search(
+        r"_decimalsOffset|MINIMUM_(SHARES|LIQUIDITY|DEPOSIT)|"
+        r"_mint\s*\(\s*(address\(0|0x0|0xdead|DEAD|address\(this)", text, re.I))
+    if protected:
+        return []
+    m = re.search(r"\bcontract\s+(\w+)", text)
+    name = m.group(1) if m else "?"
+    return [(rel, lineno(text, m.start()) if m else 1, f"contract {name} (ERC4626)",
+             "ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
+             "first-depositor inflation attack? (verify by hand)", 0)]
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -255,11 +351,35 @@ DETECTORS = [
      "Heuristic 6: external call before state update (CEI violation), no nonReentrant."),
     ("ARBITRARY external call (bridge-aggregator approval drain)", det_arbcall,
      "Heuristic 7: (address+bytes) param + low-level call -> route to transferFrom = drain."),
+    ("SIGNATURE / ecrecover (replay, malleability, no expiry)", det_signature,
+     "Raw ecrecover: needs address(0) check + nonce (anti-replay) + deadline (expiry)."),
+    ("UPGRADE safety (unprotected UUPS _authorizeUpgrade)", det_upgrade,
+     "Upgrade auth with no owner/role check -> anyone swaps the impl = total takeover."),
+    ("UNCHECKED ERC20 return (silent transfer failure)", det_unchecked,
+     "Bare transfer/transferFrom return dropped -> USDT/ZRX fail silently; use SafeERC20."),
+    ("ERC4626 inflation (first-depositor share-price attack)", det_erc4626,
+     "Vault with no _decimalsOffset / dead-shares -> first depositor skews the share price."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
      "Heuristic 2: staleness(updatedAt) + price>0 + decimals()."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
 ]
+
+
+def det_key(title):
+    """Stable short key for a detector title -> used by the triage ledger so a
+    verdict survives wording changes. Check 'sibling' before 'access' (the
+    sibling title contains both)."""
+    t = title.lower()
+    for sub, k in (("sibling", "sibling"), ("access control leads", "access"),
+                   ("supply", "supply"), ("reentrancy", "reentrancy"),
+                   ("arbitrary", "arbcall"), ("signature", "signature"),
+                   ("upgrade", "upgrade"), ("unchecked", "unchecked"),
+                   ("erc4626", "erc4626"), ("oracle", "oracle"),
+                   ("dangerous", "danger"), ("disabled", "disabled")):
+        if sub in t:
+            return k
+    return "other"
 
 
 def main():
