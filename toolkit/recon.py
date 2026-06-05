@@ -85,6 +85,8 @@ def det_access(text, rel):
             continue
         if re.search(r"\b(view|pure)\b", blob):   # read-only -> access control N/A
             continue
+        if re.search(r"\b(re)?initializer\b", blob):  # OZ initializer guards init
+            continue
         # peek the body, but stop at the next function so we don't read its auth
         nxt = text.find("function ", m.end())
         body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
@@ -109,6 +111,8 @@ def det_sibling(text, rel):
             continue
         gate = re.search(r"\bonly\w+", blob)
         gname = gate.group(0) if gate else None
+        if not gname and re.search(r"\b(re)?initializer\b", blob):
+            gname = "initializer"  # OZ initializer guards one-time init -> gated
         if not gname:  # no modifier -> also check the body for inline auth
             nxt = text.find("function ", m.end())
             body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
@@ -140,7 +144,8 @@ def det_mint(text, rel):
             continue
         nxt = text.find("function ", m.end())
         body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
-        gated = "only" in blob.lower() or re.search(r"msg\.sender|hasRole|_check", body)
+        gated = ("only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob)
+                 or re.search(r"msg\.sender|hasRole|_check", body))
         is_test = bool(re.search(r"(^|/)(test|tests|mock|mocks)", rel, re.I))
         if gated:
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
