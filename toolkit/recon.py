@@ -51,9 +51,10 @@ ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
 # verification (keeper/oracle-quorum pattern), or upgrade auth. NOT bare msg.sender
 # (that just means "uses the caller as an actor", e.g. _balances[msg.sender]).
 INLINE_AUTH = re.compile(
-    r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*msg\.sender|"
+    r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*(msg\.sender|_msgSender)|"
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforceAccessControl|"
-    r"_verifySignatures|verifySignature|_checkAccess|_checkSender")
+    r"_verifySignatures|verifySignature|_checkAccess|_checkSender|"
+    r"_?require\w*Only\b|_?check\w*Only\b")   # e.g. requireGovernanceOnly()
 
 
 def iter_sol(root):
@@ -161,7 +162,7 @@ def det_mint(text, rel):
         nxt = text.find("function ", m.end())
         body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
         gated = ("only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob)
-                 or re.search(r"msg\.sender|hasRole|_check", body))
+                 or INLINE_AUTH.search(body) or "msg.sender" in body)
         is_test = bool(re.search(r"(^|/)(test|tests|mock|mocks)", rel, re.I))
         if gated:
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",

@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
+      "target": "reserve",
+      "file": "contracts/p1/BasketHandler.sol",
+      "line": 198,
+      "detector": "sibling",
+      "snippet": "function setPrimeBasket(...)",
+      "verdict": "fp",
+      "reason": "public wrapper delegates to gated _setPrimeBasket (requireGovernanceOnly); L1 cant follow call-graph",
+      "date": "2026-06-07"
+    },
+    {
       "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeTokens(...)",
       "target": "stakelink",
       "file": "contracts/core/base/RewardsPoolController.sol",

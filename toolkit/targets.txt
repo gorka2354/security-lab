@@ -41,5 +41,17 @@ morpho      https://github.com/morpho-org/morpho-blue            # lending core 
 mellow      https://github.com/mellow-finance/mellow-lrt         # LRT vaults (ERC4626 -> гоняет det_erc4626)
 fluid       https://github.com/Instadapp/fluid-contracts-public  # DEX+lending (Fluid DEX v2 только что в Sherlock)
 
+# --- 2026-06-07 batch: open EVM + in-scope bounty, mid-size (NOT giants) ---
+# Honest: skewed to lending/credit (richest open+EVM+bounty overlap; fresh staking/
+# games with public repos are scarce). Lending exercises oracle/liquidation/rounding.
+# These are audited-but-not-giants; for VIRGIN targets, curate Immunefi "recently
+# added" by hand. NOTE: Code4rena shut down in 2026 (Immunefi absorbed its wardens).
+euler        https://github.com/euler-xyz/euler-vault-kit            # modular lending v2 (big bounty)
+reserve      https://github.com/reserve-protocol/protocol            # RToken baskets (Cantina gov audit just ended)
+notional     https://github.com/notional-finance/contracts-v3        # fixed-rate lending
+size         https://github.com/SizeCredit/size-solidity             # credit/lending (newer, lighter audit)
+notionalexp  https://github.com/sherlock-audit/2025-06-notional-exponent  # fresh Sherlock scope (-> diffscan drift)
+dolomite     https://github.com/dolomite-exchange/dolomite-margin     # margin/lending
+
 # --- ADD FRESH TARGETS HERE (name  repo-url) ---
 # example:  newvault  https://github.com/someorg/somevault
