@@ -43,6 +43,9 @@ GUARD = re.compile(r"nonreentrant|noreentr|reentrancyguard", re.I)
 # test/mock/script files are noise when hunting production bugs -> deprioritize
 _TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?)/", re.I)
 
+# arbitrary external call (bridge-aggregator approval-drain class)
+ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
+
 
 def iter_sol(root):
     for cur, dirs, files in os.walk(root):
@@ -212,6 +215,27 @@ def det_reentrancy(text, rel):
     return out
 
 
+# ── Detector 6: arbitrary external call (aggregator approval-drain) ──
+def det_arbcall(text, rel):
+    """A function that takes an (address + bytes) and makes a low-level call is
+    the classic bridge-aggregator arbitrary-call: an attacker routes the call to
+    a token's transferFrom and drains approvals. (Socket, LiFi-class bugs.)"""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob):
+            continue
+        if not (re.search(r"\baddress\b", blob) and re.search(r"\bbytes\b", blob)):
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        if ARBCALL.search(body):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "takes (address + bytes) AND does a low-level call -> arbitrary "
+                        "external call? (route to token.transferFrom = approval drain)", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -223,6 +247,8 @@ DETECTORS = [
      "Heuristic 5: can the token be minted from nothing? EVM cousin of Zcash counterfeiting."),
     ("REENTRANCY (external call then state write)", det_reentrancy,
      "Heuristic 6: external call before state update (CEI violation), no nonReentrant."),
+    ("ARBITRARY external call (bridge-aggregator approval drain)", det_arbcall,
+     "Heuristic 7: (address+bytes) param + low-level call -> route to transferFrom = drain."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
      "Heuristic 2: staleness(updatedAt) + price>0 + decimals()."),
     ("DANGEROUS primitives", det_danger,

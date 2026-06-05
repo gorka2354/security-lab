@@ -29,6 +29,9 @@ yo         hunts/yo/contracts
 
 # --- in-scope open-source candidates to scan ---
 stakelink  https://github.com/stakedotlink/contracts
+# bridges / aggregators (our wheelhouse: verification bypass + arbitrary-call):
+lifi       https://github.com/lifinance/contracts
+debridge   https://github.com/debridge-finance/debridge-contracts-v1
 
 # --- ADD FRESH TARGETS HERE (name  repo-url) ---
 # example:  newvault  https://github.com/someorg/somevault
