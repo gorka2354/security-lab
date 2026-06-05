@@ -31,13 +31,16 @@ jobs:
           python toolkit/recon.py oracle-poc
           python toolkit/recon.py invariant-lab
 
-      - name: Slither direct on a self-contained contract
+      # Copy self-contained contracts to a bare dir (no foundry.toml) so crytic
+      # uses solc directly instead of trying forge.
+      - name: Slither proof (bare solc compile)
         continue-on-error: true
-        run: slither nomad-poc/src/Nomad.sol
+        run: |
+          mkdir -p /tmp/sl && cp nomad-poc/src/Nomad.sol /tmp/sl/
+          cd /tmp/sl && slither Nomad.sol
 
       - name: analyze.py (recon + Slither integration)
         continue-on-error: true
         run: |
-          python toolkit/analyze.py nomad-poc/src
-          python toolkit/analyze.py oracle-poc/src
-          python toolkit/analyze.py invariant-lab/src
+          mkdir -p /tmp/an && cp oracle-poc/src/OracleLending.sol /tmp/an/
+          python toolkit/analyze.py /tmp/an
