@@ -46,6 +46,15 @@ _TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?)/", re.I)
 # arbitrary external call (bridge-aggregator approval-drain class)
 ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
 
+# inline authorization INSIDE a function body (no modifier, but gated in code):
+# a msg.sender comparison, a require on msg.sender, a role/owner check, signature
+# verification (keeper/oracle-quorum pattern), or upgrade auth. NOT bare msg.sender
+# (that just means "uses the caller as an actor", e.g. _balances[msg.sender]).
+INLINE_AUTH = re.compile(
+    r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*msg\.sender|"
+    r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforceAccessControl|"
+    r"_verifySignatures|verifySignature|_checkAccess|_checkSender")
+
 
 def iter_sol(root):
     for cur, dirs, files in os.walk(root):
@@ -90,11 +99,14 @@ def det_access(text, rel):
             continue
         if re.search(r"\b(re)?initializer\b", blob):  # OZ initializer guards init
             continue
-        # peek the body, but stop at the next function so we don't read its auth
+        # gated if: a modifier; OR strong auth anywhere in the body (deep
+        # signature-verification gates); OR a bare msg.sender near the TOP (a
+        # guard lives there - cap at 280 so a trailing emit(msg.sender) doesn't
+        # mask a real ungated setter). Bounded by the next function (no bleed).
         nxt = text.find("function ", m.end())
-        body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
-        if "only" in blob.lower() or re.search(
-                r"msg\.sender|hasRole|_checkRole|_checkOwner|_authorizeUpgrade", body):
+        end = nxt if nxt > 0 else m.end() + 1500
+        if ("only" in blob.lower() or INLINE_AUTH.search(text[m.end():end])
+                or re.search(r"msg\.sender", text[m.end():min(m.end() + 280, end)])):
             continue
         if PRIV.search(name):
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
@@ -116,10 +128,11 @@ def det_sibling(text, rel):
         gname = gate.group(0) if gate else None
         if not gname and re.search(r"\b(re)?initializer\b", blob):
             gname = "initializer"  # OZ initializer guards one-time init -> gated
-        if not gname:  # no modifier -> also check the body for inline auth
-            nxt = text.find("function ", m.end())
-            body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
-            if re.search(r"msg\.sender|hasRole|_checkRole|_checkOwner|_authorizeUpgrade", body):
+        if not gname:  # no modifier -> check body for inline auth (strong auth
+            nxt = text.find("function ", m.end())  # full body) or a top guard (msg.sender)
+            end = nxt if nxt > 0 else m.end() + 1500
+            if (INLINE_AUTH.search(text[m.end():end])
+                    or re.search(r"msg\.sender", text[m.end():min(m.end() + 280, end)])):
                 gname = "inline-auth"
         funcs.append((name, lineno(text, m.start()), gname))
     gates = sorted({f[2] for f in funcs if f[2] and f[2] != "inline-auth"})

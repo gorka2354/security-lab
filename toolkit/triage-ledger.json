@@ -65,6 +65,72 @@
       "verdict": "fp",
       "reason": "public-good: claims Chainlink rewards to address(this), receiver hardcoded, _minRewards is slippage guard",
       "date": "2026-06-05"
+    },
+    {
+      "sig": "stakewise|contracts/tokens/PriceFeed.sol|oracle|latestAnswer",
+      "target": "stakewise",
+      "file": "contracts/tokens/PriceFeed.sol",
+      "line": 42,
+      "detector": "oracle",
+      "snippet": "latestAnswer",
+      "verdict": "fp",
+      "reason": "derived on-chain osToken/ETH rate (convertToAssets), not a Chainlink feed; block.timestamp correct (no upstream to freeze), price>0 guaranteed",
+      "date": "2026-06-07"
+    },
+    {
+      "sig": "stakewise|contracts/tokens/PriceFeed.sol|oracle|latestRoundData",
+      "target": "stakewise",
+      "file": "contracts/tokens/PriceFeed.sol",
+      "line": 59,
+      "detector": "oracle",
+      "snippet": "latestRoundData",
+      "verdict": "fp",
+      "reason": "derived on-chain osToken/ETH rate (convertToAssets), not a Chainlink feed; block.timestamp correct (no upstream to freeze), price>0 guaranteed",
+      "date": "2026-06-07"
+    },
+    {
+      "sig": "stakewise|contracts/vaults/ethereum/EthErc20MetaVault.sol|supply|function updateStateAndDepositAndMintOsToken(...)",
+      "target": "stakewise",
+      "file": "contracts/vaults/ethereum/EthErc20MetaVault.sol",
+      "line": 112,
+      "detector": "supply",
+      "snippet": "function updateStateAndDepositAndMintOsToken(...)",
+      "verdict": "fp",
+      "reason": "LTV-bounded over-collateralized mint: public wrapper -> VaultOsToken._mintOsToken reverts LowLtv if position > collateral*ltvPercent; _checkOsTokenPosition re-checks on collateral exit",
+      "date": "2026-06-07"
+    },
+    {
+      "sig": "stakewise|contracts/vaults/ethereum/EthErc20Vault.sol|supply|function updateStateAndDepositAndMintOsToken(...)",
+      "target": "stakewise",
+      "file": "contracts/vaults/ethereum/EthErc20Vault.sol",
+      "line": 98,
+      "detector": "supply",
+      "snippet": "function updateStateAndDepositAndMintOsToken(...)",
+      "verdict": "fp",
+      "reason": "LTV-bounded over-collateralized mint: public wrapper -> VaultOsToken._mintOsToken reverts LowLtv if position > collateral*ltvPercent; _checkOsTokenPosition re-checks on collateral exit",
+      "date": "2026-06-07"
+    },
+    {
+      "sig": "stakewise|contracts/vaults/ethereum/EthMetaVault.sol|supply|function updateStateAndDepositAndMintOsToken(...)",
+      "target": "stakewise",
+      "file": "contracts/vaults/ethereum/EthMetaVault.sol",
+      "line": 111,
+      "detector": "supply",
+      "snippet": "function updateStateAndDepositAndMintOsToken(...)",
+      "verdict": "fp",
+      "reason": "LTV-bounded over-collateralized mint: public wrapper -> VaultOsToken._mintOsToken reverts LowLtv if position > collateral*ltvPercent; _checkOsTokenPosition re-checks on collateral exit",
+      "date": "2026-06-07"
+    },
+    {
+      "sig": "stakewise|contracts/vaults/ethereum/EthVault.sol|supply|function updateStateAndDepositAndMintOsToken(...)",
+      "target": "stakewise",
+      "file": "contracts/vaults/ethereum/EthVault.sol",
+      "line": 94,
+      "detector": "supply",
+      "snippet": "function updateStateAndDepositAndMintOsToken(...)",
+      "verdict": "fp",
+      "reason": "LTV-bounded over-collateralized mint: public wrapper -> VaultOsToken._mintOsToken reverts LowLtv if position > collateral*ltvPercent; _checkOsTokenPosition re-checks on collateral exit",
+      "date": "2026-06-07"
     }
   ]
 }
