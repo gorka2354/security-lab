@@ -29,8 +29,8 @@
       "line": 43,
       "detector": "oracle",
       "snippet": "latestRoundData",
-      "verdict": "todo",
-      "reason": "REAL pattern: no price>0 + MASKS staleness (stamps block.timestamp). Deployed mainnet. Impact needs external consumer - see hunts/stakelink/HUNT.md",
+      "verdict": "wontfix",
+      "reason": "RESOLVED Low: masks staleness but needs major-feed-freeze + staleness-checking consumer; Morpho wstLINK-LINK uses ratio adapter (no staleness) & doesnt check anyway; Folks=stable leg. Bounty exists but no impact path. Defensive only. See HUNT.md",
       "date": "2026-06-05"
     },
     {
@@ -40,8 +40,8 @@
       "line": 37,
       "detector": "oracle",
       "snippet": "latestRoundData",
-      "verdict": "todo",
-      "reason": "same oracle-adapter family as WLSTUSDC; verify price>0/staleness - see hunts/stakelink/HUNT.md",
+      "verdict": "wontfix",
+      "reason": "RESOLVED: pure on-chain wstLINK->LINK ratio, no Chainlink feed, no staleness. Used by Morpho. Not an issue. See HUNT.md",
       "date": "2026-06-05"
     },
     {

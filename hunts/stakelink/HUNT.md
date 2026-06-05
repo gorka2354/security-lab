@@ -39,24 +39,34 @@ Two real oracle-safety gaps (heuristic #2 — Chainlink misuse):
    Chainlink feeds froze days ago. The adapter actively blinds the consumer's
    staleness guard and serves the last (stale) price as fresh.
 
-### Status: production, but impact UNVERIFIED
-- **Deployed on mainnet**: referenced in `deployments/mainnet.json` and the prod
-  deploy script `scripts/prod/linkStaking/1.0.5-chainlink-price-adapters/`.
-- The consumer of `latestRoundData()` is almost certainly **external** (the
-  `EACAggregatorProxy` interface = "expose wrappedLST as a Chainlink-style feed"
-  so a money-market can list it). That consumer is NOT in this repo.
-- Caveat: stamping `block.timestamp` on a *derived/computed* feed is a COMMON
-  adapter pattern and is sometimes an accepted design (freshness is delegated to
-  the consumer checking the inputs). So this may be known/accepted.
+### Investigation (RESOLVED 2026-06-05) — verdict: REAL but LOW, not reportable
 
-### To confirm or drop (next session)
-1. Identify the actual consumer of this adapter on mainnet (etherscan: who reads
-   this address as a price feed?). Lending market? Index valuation?
-2. Does that consumer rely on `updatedAt` for staleness AND/OR on `answer` for
-   collateral valuation? If yes -> stale/zero feed -> mispricing -> real impact.
-3. Is it already known? (stakelink audits / the adapter's own tests asserting intent.)
-4. If real + in-scope somewhere: write up as oracle-staleness (Medium-ish), like
-   the YO finding — but only if NOT already known.
+**Addresses (mainnet, deployments/mainnet.json):**
+- USDC adapter (the masking one): `0xBA2A4765934Ad29f27631fcF3117360FE28217a5`
+- underlying adapter: `0xf534813F0e94De9718c75c6FE3bbd6583c46BB0A`
+- inputs: LINK/USD `0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c`, USDC/USD
+  `0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6`, wstLINK ratio (`getUnderlyingByWrapped`).
 
-Disposition per standing rule: not confirmed-critical from here -> recorded, not
-reported. Ledger marks it `todo` so it stays visible (not suppressed) next run.
+**Consumers (web, not in this repo):** wstLINK is collateral on
+- **Morpho** — `wstLINK-LINK` market. Prices wstLINK in LINK, so it uses the
+  *underlying* adapter (`0xf534`) = a pure on-chain ratio, **NO Chainlink feed, NO
+  staleness at all**. And Morpho Blue oracles **don't check staleness by design**.
+- **Folks Finance** — wstLINK -> stablecoin/LINK, cross-chain. The USDC adapter
+  (`0xBA2A`, the masking one) is the stablecoin-leg feed.
+
+**Why severity collapses to Low/informational:** the masking bites only if BOTH
+(1) the consumer actually checks `updatedAt` AND (2) a *major* feed (LINK/USD or
+USDC/USD) freezes. The largest consumer (Morpho wstLINK-LINK) is unaffected (uses
+the ratio adapter; doesn't check staleness anyway). `price <= 0` is unreachable for
+these majors. No concrete fund-loss path -> not a demonstrable-impact finding.
+
+**Scope:** stake.link HAS a live Immunefi bounty ($100k max, PoC + KYC). But
+Immunefi pays for demonstrable impact; this is informational (no exploit path) ->
+would triage as Low / won't-pay. (Couldn't fetch the exact asset list — page 404'd
+via fetch — but the disposition doesn't depend on it.)
+
+**Disposition:** real pattern, investigated to ground, **closed as Low / defensive-
+hardening only** (the fix: propagate `min(upstream updatedAt)` instead of stamping
+`block.timestamp`; add `require(price > 0)`). Not reporting. Ledger -> `wontfix`
+(silenced) so it won't resurface. Good demonstration that diffscan surfaces real
+fresh patterns; discipline correctly sized this one down.
