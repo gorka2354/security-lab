@@ -56,9 +56,40 @@ intricate features (audit-drift). Priority order:
 - Fuzzers present: `echidna.yaml`, `medusa.json`, `medusa-differential.json`, Halmos, Slither.
 - `deprecated/` = out of scope. `audits/` = read for the known-issues baseline.
 
+## Known-issues baseline (from audits — OUT OF SCOPE, do NOT re-find)
+Most relevant = **Cantina 2025-06-14 (v1.8-rc)** — it audited EXACTLY our focus areas:
+- **[Crit] 3.1.1** `setVault` no-op on zero balance in `_transferFrom` -> asset theft: with
+  `sharesOf>0 & balanceOf==0`, shares get "copied" to a higher-share-price vault. (NonTransferrableRebasingTokenVault)
+- **[High] 3.2.1** AaveAdapter precision loss -> withdraw reverts + cross-vault transfer DoS.
+- [Med] 3.3.2 **ERC4626 vault reentrancy** can drain protocol liquidity. 3.3.3 removed/compromised
+  vault locks users out. 3.3.4 wrong borrow-APR validation in **LiquidateWithReplacement**.
+  3.3.5 can't migrate from ERC4626 vault w/ fees/slippage.
+- [Low] 3.4.1 wrong `totalSupply` in ERC4626Adapter; 3.4.2 adapter `balanceOf` wrong for
+  mismatched vaults; 3.4.3 arbitrageable APR in **CopyLimitOrders**; 3.4.4 SetUserConfiguration event/state mismatch.
+- [Info] 3.5.2 a rate provider can block subscribers' market ops; 3.5.3 vaultDust stuck.
+- **Omniscia 2025-06-23** (adapters): AAR/ERC/NTR Minors (underlying-token correlation, liquidity
+  eval, adapter-ID 1:1 breach, insecure adapter removal) — addressed.
+- **Hashlock 2025-06-23**: [M-01] ERC4626Adapter#withdraw unlimited allowance window; [M-02]
+  fullWithdraw share-redemption block; [L-01] setVault forfeitOldShares.
+- README known-limitations: oracle-wrong-price -> state unguaranteed; trusted roles; no rebasing/FoT.
+- (2024 audits v1.0-1.5: superseded by the above; read on-demand via `toolkit/pdftext.py`.)
+
+## STRATEGY REFINEMENT (after reading audits)
+The periphery we targeted was **heavily scrubbed in June 2025** (Cantina/Omniscia/Hashlock
+found a Crit + High + many Meds, all fixed). So the freshest, least-audited surface =
+**the DRIFT SINCE those audits**: v1.8.1 -> arbitrum deploy -> `b7714a2` ("batch shutdown
+script"). Sharpened Phase-2 plan:
+1. **`diffscan b7714a2` vs the ~June-2025 audited commit** — new/changed code there is virtually un-audited.
+2. **Verify the Crit/High FIXES are complete** (incomplete-fix bugs are classic) — esp. the
+   `_transferFrom` zero-value no-op + setVault: are ALL shares/balance-divergence paths closed?
+3. **Hunt SIBLINGS of the known bugs**: other adapter-accounting (`balanceOf`/`totalSupply`)
+   paths, other reentrancy entrypoints, other `sharesOf` vs `balanceOf` mismatches.
+4. Understand the "batch shutdown" mechanism (new, named in the in-scope commit).
+
 ## Phase tracker
-- [x] **Phase 0 — scope & setup**: scope locked (Cantina), both repos cloned, structure mapped, HUNT.md.
-  - [ ] remaining: align to commit b7714a2; `forge build` + run their test/Echidna suite; read audits/ -> known-issues list.
+- [x] **Phase 0 — scope & setup**: scope locked, repos cloned, structure mapped, **aligned to b7714a2**,
+      **audits read -> known-issues baseline** (above).
+  - [ ] remaining: `forge build` + run their test/Echidna suite (needed for Phase 3 PoCs).
 - [ ] **Phase 1 — map the machine**: architecture + roles + money-flow + invariant list (vault note).
 - [ ] **Phase 2 — hunt the periphery**: read every fn in the 5 focus areas; recon/diffscan; hypotheses.
 - [ ] **Phase 3 — prove/kill**: PoCs + invariant fuzzing on top hypotheses.
