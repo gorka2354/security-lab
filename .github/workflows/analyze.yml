@@ -39,8 +39,8 @@ jobs:
           mkdir -p /tmp/sl && cp nomad-poc/src/Nomad.sol /tmp/sl/
           cd /tmp/sl && slither Nomad.sol
 
-      - name: analyze.py (recon + Slither integration)
+      - name: analyze.py (recon + Slither, cross-corroboration)
         continue-on-error: true
         run: |
-          mkdir -p /tmp/an && cp oracle-poc/src/OracleLending.sol /tmp/an/
+          mkdir -p /tmp/an && cp nomad-poc/src/Nomad.sol /tmp/an/
           python toolkit/analyze.py /tmp/an

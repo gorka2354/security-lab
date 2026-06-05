@@ -77,7 +77,9 @@ def det_access(text, rel):
             continue
         if re.search(r"\b(view|pure)\b", blob):   # read-only -> access control N/A
             continue
-        body = text[m.end():m.end() + 280]
+        # peek the body, but stop at the next function so we don't read its auth
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
         if "only" in blob.lower() or re.search(
                 r"msg\.sender|hasRole|_checkRole|_checkOwner|_authorizeUpgrade", body):
             continue
@@ -85,6 +87,28 @@ def det_access(text, rel):
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
                         "external/public + privileged name, NO only* / inline auth", 0))
     return out
+
+
+# ── Detector 2b: sibling inconsistency (the regression technique) ──
+def det_sibling(text, rel):
+    """Within one file: if some privileged fns are gated (only*) and a
+    privileged sibling is NOT, flag it. This is how claimExternalVaultRewards
+    (ungated) stood out next to claimBGTIncentives (onlyKeeper)."""
+    funcs = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        gate = re.search(r"\bonly\w+", blob)
+        funcs.append((name, lineno(text, m.start()), gate.group(0) if gate else None))
+    gates = sorted({f[2] for f in funcs if f[2]})
+    ungated_priv = [f for f in funcs if not f[2] and PRIV.search(f[0])]
+    if not gates or not ungated_priv:
+        return []
+    glist = ", ".join(gates)
+    return [(rel, ln, f"function {name}(...)",
+             f"UNGATED, but siblings here use [{glist}] -> inconsistent?", 0)
+            for name, ln, _ in ungated_priv]
 
 
 # ── Detector 3: oracle 3-guard checklist ──
@@ -119,6 +143,8 @@ def det_danger(text, rel):
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
+    ("ACCESS-CONTROL sibling inconsistency (regression technique)", det_sibling,
+     "Heuristic 3: in this contract some privileged fns ARE gated, this one is NOT."),
     ("ACCESS CONTROL leads (privileged fn, no modifier)", det_access,
      "Heuristic 3: who SHOULD call this? Compare siblings / old version."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
