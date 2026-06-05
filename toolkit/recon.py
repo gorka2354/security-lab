@@ -108,8 +108,14 @@ def det_sibling(text, rel):
         if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
             continue
         gate = re.search(r"\bonly\w+", blob)
-        funcs.append((name, lineno(text, m.start()), gate.group(0) if gate else None))
-    gates = sorted({f[2] for f in funcs if f[2]})
+        gname = gate.group(0) if gate else None
+        if not gname:  # no modifier -> also check the body for inline auth
+            nxt = text.find("function ", m.end())
+            body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
+            if re.search(r"msg\.sender|hasRole|_checkRole|_checkOwner|_authorizeUpgrade", body):
+                gname = "inline-auth"
+        funcs.append((name, lineno(text, m.start()), gname))
+    gates = sorted({f[2] for f in funcs if f[2] and f[2] != "inline-auth"})
     ungated_priv = [f for f in funcs if not f[2] and PRIV.search(f[0])]
     if not gates or not ungated_priv:
         return []
