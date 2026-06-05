@@ -1,37 +1,77 @@
-# 🛡️ security-lab — рабочая папка (bug hunting)
+# 🛡️ security-lab — white-hat bug-hunting движок
 
-Твой штаб для white-hat поиска багов. Открыл папку — вот что где.
+Личная система поиска багов в смартконтрактах. Думай о ней как о **детективном агентстве для кода**: картотека преступлений, металлоискатель, лаборатория и детектив.
+
+## Вид сверху — как работает вся машина
+
+```
+                  in-scope bounty targets  (toolkit/targets.txt)
+                                |
+      +-------------------------v--------------------------+
+      |  orchestrate.py  — ОБЛАВА                          |
+      |  сканит N репо → ранжирует → выдаёт "cream"        |
+      +-------------------------+--------------------------+
+                                | топ-таргет
+      +-------------------------v--------------------------+
+      |  recon.py  — МЕТАЛЛОИСКАТЕЛЬ (L1)                  |
+      |  7 детекторов, быстрый триаж, приоритет [!]        |
+      +-------------------------+--------------------------+
+                                | high-signal лиды
+         +----------------------+----------------------+
+         v                      v                      v
+   analyze.py+Slither     scaffold.py + fuzz      Claude  (L4)
+   (L2) AST/dataflow      (L3) краш-тест           ДЕТЕКТИВ:
+   + кросс-корреляция     инвариантов              реально? known?
+         +----------------------+----------------------+
+                                |
+                                v
+                  FINDING  →  ответственное раскрытие (bounty)
+
+  +----------------------------------------------------------+
+  |  КАРТОТЕКА (Obsidian "Крипто безопасность")              |
+  |  паттерны · эвристики · разборы взломов · findings       |
+  |     ^                                                    |
+  |     +-- каждый изученный баг  → новый детектор           |
+  |         каждая ложная тревога → инструмент точнее        |
+  +----------------------------------------------------------+
+```
+
+**Цикл самосовершенствования:** изучили реальный баг → добавили в картотеку + детектор → ловим класс на любом репо. Ложная тревога → подтачиваем (за разработку — **5 фиксов точности**). Чем больше примеров — тем умнее система.
+
+**Слои:** L1 быстрый скан (regex) → L2 глубокий анализ (Slither) → L3 краш-тест математики (invariant-фаззинг) → **L4 = я (Claude)** рассуждаю и оркестрирую. Объём (orchestrate) × Глубина (L2/L3) — обе половины.
 
 ## Карта папки
 ```
 security-lab/
-├─ README.md          ← ты здесь (вход)
-├─ CLAUDE.md          ← контекст для Claude Code (откроешь меня тут — я всё знаю)
+├─ README.md / CLAUDE.md / ROADMAP.md     ← вход, контекст для меня, роадмап
 ├─ toolkit/
-│   ├─ recon.py       ← СКАНЕР: грепает репо по нашим эвристикам, выдаёт приоритезированные зацепки
-│   ├─ PROMPTS.md     ← готовые промпты под каждый шаг охоты
-│   └─ WORKFLOW.md    ← чек-лист: от зацепки до репорта
-├─ hunts/             ← охоты по таргетам
-│   └─ exactly/
-│       ├─ HUNT.md    ← лог охоты (зацепки + статусы)
-│       └─ protocol/  ← склонированный код Exactly
-├─ nomad-poc/         ← Foundry PoC: обход проверки (bypass)
-└─ oracle-poc/        ← Foundry PoC: оракул staleness
+│   ├─ orchestrate.py   ← ОБЪЁМ: скан многих таргетов + ранг (targets.txt)
+│   ├─ recon.py         ← L1 сканер: 7 детекторов наших эвристик
+│   ├─ analyze.py       ← L2: recon + Slither + кросс-корреляция
+│   ├─ scaffold.py      ← L3: генератор invariant-харнесса
+│   ├─ security_audit.py· PROMPTS.md · WORKFLOW.md
+├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
+│   ├─ exactly/ infrared/ yo/  (+ yo/oracle-fuzz — deep-invariant разбор)
+├─ nomad-poc/ oracle-poc/ invariant-lab/   ← Foundry PoC + invariant-лаба
+└─ .github/workflows/   ← CI: security-audit + Slither (L2 на Linux)
 ```
 
 ## База знаний — отдельно (Obsidian)
-`C:\Users\pesto\OneDrive\Документы\Obsidian Vault\Крипто безопасность\`
-Там словами: паттерны, разборы взломов, findings, шаблоны, эвристики.
-**Принцип:** код и охоты → здесь; знания → в Obsidian.
+`...\Obsidian Vault\Крипто безопасность\` — паттерны, разборы, findings, шаблоны.
+**Принцип:** код и охоты → здесь (репо); знания → в Obsidian.
 
 ## Быстрый старт
 ```bash
-export PATH="$HOME/.foundry/bin:$PATH"     # Foundry не в PATH
-forge test --root oracle-poc -vvv          # прогнать PoC
+export PATH="$HOME/.foundry/bin:$PATH"
+python toolkit/orchestrate.py            # ОБЛАВА: скан таргетов из targets.txt → очередь
+python toolkit/recon.py <repo>           # L1 скан одного репо
+python toolkit/scaffold.py <Contract.sol> <Name>   # сгенерить invariant-харнесс
+forge test --root invariant-lab -vvv     # прогнать фаззинг
 ```
-- Продолжить охоту → `hunts/<target>/HUNT.md`
-- Дать мне задачу → скопируй промпт из `toolkit/PROMPTS.md`
 
-## Текущий статус
-- ✅ Учебный цикл пройден (Nomad bypass, оракул-staleness) + 2 рабочих PoC
-- 🎯 Идёт охота на **Exactly**: лид #1 (`latestAnswer`) = KNOWN (EXA-36); копаем **audit drift**
+## Статус
+- ✅ Полный движок построен: **VOLUME** (orchestrate) × **DEPTH** (recon → Slither → scaffold+fuzz → L4)
+- ✅ 6 классов багов + 6 эвристик в картотеке; 7 детекторов; закалён 5 фиксами
+- 🎯 Охоты: Nomad (учебная), Exactly/Infrared/YO (триаж), YO oracle (deep-invariant)
+- 📋 Очередь: stakelink ранжирован #1 — готов к глубокому аудиту
+- 📌 Бэклог в `ROADMAP.md` (MCP-сервер отложен)

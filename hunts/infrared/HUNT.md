@@ -47,6 +47,23 @@ Whitelist-инфра существует (`infrared.whitelistedRewardTokens`, `
 
 Подозреваемая функция: `RewardsLib.harvestBribes(address[] _tokens)` (берёт произвольный массив токенов) и `harvestBase`.
 
+## Триаж recon-зацепок (наш сканер → я как L4)
+Прогнали `recon.py`, прочитал топ-`[!]` продакшен-лиды, рассудил:
+
+| Зацепка | Детектор | Вердикт |
+|---|---|---|
+| `InfraredBERA.sol:165` mint | supply-integrity | FP — backed deposit-mint (платишь BERA → минт iBERA), не «из ничего» |
+| `InfraredBERAWithdrawor.sol:132` execute | reentrancy | FP — внешний вызов = trusted view `keeper()`, не атакуемый колбэк |
+| `Infrared.sol:467/481/526/536` harvest | sibling | FP — намеренно public-good; gated-соседи делают ДРУГОЕ (админка) |
+| `BribeCollector.sol:70` claimFees | reentrancy | FP — «запись» = локалка в цикле; вызовы = трансферы, CEI не нарушен |
+
+**Итог: 4/4 false positive / by-design.** Реалистично для закалённого репо.
+
+**Уроки триажа (записать в навык):**
+- reentrancy-детектор не отличает trusted-view от untrusted-callback → разрешаю я / L2-Slither.
+- sibling-FP vs реальный (claimExternalVaultRewards): критерий — **есть ли gated-сиблинг, делающий ТО ЖЕ?**
+- supply-детектор верно выносит mint-точки; «backed vs from-nothing» решает рассуждение.
+
 ## Следующий шаг
 - [ ] Прочитать `RewardsLib.harvestBribes` / `harvestBase` → есть ли whitelist-check перед `addReward`/`notifyRewardAmount` на ibgtVault?
 - [ ] **Сверить с публичными findings контеста Cantina** (это known или нет?)
