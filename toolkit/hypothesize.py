@@ -2,51 +2,86 @@
 """hypothesize.py - turn a contract's STRUCTURE into attack-hypothesis seeds.
 
 recon.py finds vuln *patterns* (auditor-checklist mode). This is the other mode:
-it extracts structural "data" so a human (L4) can build hypotheses for bugs the
-audit MISSED - emergent/cross-component, round-trip asymmetry, un-checked state.
+it extracts structural "data" so a human (L4) builds hypotheses for bugs the audit
+MISSED - emergent/cross-component, round-trip asymmetry, un-checked state.
 (See vault note "Метод - охота гипотезами".)
 
     python toolkit/hypothesize.py <repo-or-file> [--out worksheet.md]
 
 Outputs a hypothesis worksheet:
-  1. OPERATION MAP + INVERSE PAIRS  - deposit<->withdraw, mint<->burn ... -> round-trip
-     asymmetry (do X then inverse(X); rounding/fees should not let value leak).
-  2. SHARED-STATE MATRIX            - storage fields written by MANY functions ->
+  1. OPERATION MAP + INVERSE PAIRS  - deposit<->withdraw ... -> round-trip asymmetry.
+  2. SHARED-STATE MATRIX            - storage fields written by MANY entry-fns ->
      emergent-interaction candidates (interleave A and B; does an invariant break?).
-  3. THEIR DECLARED INVARIANTS      - what their test/Echidna harness already asserts
-     -> the COMPLEMENT is your hunting ground (write a STRONGER invariant, fuzz it).
-ASCII output for Windows consoles. Heuristic (regex), expect noise; it surfaces, you reason.
+  3. THEIR DECLARED INVARIANTS      - what their fuzz harness asserts -> the COMPLEMENT
+     is your hunting ground (write a STRONGER invariant, fuzz it).
+
+COMBINE (analyzer -> hypothesizer): the shared-state matrix follows the CALL GRAPH
+(transitive) so writes done via library/internal setters (state.executeX(...),
+Lib.foo(state,...)) are attributed to the entry fn - "poor man's dataflow" (Grade A,
+runs anywhere). The accurate version uses Slither's `state_variables_written` (Grade B,
+CI/Linux); see ROADMAP "combine engines". ASCII output. Heuristic - it surfaces, you reason.
 """
 
 import argparse
 import os
 import re
 
-SKIP = {"lib", "node_modules", "out", "artifacts", "cache", ".git", "forge-std", "openzeppelin"}
+SKIP = {"lib", "node_modules", "out", "artifacts", "cache", ".git", "forge-std",
+        "openzeppelin", "deprecated", "script", "scripts", "broadcast"}
 
-# verb -> its inverse, for round-trip hypotheses
 INVERSE = {
     "deposit": "withdraw", "mint": "burn", "supply": "withdraw", "borrow": "repay",
     "stake": "unstake", "lock": "unlock", "add": "remove", "increase": "decrease",
     "wrap": "unwrap", "enter": "exit", "open": "close", "buy": "sell", "create": "delete",
 }
-INVERSE.update({v: k for k, v in INVERSE.items()})  # both directions
+INVERSE.update({v: k for k, v in INVERSE.items()})
 
 FUNC = re.compile(r"function\s+(\w+)\s*(\([^{};]*?)\{", re.S)
-# storage roots accessed via the State-struct pattern (Size/Rheo) or plain members
-STATE = re.compile(r"\bstate(?:\.\w+){1,4}|\b_?[a-z]\w*\[[^\]]+\]\s*(?==)")
 ASSIGN = re.compile(r"\s*(=(?!=)|\+=|-=|\*=|/=|\+\+|--|\bdelete\b|\.push\b|\.pop\b)")
+STATE = re.compile(r"\bstate(?:\.\w+){1,4}")
+SETTER = re.compile(r"\.(set|push|pop|increase|decrease|mint|burn|transfer|create|delete|remove|add)\w*\s*\(")
+CALL = re.compile(r"\b([a-zA-Z_]\w*)\s*\(")
+ROOT = re.compile(r"state\.data\.\w+|state\.\w+")  # normalize a field to its top root
 
 
-def iter_sol(root):
+def iter_sol(root, with_tests=False):
     if os.path.isfile(root):
         yield root
         return
     for cur, dirs, files in os.walk(root):
         dirs[:] = [d for d in dirs if d.lower() not in SKIP]
         for f in files:
-            if f.endswith(".sol") and "test" not in cur.lower() and "mock" not in f.lower():
-                yield os.path.join(cur, f)
+            if not f.endswith(".sol"):
+                continue
+            if not with_tests and ("test" in cur.lower() or "mock" in f.lower()):
+                continue
+            yield os.path.join(cur, f)
+
+
+def func_records(text):
+    """(name, blob, body) for every function; body bounded by the next function."""
+    ms = list(FUNC.finditer(text))
+    for i, m in enumerate(ms):
+        end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
+        yield m.group(1), m.group(2), text[m.end():end]
+
+
+def direct_writes(body):
+    """State roots written DIRECTLY in this body (assignment or setter receiver)."""
+    w = set()
+    for m in STATE.finditer(body):
+        tail = body[m.end():m.end() + 8]
+        if ASSIGN.match(tail):
+            w.add(_root(m.group(0)))
+    for m in re.finditer(r"\bstate(?:\.\w+){0,3}", body):
+        if SETTER.match(body[m.end():m.end() + 40]) and m.group(0) != "state":
+            w.add(_root(m.group(0)))
+    return w
+
+
+def _root(s):
+    m = ROOT.match(s)
+    return m.group(0) if m else s
 
 
 def verb_of(name):
@@ -54,111 +89,119 @@ def verb_of(name):
     for v in INVERSE:
         if n.startswith(v):
             return v
-    m = re.match(r"(set|get|update|add|remove|claim|liquidate|swap|transfer|redeem|compensate)", n)
+    m = re.match(r"(set|get|update|claim|liquidate|swap|transfer|redeem|compensate)", n)
     return m.group(1) if m else None
-
-
-def state_roots(body):
-    """Return (writes, reads) sets of storage roots touched in a function body."""
-    writes, reads = set(), set()
-    for m in re.finditer(r"\bstate(?:\.\w+){1,4}", body):
-        root = m.group(0)
-        tail = body[m.end():m.end() + 8]
-        (writes if ASSIGN.match(tail) else reads).add(root)
-    # setter-style writes:  X.setFoo(  /  state...setFoo(
-    for m in re.finditer(r"\bstate(?:\.\w+){1,3}", body):
-        nxt = body[m.end():m.end() + 40]
-        if re.match(r"\.(set|push|pop|increase|decrease|mint|burn|transfer|create|delete)\w*\s*\(", nxt):
-            writes.add(m.group(0))
-    return writes, reads
 
 
 def main():
     ap = argparse.ArgumentParser(description="Extract attack-hypothesis seeds from contracts")
-    ap.add_argument("path", help="repo dir or single .sol file")
+    ap.add_argument("path")
     ap.add_argument("--out")
-    ap.add_argument("--top", type=int, default=15)
+    ap.add_argument("--top", type=int, default=18)
     a = ap.parse_args()
+    base = a.path if os.path.isdir(a.path) else os.path.dirname(a.path)
 
-    funcs = {}          # name -> {file, verb, writes, reads}
-    field_writers = {}  # storage root -> set(func names)
-    invariants = []     # (file, line, name) from test/invariants
+    # 1) parse EVERY function (incl internal/library) -> direct writes + callees
+    dwrites, callees, entry = {}, {}, {}
     for path in iter_sol(a.path):
-        rel = os.path.relpath(path, a.path if os.path.isdir(a.path) else os.path.dirname(a.path))
         try:
             text = open(path, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        for m in FUNC.finditer(text):
-            name, blob = m.group(1), m.group(2)
-            if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
-                continue
-            nxt = text.find("\n    function ", m.end())
-            body = text[m.end():(nxt if nxt > 0 else m.end() + 2500)]
-            w, r = state_roots(body)
-            funcs[name] = {"file": rel, "verb": verb_of(name), "writes": w, "reads": r}
-            for root in w:
-                field_writers.setdefault(root, set()).add(name)
+        rel = os.path.relpath(path, base)
+        for name, blob, body in func_records(text):
+            dwrites.setdefault(name, set()).update(direct_writes(body))
+            callees.setdefault(name, set()).update(CALL.findall(body))
+            statey = re.search(r"\b(external|public)\b", blob) and not re.search(r"\b(view|pure)\b", blob)
+            if statey:
+                entry[name] = rel
 
-    # also scan invariant harnesses (their declared properties)
-    for path in iter_sol_all(a.path):
+    known = set(dwrites)
+    for n in callees:
+        callees[n] &= known  # keep only calls we can resolve by name
+
+    # 2) transitive (call-graph) effective writes per function
+    memo = {}
+
+    def effective(n, stack):
+        if n in memo:
+            return memo[n]
+        if n in stack:
+            return set()
+        stack = stack | {n}
+        acc = set(dwrites.get(n, ()))
+        for g in callees.get(n, ()):
+            acc |= effective(g, stack)
+        memo[n] = acc
+        return acc
+
+    field_writers = {}
+    for n in entry:
+        for root in effective(n, set()):
+            field_writers.setdefault(root, set()).add(n)
+
+    # 3) their declared invariants (scan tests too)
+    invs = []
+    for path in iter_sol(a.path, with_tests=True):
         if not re.search(r"(invariant|propert|echidna|medusa)", path, re.I):
             continue
         try:
             text = open(path, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        for m in re.finditer(r"function\s+(invariant_?\w+|property_?\w+|echidna_?\w+)\s*\(", text):
-            invariants.append((os.path.basename(path), text[:m.start()].count("\n") + 1, m.group(1)))
+        for m in re.finditer(r"function\s+(invariant_?\w+|propert\w+|echidna_?\w+)\s*\(", text):
+            invs.append((os.path.basename(path), text[:m.start()].count("\n") + 1, m.group(1)))
 
     out = ["# Hypothesis worksheet: " + os.path.basename(os.path.abspath(a.path)),
-           f"\n{len(funcs)} state-changing external/public fns scanned. "
-           "Heuristic seeds - reason over them (build attack hypotheses).\n"]
+           f"\n{len(entry)} entry fns; {len(dwrites)} total fns parsed (call-graph transitive). "
+           "Heuristic seeds - reason over them.\n"]
 
-    # 1. inverse pairs
+    # section 1: inverse pairs
     out.append("## 1. Inverse pairs -> ROUND-TRIP asymmetry hypotheses")
     by_verb = {}
-    for n, d in funcs.items():
-        if d["verb"]:
-            by_verb.setdefault(d["verb"], []).append(n)
+    for n in entry:
+        v = verb_of(n)
+        if v:
+            by_verb.setdefault(v, []).append(n)
     seen = set()
-    pairs = 0
-    for v, names in sorted(by_verb.items()):
+    for v in sorted(by_verb):
         inv = INVERSE.get(v)
-        if inv and inv in by_verb and (inv, v) not in seen:
+        if inv in by_verb and (inv, v) not in seen:
             seen.add((v, inv))
-            pairs += 1
-            out.append(f"- **{v} <-> {inv}**: `{', '.join(names)}`  vs  `{', '.join(by_verb[inv])}`")
-            out.append(f"    -> do {v} then {inv}: can value leak (rounding/fee)? is it a clean round-trip?")
-    if not pairs:
+            out.append(f"- **{v} <-> {inv}**: `{', '.join(by_verb[v])}` vs `{', '.join(by_verb[inv])}`")
+            out.append(f"    -> {v} then {inv}: value leak (rounding/fee)? clean round-trip?")
+    if not seen:
         out.append("  (no obvious inverse verb pairs)")
 
-    # 2. shared-state matrix
-    out.append("\n## 2. Shared-state -> EMERGENT-interaction hypotheses")
-    out.append("_storage fields written by MANY fns: interleave them, does an invariant break?_\n")
-    ranked = sorted(field_writers.items(), key=lambda kv: -len(kv[1]))
+    # section 2: shared-state (transitive)
+    out.append("\n## 2. Shared-state -> EMERGENT-interaction hypotheses  (call-graph transitive)")
+    out.append("_storage roots written by MANY entry-fns: interleave a CROSS-FILE pair; invariant break?_\n")
+    ranked = sorted(((r, w) for r, w in field_writers.items() if len(w) >= 2), key=lambda kv: -len(kv[1]))
+    if not ranked:
+        out.append("  (none with >=2 writers - try --slither/Grade B for accurate dataflow)")
     for root, writers in ranked[:a.top]:
-        if len(writers) < 2:
-            continue
-        out.append(f"- `{root}`  <- written by {len(writers)}: {', '.join(sorted(writers)[:8])}"
-                   + (" ..." if len(writers) > 8 else ""))
-    out.append("\n  Pick a field written by 3+ fns across DIFFERENT files -> the cross-file pair is the candidate.")
+        ws = sorted(writers)
+        out.append(f"- `{root}`  <- {len(writers)} fns: {', '.join(ws[:9])}" + (" ..." if len(ws) > 9 else ""))
+    out.append("\n  Pick a root written by 3+ entry-fns -> those fns are emergent-interaction candidates.")
 
-    # 3. their invariants (the complement is your ground)
+    # section 3: their invariants
     out.append("\n## 3. Their DECLARED invariants (write what's NOT here)")
-    if invariants:
-        for f, ln, nm in invariants[:40]:
+    if invs:
+        for f, ln, nm in invs[:40]:
             out.append(f"- `{f}:{ln}` {nm}")
-        out.append(f"\n  {len(invariants)} declared. Ask: what quantity / cross-component property is MISSING?")
+        out.append(f"\n  {len(invs)} declared. Ask: what cross-component / cross-market / round-trip "
+                   "property is MISSING? Write it stronger, fuzz it.")
     else:
-        out.append("  (no invariant harness found - they may not fuzz; even more room)")
+        out.append("  (no invariant harness found - point at the repo ROOT to scan test/; "
+                   "or they don't fuzz -> even more room)")
 
-    out.append("\n## 4. Suggested STRONGER invariants (template - adapt per quantity)")
-    out.append("- solvency: SUM(user claims) <= protocol assets, at ALL times, across ALL markets")
-    out.append("- conservation: total debt issued == total credit owed (no value minted in matching)")
-    out.append("- round-trip: deposit(x) then withdraw(all) returns <= x (never more)")
-    out.append("- no-free-value: no sequence of ops leaves caller richer with protocol unchanged")
-    out.append("- cross-market: an action in market A never reduces market B's solvency backing")
+    out.append("\n## 4. Suggested STRONGER invariants (template)")
+    for s in ["solvency: SUM(user claims) <= protocol assets, ALL times, ALL markets",
+              "conservation: total debt issued == total credit owed (no value minted in matching)",
+              "round-trip: do(x) then undo() leaves caller <= start (never richer)",
+              "cross-component: an op in A never breaks B's invariant via shared state",
+              "no-free-value: no op sequence leaves caller richer with protocol unchanged"]:
+        out.append(f"- {s}")
 
     report = "\n".join(out)
     print(report)
@@ -166,17 +209,6 @@ def main():
         os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
         open(a.out, "w", encoding="utf-8").write(report)
         print(f"\n[written to {a.out}]")
-
-
-def iter_sol_all(root):
-    """Like iter_sol but INCLUDES test/ (to find invariant harnesses)."""
-    if os.path.isfile(root):
-        return
-    for cur, dirs, files in os.walk(root):
-        dirs[:] = [d for d in dirs if d.lower() not in SKIP]
-        for f in files:
-            if f.endswith(".sol"):
-                yield os.path.join(cur, f)
 
 
 if __name__ == "__main__":
