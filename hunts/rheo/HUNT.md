@@ -145,6 +145,17 @@ fuzzer cannot reach this; the audit may have, but it's the classic emergent/cros
 backing drops below its claims after another market's op). A break = audit-missed bug. This is the
 "stronger invariant than theirs" engine — the whole point of hypothesis-mode.
 
+**Verifier verdict (reasoned, high-confidence FP):** markets are **position-independent** — each
+market's debt/credit/collateral is self-contained (debtToken & WETH collateral are per-market;
+`property_TOKENS/SOLVENCY` hold per-market). The ONLY shared resource is the borrowToken vault,
+which is **globally consistent** (`SUM(sharesOf)==global shares`, traced) and **balance-checked**
+(`transferFrom`/`withdraw` revert on insufficient balance -> no cross-market double-spend). So a
+single-market invariant being *weaker* doesn't make it *violatable* — the global vault invariant
+is stronger and holds regardless of which market acts. **Likely FP.** A 2-market fuzz would be the
+definitive check (reasoning can miss a subtle interleaving), but EV is low -> not building it now.
+**Process worked end-to-end: hypothesizer -> me (verifier) -> verdict.** A refutation IS a valid
+output (most hypotheses refute; that's real hunting).
+
 ## Overall verdict (deep-dive)
 Across every major subsystem examined — vault/adapter accounting, authorization/delegation,
 market shutdown, and the matching self-arb engine — **Rheo @b7714a2 is sound; no novel bug.**
