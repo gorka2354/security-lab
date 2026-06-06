@@ -130,6 +130,21 @@ was WRONG — it IS checked after the loop; read-on saved a false report.)
 - swap math rounding (AccountingLibrary getCashAmountOut/getCreditAmountIn); liquidation
   (Liquidate / LiquidateWithReplacement / compensate); oracle adapters v1.5.1..v1.8.
 
+## OPEN hypothesis (data-derived, UNTESTED) — cross-market shared-vault solvency
+Built by the hypothesis method (`toolkit/hypothesize.py` + reading their invariants).
+**Data:** their entire fuzz suite (`test/invariants/Properties.sol`: SOLVENCY/TOKENS/VAULTS/
+UNDERWATER/FEES) is **single-market** — one `size` instance, fixed `[USER1..3, size, feeRecipient]`.
+**Gap (complement):** the protocol SHARES one `borrowTokenVault` across multiple markets (same
+borrow token), `sharesOf`/`vaultOf` are GLOBAL, and `transferFrom`/`withdraw`/`setVault` are
+`onlyMarket` (ANY market). **Hypothesis:** a sequence where market A moves a user's shared vault
+balance (withdraw / setVault / cross-vault transfer / liquidation) violates market B's solvency
+or CR assumption — because B's checks sum only B's users over a global vault. Their single-market
+fuzzer cannot reach this; the audit may have, but it's the classic emergent/cross-component class.
+**Test (next):** a 2-market harness sharing one vault + a novel invariant
+`property_CROSS_MARKET_SOLVENCY` (SUM over ALL markets' users <= vault.totalSupply; no market's
+backing drops below its claims after another market's op). A break = audit-missed bug. This is the
+"stronger invariant than theirs" engine — the whole point of hypothesis-mode.
+
 ## Overall verdict (deep-dive)
 Across every major subsystem examined — vault/adapter accounting, authorization/delegation,
 market shutdown, and the matching self-arb engine — **Rheo @b7714a2 is sound; no novel bug.**
