@@ -42,5 +42,53 @@ commits** (max unverified code), tractable, novel architecture. Clone (gitignore
    any divergence from V3 that the V3 audit wouldn't cover.
 4. **Compound-fork classics** on the post-audit diff: liquidation/interest/comptroller changes.
 
+## 🔴 FINDING (candidate, HIGH) — LZUnifiedBridge.lzCompose drains the bridge to an attacker-chosen `market`
+**Status: high-confidence, verified by reading; needs a Foundry PoC to fully confirm, then RESPONSIBLE
+DISCLOSURE via Malda's program (do NOT publish).** This is POST-AUDIT code (see below).
+
+**Location:** `src/rebalancer/bridges/LZUnifiedBridge.sol::lzCompose` (L154-193) ->
+`src/rebalancer/bridges/helpers/BaseOftMessageExecutor.sol::_fallbackToUnderlying` (L116-131).
+
+**Post-audit:** `LZUnifiedBridge.sol` is NEW since the Sherlock audit base (`c60d6c3`, 2025-09-15) -
+added in commit `00e0fb5` "unified bridge for LZ" (#149). The audits never saw it.
+
+**Root cause:** in the LayerZero compose RECEIVE path, `market` is decoded from the compose
+`message` (L167 `abi.decode(message,(address))`), which is set by whoever initiated the OFT send -
+i.e. **attacker-controlled**. lzCompose's only checks are `msg.sender==ENDPOINT` (L165) and
+`from==bridgeContract` (L176) - these constrain the OFT/underlying, **NOT `market`**. The delegatecalled
+executor then runs `_fallbackToUnderlying`, which does
+`IERC20(underlying).safeTransfer(market, IERC20(underlying).balanceOf(address(this)))` -
+**transfers the bridge's ENTIRE underlying balance to the attacker-chosen `market`, with no
+`isMarket`/legitimacy check** (verified: market validation exists only in the `onlyRebalancer` SEND
+path, not here).
+
+**Attack:**
+1. Deploy a fake `market` contract whose `.underlying()` returns a real supported `U`
+   (one with `bridgeContracts[U]` == the bridge's OFT).
+2. Send a tiny OFT transfer of `U` to the bridge with `composeMsg = abi.encode(fakeMarket)`.
+3. The LZ endpoint calls `bridge.lzCompose(from=OFT_U, message=fakeMarket)`; checks pass
+   (endpoint ok; `from==bridgeContracts[U]`).
+4. `_fallbackToUnderlying(fakeMarket, U, OFT_U)` -> `safeTransfer(fakeMarket, wholeBalance)` ->
+   **the bridge's entire `U` balance is sent to the attacker.**
+   Worse: FRONT-RUN a legit rebalance's compose - in LZ v2 `lzReceive` (funds arrive at the bridge)
+   and `lzCompose` (funds forwarded) are SEPARATE txs, so rebalance funds SIT in the bridge in
+   between and can be stolen. `processUncomposedMessages` confirms funds can sit uncomposed.
+
+**Impact:** drain of any underlying held/in-transit/uncomposed in the bridge (protocol rebalancing
+liquidity). HIGH.
+
+**Fix:** validate `market` is a real protocol market (e.g. `operator.isMarket(market)`) before any
+transfer; and/or bind the compose to the exact delivered amount + sender rather than the whole balance.
+
+**Next:** Foundry PoC (mock LZ endpoint + OFT) reproducing the drain -> then disclose via Malda
+(Sherlock/Immunefi or security@malda). Tooling win: diffscan(post-audit) + the arbitrary-call
+detector surfaced this; recon FP note -> det should learn `_onlyXxx()` inline-auth (14th fix:
+`updateAllowedChain` was a FP, gated by `_onlyAdminOrRole`).
+
 ## Triage log
 _(verdicts as we sweep - every entry point, FP or real, with why)_
+- `mErc20Host` cross-chain mint/repay/liquidate (proof path): **SOUND** - replay prevented via
+  accumulated-amount + processed cap (`mintAmount <= accAmountIn - inPerChain`), routing validated
+  (`dstChainId==block.chainid`, `market==address(this)`, `allowedChains[chainId]`). Audited + unchanged.
+- `mErc20Host.updateAllowedChain` [recon UNGATED] -> **FP** (gated `_onlyAdminOrRole(CHAINS_MANAGER)`).
+- **`LZUnifiedBridge.lzCompose` -> HIGH finding (above).**
