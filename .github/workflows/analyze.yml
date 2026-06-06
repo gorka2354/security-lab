@@ -50,11 +50,12 @@ jobs:
           mkdir -p /tmp/an && cp nomad-poc/src/Nomad.sol /tmp/an/
           python toolkit/analyze.py /tmp/an
 
-      # Grade B (combine): hypothesize.py uses Slither dataflow where available.
-      # Proves the Slither backend works on Linux (falls back to Grade A on the Win dev box).
-      - name: hypothesize.py Grade B (Slither dataflow)
-        continue-on-error: true
+      # Grade B (combine): PROVE the Slither dataflow backend engages + is transitive,
+      # on a standalone contract Slither can compile. Hard gate: red if it falls back.
+      - name: hypothesize.py Grade B (Slither) - assert engaged
         run: |
-          mkdir -p /tmp/hy && cp nomad-poc/src/Nomad.sol /tmp/hy/
-          python toolkit/hypothesize.py /tmp/hy | tee /tmp/hy_out.md
-          grep -q "Slither dataflow (Grade B)" /tmp/hy_out.md && echo "GRADE B OK" || echo "fell back to Grade A"
+          solc-select use 0.8.26
+          python toolkit/hypothesize.py tests/fixtures/StateGraph.sol | tee /tmp/hy_out.md
+          grep -q "Slither dataflow (Grade B)" /tmp/hy_out.md
+          grep -q "setA" /tmp/hy_out.md && echo "transitive write setA->a captured"
+          echo "GRADE B engaged Slither OK"
