@@ -58,5 +58,10 @@ dolomite     https://github.com/dolomite-exchange/dolomite-margin     # margin/l
 agotchi    https://github.com/aavegotchi/aavegotchi-contracts   # on-chain game (DIAMOND): gotchi staking, raffle (Chainlink VRF), GHST marketplace; bounty self-run/verify
 immutable  https://github.com/immutable/contracts               # gaming infra, CONFIRMED Immunefi bounty (bigger/audited)
 
+# --- 2026-06-06 deep-research batch: LESS-KNOWN + POST-AUDIT commits (= max unverified code) ---
+# Criterion (user): audited, then KEPT committing -> the drift since the audit is unaudited.
+malda  https://github.com/malda-protocol/malda-lending   # cross-chain zk-lending (Compound fork); Veridise+Sherlock 2025, ~9mo drift; 163 fns -- HEAD-TO-TOE target
+cap    https://github.com/cap-labs-dev/cap-contracts      # stablecoin; audited 2025 (cap-audits repo), post-audit drift; 195 fns
+
 # --- ADD FRESH TARGETS HERE (name  repo-url) ---
 # example:  newvault  https://github.com/someorg/somevault
