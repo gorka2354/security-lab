@@ -109,5 +109,13 @@ check(ledger.is_silenced(ledger.verdict_for(_idx, "tgt", "a.sol", "access", "fun
       "added sibling fp suppresses the access lead for the same fn (grouped)")
 os.remove(_tmp)
 
+print("== hypothesize universality (storage accessor: state. + diamond s.) ==")
+import hypothesize  # noqa: E402
+check(bool(hypothesize.STATE.search("state.data.users[a]=b")), "STATE matches state. (Size/Rheo)")
+check(bool(hypothesize.STATE.search("s.aavegotchis[id].collateral=c")), "STATE matches diamond s. (Aavegotchi)")
+check(bool(hypothesize.STATE.search("ds.layout=x")), "STATE matches ds. (diamond storage)")
+check("s.foo" in hypothesize.direct_writes("s.foo = 1;"), "direct_writes captures a diamond s. write")
+check("state.data.x" in hypothesize.direct_writes("state.data.x = 1;"), "direct_writes captures a state. write")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

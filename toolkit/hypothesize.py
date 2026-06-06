@@ -38,10 +38,13 @@ INVERSE.update({v: k for k, v in INVERSE.items()})
 
 FUNC = re.compile(r"function\s+(\w+)\s*(\([^{};]*?)\{", re.S)
 ASSIGN = re.compile(r"\s*(=(?!=)|\+=|-=|\*=|/=|\+\+|--|\bdelete\b|\.push\b|\.pop\b)")
-STATE = re.compile(r"\bstate(?:\.\w+){1,4}")
+# storage accessor conventions: `state.` (Size/Rheo), `s.`/`ds.` (diamond AppStorage),
+# `$.` (OZ namespaced). Universal Grade-A heuristic; Grade B (Slither) is exact regardless.
+ACC = r"(?:state|s|ds|\$)"
+STATE = re.compile(r"\b" + ACC + r"(?:\.\w+){1,4}")
 SETTER = re.compile(r"\.(set|push|pop|increase|decrease|mint|burn|transfer|create|delete|remove|add)\w*\s*\(")
 CALL = re.compile(r"\b([a-zA-Z_]\w*)\s*\(")
-ROOT = re.compile(r"state\.data\.\w+|state\.\w+")  # normalize a field to its top root
+ROOT = re.compile(ACC + r"\.data\.\w+|" + ACC + r"\.\w+")  # normalize a field to its top root
 
 
 def iter_sol(root, with_tests=False):
@@ -73,8 +76,8 @@ def direct_writes(body):
         tail = body[m.end():m.end() + 8]
         if ASSIGN.match(tail):
             w.add(_root(m.group(0)))
-    for m in re.finditer(r"\bstate(?:\.\w+){0,3}", body):
-        if SETTER.match(body[m.end():m.end() + 40]) and m.group(0) != "state":
+    for m in re.finditer(r"\b" + ACC + r"(?:\.\w+){0,3}", body):
+        if SETTER.match(body[m.end():m.end() + 40]) and "." in m.group(0):
             w.add(_root(m.group(0)))
     return w
 

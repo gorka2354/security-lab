@@ -53,5 +53,10 @@ size         https://github.com/SizeCredit/size-solidity             # credit/le
 notionalexp  https://github.com/sherlock-audit/2025-06-notional-exponent  # fresh Sherlock scope (-> diffscan drift)
 dolomite     https://github.com/dolomite-exchange/dolomite-margin     # margin/lending
 
+# --- 2026-06-06 gaming batch (user's edge; bounty status VARIES - verify per Phase 0) ---
+# Honest: clearly-bountied + public-repo EVM games are scarce (many appchain/closed).
+agotchi    https://github.com/aavegotchi/aavegotchi-contracts   # on-chain game (DIAMOND): gotchi staking, raffle (Chainlink VRF), GHST marketplace; bounty self-run/verify
+immutable  https://github.com/immutable/contracts               # gaming infra, CONFIRMED Immunefi bounty (bigger/audited)
+
 # --- ADD FRESH TARGETS HERE (name  repo-url) ---
 # example:  newvault  https://github.com/someorg/somevault
