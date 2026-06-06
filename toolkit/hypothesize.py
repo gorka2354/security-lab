@@ -93,11 +93,39 @@ def verb_of(name):
     return m.group(1) if m else None
 
 
+def slither_field_writers(target):
+    """Grade B (accurate): per-entry-fn state writes via Slither's dataflow
+    (`all_state_variables_written` is transitive through internal/library calls).
+    Returns {field: set(fn names)} or None if Slither/compile unavailable. Slither
+    needs the project to compile (solc/forge) -> runs in CI/Linux, not this Windows box."""
+    try:
+        from slither import Slither
+    except Exception:
+        return None
+    try:
+        sl = Slither(target)
+    except Exception:
+        return None
+    fw = {}
+    for c in sl.contracts:
+        for f in c.functions:
+            if f.visibility not in ("public", "external"):
+                continue
+            try:
+                written = f.all_state_variables_written()  # view/pure write nothing
+            except Exception:
+                continue
+            for sv in written:
+                fw.setdefault(getattr(sv, "canonical_name", str(sv)), set()).add(f.name)
+    return fw or None
+
+
 def main():
     ap = argparse.ArgumentParser(description="Extract attack-hypothesis seeds from contracts")
     ap.add_argument("path")
     ap.add_argument("--out")
     ap.add_argument("--top", type=int, default=18)
+    ap.add_argument("--no-slither", action="store_true", help="force Grade A (call-graph regex)")
     a = ap.parse_args()
     base = a.path if os.path.isdir(a.path) else os.path.dirname(a.path)
 
@@ -135,10 +163,18 @@ def main():
         memo[n] = acc
         return acc
 
-    field_writers = {}
-    for n in entry:
-        for root in effective(n, set()):
-            field_writers.setdefault(root, set()).add(n)
+    backend = "call-graph regex (Grade A)"
+    field_writers = None if a.no_slither else slither_field_writers(a.path)
+    if field_writers:
+        backend = "Slither dataflow (Grade B)"
+        # keep only fields written by entry fns we parsed (drop library-internal noise)
+        field_writers = {f: {n for n in w if n in entry} for f, w in field_writers.items()}
+        field_writers = {f: w for f, w in field_writers.items() if w}
+    else:
+        field_writers = {}
+        for n in entry:
+            for root in effective(n, set()):
+                field_writers.setdefault(root, set()).add(n)
 
     # 3) their declared invariants (scan tests too)
     invs = []
@@ -153,7 +189,7 @@ def main():
             invs.append((os.path.basename(path), text[:m.start()].count("\n") + 1, m.group(1)))
 
     out = ["# Hypothesis worksheet: " + os.path.basename(os.path.abspath(a.path)),
-           f"\n{len(entry)} entry fns; {len(dwrites)} total fns parsed (call-graph transitive). "
+           f"\n{len(entry)} entry fns parsed. State-write backend: **{backend}**. "
            "Heuristic seeds - reason over them.\n"]
 
     # section 1: inverse pairs

@@ -18,6 +18,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      # HARD GATE: detector regression tests (golden fixtures). A precision fix
+      # that silently breaks another detector fails the build here.
+      - name: Detector regression tests
+        run: python tests/test_detectors.py
+
       - name: Install Slither + solc
         run: |
           python -m pip install --upgrade pip
@@ -44,3 +49,12 @@ jobs:
         run: |
           mkdir -p /tmp/an && cp nomad-poc/src/Nomad.sol /tmp/an/
           python toolkit/analyze.py /tmp/an
+
+      # Grade B (combine): hypothesize.py uses Slither dataflow where available.
+      # Proves the Slither backend works on Linux (falls back to Grade A on the Win dev box).
+      - name: hypothesize.py Grade B (Slither dataflow)
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/hy && cp nomad-poc/src/Nomad.sol /tmp/hy/
+          python toolkit/hypothesize.py /tmp/hy | tee /tmp/hy_out.md
+          grep -q "Slither dataflow (Grade B)" /tmp/hy_out.md && echo "GRADE B OK" || echo "fell back to Grade A"

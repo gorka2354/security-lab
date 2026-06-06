@@ -100,14 +100,16 @@ def det_access(text, rel):
             continue
         if re.search(r"\b(re)?initializer\b", blob):  # OZ initializer guards init
             continue
-        # gated if: a modifier; OR strong auth anywhere in the body (deep
-        # signature-verification gates); OR a bare msg.sender near the TOP (a
-        # guard lives there - cap at 280 so a trailing emit(msg.sender) doesn't
-        # mask a real ungated setter). Bounded by the next function (no bleed).
+        # gated if: a modifier; OR strong inline auth anywhere (incl deep signature
+        # gates, via INLINE_AUTH); OR msg.sender used as a mapping KEY near the top
+        # (self-scoped: caller edits its OWN data, not an admin op). fix#13: a bare/
+        # incidental msg.sender (e.g. emit Set(msg.sender,x)) must NOT mask a real
+        # ungated setter. Bounded by the next function (no bleed).
         nxt = text.find("function ", m.end())
         end = nxt if nxt > 0 else m.end() + 1500
+        top = text[m.end():min(m.end() + 280, end)]
         if ("only" in blob.lower() or INLINE_AUTH.search(text[m.end():end])
-                or re.search(r"msg\.sender", text[m.end():min(m.end() + 280, end)])):
+                or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", top)):
             continue
         if PRIV.search(name):
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
@@ -129,11 +131,12 @@ def det_sibling(text, rel):
         gname = gate.group(0) if gate else None
         if not gname and re.search(r"\b(re)?initializer\b", blob):
             gname = "initializer"  # OZ initializer guards one-time init -> gated
-        if not gname:  # no modifier -> check body for inline auth (strong auth
-            nxt = text.find("function ", m.end())  # full body) or a top guard (msg.sender)
+        if not gname:  # no modifier -> inline auth (strong auth, full body) OR a
+            nxt = text.find("function ", m.end())   # self-scoped mapping key near top
             end = nxt if nxt > 0 else m.end() + 1500
             if (INLINE_AUTH.search(text[m.end():end])
-                    or re.search(r"msg\.sender", text[m.end():min(m.end() + 280, end)])):
+                    or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]",
+                                 text[m.end():min(m.end() + 280, end)])):
                 gname = "inline-auth"
         funcs.append((name, lineno(text, m.start()), gname))
     gates = sorted({f[2] for f in funcs if f[2] and f[2] != "inline-auth"})
