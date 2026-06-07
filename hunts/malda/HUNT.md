@@ -43,8 +43,10 @@ commits** (max unverified code), tractable, novel architecture. Clone (gitignore
 4. **Compound-fork classics** on the post-audit diff: liquidation/interest/comptroller changes.
 
 ## 🔴 FINDING (candidate, HIGH) — LZUnifiedBridge.lzCompose drains the bridge to an attacker-chosen `market`
-**Status: high-confidence, verified by reading; needs a Foundry PoC to fully confirm, then RESPONSIBLE
-DISCLOSURE via Malda's program (do NOT publish).** This is POST-AUDIT code (see below).
+**Status: PoC CONFIRMS the vulnerable logic** (`malda-lz-poc/test/LzComposeDrain.t.sol`, passing -
+attacker drains the bridge 1000->0 to an attacker-chosen fake market). Mechanism verified by reading +
+PoC. Final step before submission = an INTEGRATION PoC on Malda's actual contracts (mock LZ endpoint).
+**RESPONSIBLE DISCLOSURE via Malda's program only - do NOT publish.** This is POST-AUDIT code (see below).
 
 **Location:** `src/rebalancer/bridges/LZUnifiedBridge.sol::lzCompose` (L154-193) ->
 `src/rebalancer/bridges/helpers/BaseOftMessageExecutor.sol::_fallbackToUnderlying` (L116-131).
