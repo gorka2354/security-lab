@@ -61,10 +61,22 @@ the attacker-chosen `market`.
    `processUncomposedMessages` confirms funds can also sit uncomposed.
 
 ## Impact
-**High.** Theft of any underlying the bridge holds / has in transit / left uncomposed — i.e. the
-protocol's cross-chain rebalancing liquidity. Permissionless (modulo a cheap OFT send the attacker
-fully controls). No protocol-side precondition beyond the bridge holding a balance, which the
-rebalance flow and the explicit "uncomposed messages" handling make a normal operating state.
+**Critical-by-design** (direct, permissionless theft of any underlying the bridge holds / has in
+transit / left uncomposed — the protocol's cross-chain rebalancing liquidity), **gated on the LZ
+bridge being the active, funded rebalancing path.**
+
+### Exploitability / deployment status (please confirm internally)
+Per the repo and docs, the LZUnifiedBridge does **not appear to be the active production bridge**:
+- `script/deployment/mainnet/DeployCoreRelease.s.sol` deploys **AcrossBridge + EverclearBridge**;
+  `LZUnifiedBridge` has only a **standalone** `DeployLZBridge.sol` and is **not in the core release**.
+- Docs: rebalancing is "bridged using intent-based bridges like **Across and Everclear**"; "at launch,
+  Malda integrates **Across**" — no LayerZero bridge mentioned. Contract Addresses page = "coming soon".
+- `LZUnifiedBridge.sol` is a single post-audit commit (`00e0fb5`, 2026-01-28), not in the audited base.
+
+So this is most likely **a Critical bug to fix BEFORE the LZ bridge is deployed/whitelisted/funded**,
+rather than funds at risk right now. If the LZ bridge *is* already deployed and holds/routes funds,
+it is a live Critical. **The Malda team can confirm the exact on-chain status** (we could not, from
+public sources). Either way it warrants prompt remediation before any LZ-bridge activation.
 
 ## Proof of Concept
 Two passing Foundry tests in `malda-lz-poc/` (both reproduce the drain: bridge 1000 -> 0, attacker
