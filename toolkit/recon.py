@@ -442,20 +442,27 @@ def det_reward(text, rel):
         cm = CALL.search(body)
         if not cm:                       # nothing of value leaves this body -> not a payout here
             continue
+        pre = body[:cm.start()]
         marker = REWARD_MARKER.search(body)
-        if not marker:
-            if LIB_DELEGATE.search(body):
-                out.append((rel, lineno(text, m.start()), f"function {name}(...)",
-                            "reward payout transfers but no claimed-marker write here (thin delegator "
-                            "-> marker may be in the Lib fn; verify there)", 1))
-            else:
-                out.append((rel, lineno(text, m.start()), f"function {name}(...)",
-                            "reward payout transfers value but NO claimed/rewardDebt marker write in "
-                            "body -> double-claim? (verify the accounting)", 0))
-        elif marker.start() > cm.start():
+        # fix#21 (Morpho Midnight): a decrement of a claimable/balance var BEFORE the payout
+        # (e.g. `claimableFee[token] -= amount`) consumes the entitlement just like a named
+        # claimed-marker -> not a double-claim. Recognize it so admin fee-claims don't FP
+        # (their accounting var isn't named like a reward marker, and SafeTransferLib looks
+        # like a thin Lib delegator).
+        if re.search(r"-=", pre) or (marker and marker.start() < cm.start()):
+            continue
+        if marker:                       # a reward-marker exists, but it's written AFTER the transfer
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
                         "claimed-marker written AFTER the transfer (accounting CEI) -> re-entrant "
                         "double-claim? (verify order / nonReentrant)", 1))
+        elif LIB_DELEGATE.search(body):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "reward payout transfers but no claimed-marker/decrement here (thin delegator "
+                        "-> marker may be in the Lib fn; verify there)", 1))
+        else:
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "reward payout transfers value but NO claimed-marker / decrement before it "
+                        "-> double-claim? (verify the accounting)", 0))
     return out
 
 
@@ -523,12 +530,15 @@ def det_liquidation(text, rel):
         if not self_guard:
             flags.append("no self-liquidation guard (liquidator==borrower?)")
         if rounds_up:
-            flags.append("seize/repay rounds UP -> verify it favors the protocol, not the liquidator")
+            flags.append("rounds UP -> ok if it's the REPAID/debt side (protocol-favorable); "
+                         "bad only if collateral-OUT rounds up")
         base = ("liquidation entrypoint -> 4-check: manipulable health price? self-liq? "
                 "close-factor cap? rounding direction?")
-        note = base + (" | " + "; ".join(flags) if flags
-                       else (" (health recheck present)" if health else ""))
-        out.append((rel, lineno(text, m.start()), f"function {name}(...)", note, 0 if flags else 1))
+        note = base + (" | " + "; ".join(flags) if flags else (" (health gate present)" if health else ""))
+        # fix#22 (Morpho Midnight): reserve [!] for the real bug -- NO visible health gate (can a
+        # solvent position be liquidated?). With a health gate, self-liq is harmless and up-rounding
+        # is usually on the repaid/debt side -> these are [.] leads to verify, not [!].
+        out.append((rel, lineno(text, m.start()), f"function {name}(...)", note, 0 if not health else 1))
     return out
 
 

@@ -181,6 +181,8 @@ check(not flagged(recon.det_reward, "contract C{function harvest() external only
       "keeper-gated harvest NOT flagged (no per-user double-claim surface)")
 check(not flagged(recon.det_reward, "contract C{function setFee(uint x) external { fee=x; }}"),
       "non-reward function NOT flagged")
+check(not flagged(recon.det_reward, "contract C{function claimSettlementFee(address t,uint256 a,address r) external { require(msg.sender==feeClaimer); claimableFee[t] -= a; SafeTransferLib.safeTransfer(t,r,a); }}"),
+      "fix#21: claimable decremented (-=) before transfer NOT flagged (Morpho Midnight admin fee-claim)")
 
 print("== det_index (pattern 04: Aave-fork interest-index inflation) ==")
 check(flagged(recon.det_index, "contract P{function f() external { reserve.liquidityIndex = newIndex; cumulateToLiquidityIndex(amt); }}"),
@@ -205,6 +207,8 @@ _gl = recon.det_liquidation("contract C{function liquidate(address u) external {
 check(bool(_gl) and _gl[0][4] == 1, "self-guard + health recheck -> surfaced at [.] not [!]")
 check(not flagged(recon.det_liquidation, "contract C{function deposit(uint a) external { bal[msg.sender]+=a; }}"),
       "non-liquidation function NOT surfaced")
+_hg = recon.det_liquidation("contract C{function liquidate(address u) external { require(debt > maxDebt, NotLiquidatable()); x = a.mulDivUp(b); }}", "src/C.sol")
+check(bool(_hg) and _hg[0][4] == 1, "fix#22: health-gated liquidation with up-rounding -> [.] not [!] (Morpho Midnight)")
 
 print("== det_oracle (spot-reserve pricing sub-check) ==")
 check(flagged(recon.det_oracle, "contract C{function getPrice() public view returns(uint){ (uint112 r0,uint112 r1,)=pair.getReserves(); return uint(r1)*1e18/uint(r0); }}", "function getPrice"),
