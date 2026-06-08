@@ -24,6 +24,30 @@
         "vuln": "src/rebalancer/bridges/LZUnifiedBridge.sol::lzCompose (no market validation) + BaseOftMessageExecutor._fallbackToUnderlying (sends whole balance to attacker market)",
         "whitelistedBridges_selector": "isBridgeWhitelisted(address)=0x<fill-when-confirming>"
       }
+    },
+    {
+      "id": "hats-new-competition",
+      "title": "New Hats Finance audit competition (FRESH no-KYC code -> hunt FIRST, low competition)",
+      "check": { "type": "github_new_repo", "org": "hats-finance", "since": "2026-06-08" },
+      "fire_means": "A new hats-finance repo appeared = likely a fresh audit competition (no-KYC, public scope). Clone it -> recon/scope/hypothesize FIRST before the crowd. Then bump 'since' to today's date."
+    },
+    {
+      "id": "dre-scope-public",
+      "title": "DRE / dreUSD scope repo went PUBLIC (fresh ERC4626 vault + async-NFT redeem + oracle mint + LayerZero OFT)",
+      "check": { "type": "url_appears", "needle": "\\S", "urls": ["https://raw.githubusercontent.com/sherlock-audit/2026-04-dre-labs-audits/main/README.md"] },
+      "fire_means": "The DRE scope repo is reachable (public). Fetch + recon (Malda OFT class: validate source in lzCompose). Sherlock payout is KYC -> learning/rep unless DRE self-hosts later. If the repo name differs at launch, update the url."
+    },
+    {
+      "id": "cap-delegation-upgrade",
+      "title": "Cap delegation proxy upgraded past the reviewed impl (post-review drift = fresh code)",
+      "check": { "type": "proxy_upgraded", "proxy": "0xF3E3Eae671000612CE3Fd15e1019154C1a4d693F", "chain": "1", "known_impl": "0x7e2D738042376BF48bEbC49932869eAC3d7E38b5" },
+      "fire_means": "Cap upgraded the delegation impl. fetch_source 0xF3E3... --proxy + diff vs 0x7e2D... + recon the drift. Then update known_impl here."
+    },
+    {
+      "id": "cap-cusd-upgrade",
+      "title": "Cap cUSD vault proxy upgraded past the reviewed impl (post-review drift = fresh code)",
+      "check": { "type": "proxy_upgraded", "proxy": "0xcccc62962d17b8914c62d74ffb843d73b2a3cccc", "chain": "1", "known_impl": "0xa76645E15c267b876999bf7689E0b2C1EE29BFE6" },
+      "fire_means": "Cap upgraded the cUSD vault impl. fetch_source 0xcccc... --proxy + diff vs 0xa766... + recon. Then update known_impl here."
     }
   ]
 }

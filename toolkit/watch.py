@@ -70,7 +70,43 @@ def check_call(c):
     return nonzero, f"eth_call -> {res}"
 
 
-CHECKS = {"url_appears": check_url_appears, "code_at": check_code_at, "call": check_call}
+def check_github_new_repo(c):
+    """FIRE when a NEW repo appears in a GitHub org after `since` (optional name_matches regex).
+    Proactive fresh-code signal: a new hats-finance repo = a fresh no-KYC audit competition to hunt FIRST."""
+    org = c["org"]
+    since = c.get("since", "")
+    pat = re.compile(c["name_matches"]) if c.get("name_matches") else None
+    try:
+        repos = json.loads(_get(f"https://api.github.com/orgs/{org}/repos?sort=created&direction=desc&per_page=30"))
+    except Exception as e:
+        return False, f"github error: {e}"
+    new = []
+    for r in repos if isinstance(repos, list) else []:
+        if since and (r.get("created_at", "") <= since):
+            continue
+        if pat and not pat.search(r.get("name", "")):
+            continue
+        new.append(r.get("name"))
+    if new:
+        return True, f"new {org} repo(s) since {since}: {', '.join(new[:6])}"
+    return False, f"no new {org} repos since {since}"
+
+
+def check_proxy_upgraded(c):
+    """FIRE when a tracked proxy's current implementation != the known/reviewed impl (a post-review
+    upgrade -> fresh unverified code = drift to hunt). After triaging, update known_impl."""
+    if not fs:
+        return False, "no rpc module"
+    cur = fs.resolve_impl(c["proxy"], c.get("chain"), c.get("rpc"))
+    if not cur:
+        return False, "no impl resolved (RPC down / non-proxy?)"
+    if cur.lower() != (c.get("known_impl") or "").lower():
+        return True, f"impl changed: reviewed {c.get('known_impl')} -> current {cur}"
+    return False, f"impl unchanged ({cur})"
+
+
+CHECKS = {"url_appears": check_url_appears, "code_at": check_code_at, "call": check_call,
+          "github_new_repo": check_github_new_repo, "proxy_upgraded": check_proxy_upgraded}
 
 
 def main():
