@@ -38,3 +38,14 @@
 - **I2** «latest в пределах maxChangeBps от *начальной* цены» (наивно) → **FAIL** (дрейф 1.33% > 1%). Фаззер нашёл `pushPrice↓→warp→pushPrice↓` → накопительный дрейф через ротацию anchor.
 
 **Вердикт I2:** реальное свойство, но **известный/намеренный дизайн** (maxChangeBps+window задуман для постепенного трекинга доходности, НЕ для абсолютной границы; updater доверенный) → не novel-баг. **Ценность:** фаззер количественно показал «доверенный updater может увести цену неограниченно во времени, не только на maxBps» — это часть trusted-updater risk-surface. Метод (вывести инвариант → фаззить) **отработал на реальном коде**.
+
+## Повторный заход (2026-06-08, batch «новый профиль таргетов»)
+Автономный агент **независимо пере-вывел** oracle-staleness лид (L240/246/286/294 в его версии impl) — подтверждает воспроизводимость метода. По памяти этого лога **сразу опознан как KNOWN** (Hunter Security ack) → не репортим. Дисциплина «лид → known → стоп» сработала через hunt-память.
+
+**НОВОЕ (закрывает `manage`-вопрос окончательно):** авторитетная on-chain верификация capability-таблицы RolesAuthority `0x9524…d44D` (406 RoleCapabilityUpdated, replay==live):
+- Drain-роль 12 (`USDC.approve` + `WETH.approve/transfer` + array-`manage`) держит **только 3-of-7 операторский Safe** `0x93e5…5927` (Gnosis v1.4.1, threshold=3/7). Не EOA, не public.
+- Единственный hot-EOA с `manage` (`0x5c28b54e…`, роли 11/17) **доказуемо** `canCall=0` для USDC/WETH transfer/approve — зафайрволлен на reward-токены.
+- 0 public capabilities; `manage(single)` `0xf6e715d0` owner-only (4-of-6 Safe).
+- **Вердикт: access correctly bounded — config-critical'а НЕТ.** Worst case = компрометация 3-of-7 Safe (trust-допущение).
+
+**Итог по YO: закрыт.** Единственный код-уровневый гэп (oracle staleness) — known/acknowledged; arbitrary-call surface — безопасно сконфигурен. Не репортим.
