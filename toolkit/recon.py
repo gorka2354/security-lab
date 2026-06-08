@@ -62,6 +62,13 @@ INLINE_AUTH = re.compile(
 # looks "ungated" but isn't. Don't suppress (the lib MIGHT not gate), but downgrade [!] -> [.] + note.
 LIB_DELEGATE = re.compile(r"\b(?:Lib|I?[A-Z]\w*Lib)\w*\.\w+\s*\(")
 
+# ── research-engine harvest (patterns/ -> detectors). Each is a LEAD, not a verdict. ──
+# Pattern 03 reward-accounting: a write to an "already-claimed" marker. If a reward payout
+# transfers value but never writes one (or writes it AFTER the transfer), suspect double-claim.
+REWARD_MARKER = re.compile(
+    r"(claimed|rewardDebt|rewardPaid|hasClaimed|lastClaim\w*|userReward\w*|_claimed|"
+    r"checkpoint\w*|lastUpdate\w*|rewards?)\s*(\[[^\]]*\])?(\.\w+)?\s*(\+?=)(?!=)", re.I)
+
 
 def iter_sol(root):
     for cur, dirs, files in os.walk(root):
@@ -201,6 +208,19 @@ def det_oracle(text, rel):
             ("decimals()", "decimals(" in text)) if not ok]
         note = "file has all 3 guards (likely OK)" if not miss else "MISSING in file: " + ", ".join(miss)
         out.append((rel, lineno(text, m.start()), m.group(0), note, 0 if miss else 2))
+    # spot-reserve sub-check (pattern 02 §4): a value/price/health fn that reads spot AMM reserves
+    # and divides by them is manipulable in 1 block UNLESS the reserves are TWAP/clamped/cumulative.
+    for fm in re.finditer(r"function\s+(\w*(?:[Pp]rice|[Vv]alue|[Qq]uote|[Vv]aluation|[Hh]ealth|"
+                          r"[Cc]ollateral|getAmount)\w*)\s*\([^{};]*?\{", text, re.S):
+        name = fm.group(1)
+        nxt = text.find("function ", fm.end())
+        body = text[fm.end():(nxt if nxt > 0 else fm.end() + 1200)]
+        reads_spot = re.search(r"\bgetReserves\s*\(|\breserve0\b|\breserve1\b", body)
+        if reads_spot and re.search(r"/|mulDiv", body) \
+                and not re.search(r"truncat|TWAP|timeWeighted|cumulative|observe|consult|\bEMA\b", body, re.I):
+            out.append((rel, lineno(text, fm.start()), f"function {name}(...)",
+                        "value/price fn reads SPOT AMM reserves and divides -> manipulable in 1 "
+                        "block unless TWAP/clamped (verify the consumer; cf. Likwid truncatedReserves)", 0))
     return out
 
 
@@ -363,9 +383,17 @@ def det_erc4626(text, rel):
         return []
     m = re.search(r"\bcontract\s+(\w+)", text)
     name = m.group(1) if m else "?"
-    return [(rel, lineno(text, m.start()) if m else 1, f"contract {name} (ERC4626)",
-             "ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
-             "first-depositor inflation attack? (verify by hand)", 0)]
+    # fix#20: totalAssets() reading balanceOf(address(this)) (no internal accounting) means a
+    # DIRECT donation moves the share price -> the dStake flavor; sharper than the generic lead.
+    balance_based = bool(re.search(
+        r"function\s+totalAssets\b[\s\S]{0,240}?\.balanceOf\s*\(\s*address\s*\(\s*this", text))
+    note = ("ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
+            "first-depositor inflation attack? (verify by hand)")
+    if balance_based:
+        note = ("ERC4626 vault: no _decimalsOffset/dead-shares AND totalAssets() is balance-based "
+                "(.balanceOf(this)) -> a direct donation moves the share price (dStake flavor); "
+                "verify the empty-vault window (fix#20)")
+    return [(rel, lineno(text, m.start()) if m else 1, f"contract {name} (ERC4626)", note, 0)]
 
 
 # ── Detector 7: L2 / native Account-Abstraction footguns (zkSync Era) ──
@@ -392,6 +420,118 @@ def det_l2_footgun(text, rel):
     return out
 
 
+# ── Detector 14: reward / claim accounting (double-claim) ── research pattern 03
+def det_reward(text, rel):
+    """A reward-payout function that transfers value but never writes an 'already-claimed'
+    marker (claimed/rewardDebt/...), or writes it AFTER the transfer, is a double-claim lead.
+    Honest limit: the marker may live in a called library (Crypto Unicorns LibRewards) -> when the
+    body just delegates we downgrade [!]->[.] + note. Gated keeper-only harvests are skipped
+    (no per-user double-claim surface)."""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        if not (re.search(r"claim|harvest|getreward", name, re.I)
+                or re.search(r"(collect|redeem)\w*reward", name, re.I)):
+            continue
+        if "only" in blob.lower() or INLINE_AUTH.search(blob):   # keeper/admin-gated -> not a per-user vector
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        cm = CALL.search(body)
+        if not cm:                       # nothing of value leaves this body -> not a payout here
+            continue
+        marker = REWARD_MARKER.search(body)
+        if not marker:
+            if LIB_DELEGATE.search(body):
+                out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                            "reward payout transfers but no claimed-marker write here (thin delegator "
+                            "-> marker may be in the Lib fn; verify there)", 1))
+            else:
+                out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                            "reward payout transfers value but NO claimed/rewardDebt marker write in "
+                            "body -> double-claim? (verify the accounting)", 0))
+        elif marker.start() > cm.start():
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "claimed-marker written AFTER the transfer (accounting CEI) -> re-entrant "
+                        "double-claim? (verify order / nonReentrant)", 1))
+    return out
+
+
+# ── Detector 15: interest-index inflation (Aave-fork empty-market) ── research pattern 04
+def det_index(text, rel):
+    """Aave-style interest accumulators (liquidityIndex / variableBorrowIndex) compound as
+    delta/scaledSupply; on an empty market a tiny premium is a huge relative jump (dTRINITY $257k).
+    Flag index writes / cumulateToLiquidityIndex and note whether a min-liquidity/cap/seed guard
+    is visible. LEAD: whether the market can actually be empty+collateralizable is config (T2)."""
+    if not re.search(r"liquidityIndex|variableBorrowIndex|\bborrowIndex\b|"
+                     r"cumulateToLiquidityIndex|getReserveNormalizedIncome", text):
+        return []
+    guarded = bool(re.search(r"MIN_(LIQUIDITY|SUPPLY|RESERVE|AMOUNT)|minLiquidity|supplyCap|"
+                             r"borrowCap|seedAmount|seedDeposit|isolationMode", text, re.I))
+    out = []
+    for m in re.finditer(r"\bcumulateToLiquidityIndex\s*\(|"
+                         r"\b(?:liquidityIndex|variableBorrowIndex|borrowIndex)\s*=(?!=)", text):
+        note = ("Aave-fork interest index update"
+                + ("" if guarded else " with no visible min-liquidity / cap / seed guard")
+                + " -> empty-market index inflation? (dTRINITY $257k class; verify a fresh reserve "
+                "can't be collateral while scaledSupply ~ 0)")
+        out.append((rel, lineno(text, m.start()), m.group(0)[:40], note, 1 if guarded else 0))
+    return out
+
+
+# ── Detector 16: cached EIP-712 domain separator (cross-chain / fork replay) ── research pattern 06
+def det_domain(text, rel):
+    """An EIP-712 DOMAIN_SEPARATOR cached once (constructor / immutable) with block.chainid and no
+    recompute-on-fork path -> signatures replay across a chain fork or a sibling deployment
+    (zkMarkets class). OZ's EIP712 (_domainSeparatorV4 + chainid-changed branch) is the fix; if it's
+    present this is safe and we don't flag."""
+    if not re.search(r"DOMAIN_SEPARATOR|_domainSeparator|\bEIP712\b", text):
+        return []
+    safe = bool(re.search(r"_domainSeparatorV4|block\.chainid\s*==|_buildDomainSeparator|"
+                          r"EIP712Upgradeable", text))
+    cached = bool(re.search(r"DOMAIN_SEPARATOR\s*=|_domainSeparator\s*=|immutable\s+DOMAIN_SEPARATOR", text))
+    uses_chainid = "chainid" in text.lower()
+    if cached and uses_chainid and not safe:
+        m = re.search(r"DOMAIN_SEPARATOR|_domainSeparator", text)
+        return [(rel, lineno(text, m.start()), "DOMAIN_SEPARATOR",
+                 "EIP-712 domain separator cached with block.chainid and NO recompute-on-fork path "
+                 "-> cross-chain / post-fork signature replay (zkMarkets class; use OZ EIP712)", 0)]
+    return []
+
+
+# ── Detector 17: liquidation math (self-liq, rounding, manipulable health) ── research pattern 05
+def det_liquidation(text, rel):
+    """Surfaces each liquidation entrypoint with the 4-check (manipulable health price? self-liq?
+    close-factor cap? rounding direction?). Bumps to [!] when there's no self-liquidation guard or
+    the seize/repay rounds UP (mulDivUp) -> may favor the liquidator. Core bugs (manipulable health,
+    bad-debt routing) are economic/cross-file (T3); this is a triage surfacer, not a verdict."""
+    out = []
+    for m in re.finditer(r"function\s+(\w*[Ll]iquidat\w*|\w*[Ss]eize\w*)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1800)]
+        self_guard = bool(re.search(r"!=\s*msg\.sender|msg\.sender\s*!=|\bborrower\s*!=|"
+                                    r"SelfLiquidat", body))
+        rounds_up = bool(re.search(r"mulDivUp|mulDivRoundingUp|divUp|ceilDiv", body))
+        health = bool(re.search(r"health|getUserAccountData|isHealthy|solvent|collateralValue|"
+                                r"_validate|liquidatable", body, re.I))
+        flags = []
+        if not self_guard:
+            flags.append("no self-liquidation guard (liquidator==borrower?)")
+        if rounds_up:
+            flags.append("seize/repay rounds UP -> verify it favors the protocol, not the liquidator")
+        base = ("liquidation entrypoint -> 4-check: manipulable health price? self-liq? "
+                "close-factor cap? rounding direction?")
+        note = base + (" | " + "; ".join(flags) if flags
+                       else (" (health recheck present)" if health else ""))
+        out.append((rel, lineno(text, m.start()), f"function {name}(...)", note, 0 if flags else 1))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -407,14 +547,22 @@ DETECTORS = [
      "Heuristic 7: (address+bytes) param + low-level call -> route to transferFrom = drain."),
     ("SIGNATURE / ecrecover (replay, malleability, no expiry)", det_signature,
      "Raw ecrecover: needs address(0) check + nonce (anti-replay) + deadline (expiry)."),
+    ("DOMAIN SEPARATOR cached (cross-chain / fork replay)", det_domain,
+     "Pattern 06: EIP-712 separator cached with block.chainid, no recompute -> fork/cross-chain replay."),
     ("UPGRADE safety (unprotected UUPS _authorizeUpgrade)", det_upgrade,
      "Upgrade auth with no owner/role check -> anyone swaps the impl = total takeover."),
     ("UNCHECKED ERC20 return (silent transfer failure)", det_unchecked,
      "Bare transfer/transferFrom return dropped -> USDT/ZRX fail silently; use SafeERC20."),
     ("ERC4626 inflation (first-depositor share-price attack)", det_erc4626,
      "Vault with no _decimalsOffset / dead-shares -> first depositor skews the share price."),
+    ("REWARD / claim accounting (double-claim, late marker)", det_reward,
+     "Pattern 03: reward payout with no claimed/rewardDebt marker write (or written after transfer)."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
-     "Heuristic 2: staleness(updatedAt) + price>0 + decimals()."),
+     "Heuristic 2: staleness(updatedAt) + price>0 + decimals(); + spot-reserve pricing sub-check."),
+    ("INTEREST-INDEX inflation (Aave-fork empty-market)", det_index,
+     "Pattern 04: liquidityIndex/borrowIndex compounds delta/supply -> empty market inflates it (dTRINITY)."),
+    ("LIQUIDATION math (self-liq, rounding, bad-debt)", det_liquidation,
+     "Pattern 05: liquidation entrypoint 4-check; [!] if no self-liq guard or rounds-up seize."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
@@ -430,8 +578,10 @@ def det_key(title):
     for sub, k in (("sibling", "sibling"), ("access control leads", "access"),
                    ("supply", "supply"), ("reentrancy", "reentrancy"),
                    ("arbitrary", "arbcall"), ("signature", "signature"),
-                   ("upgrade", "upgrade"), ("unchecked", "unchecked"),
-                   ("erc4626", "erc4626"), ("oracle", "oracle"),
+                   ("domain", "domain"), ("upgrade", "upgrade"),
+                   ("unchecked", "unchecked"), ("erc4626", "erc4626"),
+                   ("reward", "reward"), ("oracle", "oracle"),
+                   ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
         if sub in t:
             return k

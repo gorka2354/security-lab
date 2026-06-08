@@ -162,5 +162,60 @@ check(flagged(recon.det_l2_footgun, "function verify(address signer,bytes sig) p
 check(not flagged(recon.det_l2_footgun, "function transfer(address to, uint x) external { balances[to]+=x; }"),
       "ordinary code NOT flagged by det_l2_footgun")
 
+print("== det_erc4626 (fix#20: balance-based totalAssets = direct donation vector) ==")
+_bb = recon.det_erc4626("contract V is ERC4626 { function totalAssets() public view returns(uint){ return asset.balanceOf(address(this)); } }", "src/V.sol")
+check(bool(_bb) and "balance-based" in _bb[0][3], "fix#20: balance-based totalAssets -> dStake-flavor note")
+check(not flagged(recon.det_erc4626, "contract V is ERC4626 { function _decimalsOffset() internal pure returns(uint8){return 3;} }"),
+      "ERC4626 with _decimalsOffset NOT flagged (mitigation)")
+check(flagged(recon.det_erc4626, "contract V is ERC4626 { function totalAssets() public view returns(uint){ return _internalBal; } }"),
+      "unprotected ERC4626 with internal-accounting totalAssets still flagged (generic note)")
+
+print("== det_reward (pattern 03: double-claim / late marker) ==")
+check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),
+      "reward payout with NO claimed-marker flagged [!]")
+check(not flagged(recon.det_reward, "contract C{function claimRewards() external { claimed[msg.sender]=true; token.safeTransfer(msg.sender, amt); }}"),
+      "claimed-marker written BEFORE transfer NOT flagged (safe)")
+_late = recon.det_reward("contract C{function claimRewards() external { token.safeTransfer(msg.sender, amt); claimed[msg.sender]=true; }}", "src/C.sol")
+check(bool(_late) and _late[0][4] == 1 and "AFTER" in _late[0][3], "marker AFTER transfer -> [.] CEI double-claim lead")
+check(not flagged(recon.det_reward, "contract C{function harvest() external onlyKeeper { token.safeTransfer(treasury, amt); }}"),
+      "keeper-gated harvest NOT flagged (no per-user double-claim surface)")
+check(not flagged(recon.det_reward, "contract C{function setFee(uint x) external { fee=x; }}"),
+      "non-reward function NOT flagged")
+
+print("== det_index (pattern 04: Aave-fork interest-index inflation) ==")
+check(flagged(recon.det_index, "contract P{function f() external { reserve.liquidityIndex = newIndex; cumulateToLiquidityIndex(amt); }}"),
+      "liquidityIndex write + cumulateToLiquidityIndex flagged")
+_gi = recon.det_index("contract P{uint MIN_LIQUIDITY=1e3; function f() external { liquidityIndex = x; }}", "src/P.sol")
+check(bool(_gi) and _gi[0][4] == 1, "min-liquidity guard present -> downgraded to [.]")
+check(not flagged(recon.det_index, "contract C{function f() external { balances[msg.sender]+=1; }}"),
+      "non-Aave-fork file NOT flagged")
+
+print("== det_domain (pattern 06: cached EIP-712 separator, fork replay) ==")
+check(flagged(recon.det_domain, "contract C{ bytes32 public DOMAIN_SEPARATOR; constructor(){ DOMAIN_SEPARATOR = keccak256(abi.encode(TYPEHASH, block.chainid, address(this))); } }"),
+      "cached DOMAIN_SEPARATOR with block.chainid, no recompute -> flagged [!]")
+check(not flagged(recon.det_domain, "contract C is EIP712 { function f() internal view { bytes32 d = _domainSeparatorV4(); } }"),
+      "OZ _domainSeparatorV4 (recomputes on chainid change) NOT flagged")
+check(not flagged(recon.det_domain, "contract C{ function transfer(address to,uint a) external { bal[to]+=a; } }"),
+      "no EIP-712 at all NOT flagged")
+
+print("== det_liquidation (pattern 05: self-liq / rounding surfacer) ==")
+_ul = recon.det_liquidation("contract C{function liquidate(address u) external { seizeCollateral(u); }}", "src/C.sol")
+check(bool(_ul) and _ul[0][4] == 0 and "self-liquidation" in _ul[0][3], "unguarded liquidate -> [!] + self-liq note")
+_gl = recon.det_liquidation("contract C{function liquidate(address u) external { require(u != msg.sender); if(!isHealthy(u)) _seize(u); }}", "src/C.sol")
+check(bool(_gl) and _gl[0][4] == 1, "self-guard + health recheck -> surfaced at [.] not [!]")
+check(not flagged(recon.det_liquidation, "contract C{function deposit(uint a) external { bal[msg.sender]+=a; }}"),
+      "non-liquidation function NOT surfaced")
+
+print("== det_oracle (spot-reserve pricing sub-check) ==")
+check(flagged(recon.det_oracle, "contract C{function getPrice() public view returns(uint){ (uint112 r0,uint112 r1,)=pair.getReserves(); return uint(r1)*1e18/uint(r0); }}", "function getPrice"),
+      "value/price fn dividing SPOT reserves -> spot-manip lead")
+check(not flagged(recon.det_oracle, "contract C{function getValue() public view returns(uint){ (uint r0,uint r1,)=pair.getReserves(); return cumulativePrice(r0) * 1e18 / r1; }}"),
+      "getReserves but 'cumulative' (TWAP) in body NOT flagged (mitigation recognized)")
+
+print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
+_keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
+check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
+check(len(set(_keys)) == len(_keys), "each detector has a UNIQUE det_key (no silent ledger-group collisions)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

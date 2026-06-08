@@ -59,6 +59,20 @@ research/
 | ✅ | liquidation | [liquidation-math](patterns/liquidation/liquidation-math.md) | T2/T3 | bad-debt socialization, self-liquidation, threshold, rounding direction. *TermMax/CU (first-hand).* |
 | ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
 
+### Harvest status — the T1-catchable slice is wired into `recon.py` (73 tests, leads-not-verdicts)
+| Pattern | Detector (recon.py) | What it flags |
+|---|---|---|
+| erc4626-inflation | `det_erc4626` **+fix#20** | no offset/dead-shares; **enriched** when `totalAssets()` is balance-based (dStake flavor). |
+| oracle-manipulation | `det_oracle` **+ spot sub-check** | value/price fn that divides **spot** reserves; recognizes TWAP/clamped → no flag. |
+| reward-accounting | `det_reward` | payout transfers with no claimed/rewardDebt marker (or marker **after** transfer); skips keeper-gated. |
+| index-manipulation | `det_index` | Aave-fork `liquidityIndex`/`cumulateToLiquidityIndex` with no min-liquidity/cap guard. |
+| liquidation-math | `det_liquidation` | surfaces liquidation entrypoints; [!] if no self-liq guard or seize rounds **up**. |
+| cross-chain-and-aa | `det_domain` + `det_l2_footgun` | cached EIP-712 separator (no fork-recompute) + extcodesize/`isContract` AA footguns. |
+
+**T2/T3 slice (NOT regex — the reasoning layer, next harvest):** invariant-fuzz templates per pattern §5 (sharePrice/claim
+conservation, 1-block price-move bound, liquidation health-monotone, no cross-chain replay). These are the edge; recon only
+surfaces the *smell*.
+
 **Backlog (not yet written):** interest/fee rounding (mulDivUp/Down asymmetry — Monolith soft-spot) · init/upgrade/storage
 (front-run init, uninitialized impl, storage-collision, transitive proxy).
 
