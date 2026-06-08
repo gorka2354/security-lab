@@ -1,0 +1,25 @@
+name: watch-findings
+
+# Passively watch our PARKED findings (non-deployed / out-of-scope bugs we shelved) for go-live.
+# Runs daily on GitHub's infra (no local machine needed). If toolkit/watch.py exits 2 (a finding
+# FIRED -> e.g. Malda's LZ bridge appeared in their deploy registry), this job FAILS, and GitHub
+# emails the repo owner. That failure email IS the alert -> then verify + disclose.
+
+on:
+  schedule:
+    - cron: "23 7 * * *"   # daily 07:23 UTC (off-minute, off-peak)
+  workflow_dispatch: {}     # manual "Run workflow" button
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Poll parked findings (job FAILS + emails owner if any FIRED)
+        run: python toolkit/watch.py monitor/watchlist.json
