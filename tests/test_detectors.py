@@ -51,6 +51,8 @@ check(flagged(recon.det_access, "contract C{function setFee(uint x) external { e
       "fix: trailing emit(msg.sender) does NOT mask a real ungated setter")
 check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint x) external { _onlyAdminOrRole(R); allowed[x]=true; }}"),
       "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
+check(not flagged(recon.det_access, "contract C{function slash(address a) external checkAccess(this.slash.selector) { x=a; }}"),
+      "fix#15: checkAccess(this.fn.selector) selector-gating NOT flagged (Cap pattern)")
 
 print("== det_sibling (regression technique + initializer) ==")
 sib = ("contract C{function setA(uint x) external onlyOwner { a=x; }"
@@ -58,6 +60,10 @@ sib = ("contract C{function setA(uint x) external onlyOwner { a=x; }"
 check(flagged(recon.det_sibling, sib, "setB"), "ungated setB flagged next to gated setA")
 check(not flagged(recon.det_sibling, "contract C{function setA(uint x) external onlyOwner { a=x; }}"),
       "single gated fn: no sibling lead")
+_capsib = ("contract C{function setA(uint x) external checkAccess(this.setA.selector) { a=x; }"
+           " function distributeRewards(address t) external { b=t; }}")
+check(flagged(recon.det_sibling, _capsib, "distributeRewards"),
+      "fix#15: lone ungated sibling flagged among checkAccess-gated siblings (the real Cap signal)")
 
 print("== det_mint (supply integrity, _msgSender fix) ==")
 check(flagged(recon.det_mint, "contract C{function mint(address t,uint a) external { _mint(t,a); }}", "mint"),

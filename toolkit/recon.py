@@ -53,7 +53,7 @@ ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
 INLINE_AUTH = re.compile(
     r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*(msg\.sender|_msgSender)|"
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforceAccessControl|"
-    r"_verifySignatures|verifySignature|_checkAccess|_checkSender|"
+    r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_only\w+\s*\(")   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
 
@@ -109,7 +109,8 @@ def det_access(text, rel):
         nxt = text.find("function ", m.end())
         end = nxt if nxt > 0 else m.end() + 1500
         top = text[m.end():min(m.end() + 280, end)]
-        if ("only" in blob.lower() or INLINE_AUTH.search(text[m.end():end])
+        if ("only" in blob.lower() or INLINE_AUTH.search(blob)   # fix#15: auth modifier in signature (checkAccess(...))
+                or INLINE_AUTH.search(text[m.end():end])
                 or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", top)):
             continue
         if PRIV.search(name):
@@ -132,6 +133,8 @@ def det_sibling(text, rel):
         gname = gate.group(0) if gate else None
         if not gname and re.search(r"\b(re)?initializer\b", blob):
             gname = "initializer"  # OZ initializer guards one-time init -> gated
+        if not gname and INLINE_AUTH.search(blob):   # fix#15: non-only auth modifier in signature (checkAccess(this.fn.selector))
+            gname = "checkAccess"
         if not gname:  # no modifier -> inline auth (strong auth, full body) OR a
             nxt = text.find("function ", m.end())   # self-scoped mapping key near top
             end = nxt if nxt > 0 else m.end() + 1500

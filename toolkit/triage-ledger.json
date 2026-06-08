@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "sig": "cap|contracts/delegation/Delegation.sol|ac|function distributeRewards(address _agent, address _asset)",
+      "target": "cap",
+      "file": "contracts/delegation/Delegation.sol",
+      "line": 55,
+      "detector": "sibling",
+      "snippet": "function distributeRewards(address _agent, address _asset)",
+      "verdict": "known",
+      "reason": "Sherlock 2025-07 Cap contest: missing access control on distributeRewards heavily reported (#490 #388 #561 #531 #333 #295 #556 #467). Live code expected fixed.",
+      "date": "2026-06-08"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
