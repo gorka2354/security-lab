@@ -69,9 +69,9 @@ research/
 | liquidation-math | `det_liquidation` | surfaces liquidation entrypoints; [!] if no self-liq guard or seize rounds **up**. |
 | cross-chain-and-aa | `det_domain` + `det_l2_footgun` | cached EIP-712 separator (no fork-recompute) + extcodesize/`isContract` AA footguns. |
 
-**T2/T3 slice (NOT regex — the reasoning layer, next harvest):** invariant-fuzz templates per pattern §5 (sharePrice/claim
-conservation, 1-block price-move bound, liquidation health-monotone, no cross-chain replay). These are the edge; recon only
-surfaces the *smell*.
+**T2/T3 slice (NOT regex — the reasoning layer) ✅ harvested → [`invariant-lab/test/templates/`](../invariant-lab):** a
+self-validating Foundry invariant template per class (mock with a `buggy` toggle → fuzzed invariant passes on fixed,
+provably fails on buggy). 6 templates, all verified both ways. recon surfaces the *smell*; the invariant decides.
 
 **Backlog (not yet written):** interest/fee rounding (mulDivUp/Down asymmetry — Monolith soft-spot) · init/upgrade/storage
 (front-run init, uninitialized impl, storage-collision, transitive proxy).
