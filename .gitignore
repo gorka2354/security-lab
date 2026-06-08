@@ -25,3 +25,6 @@ __pycache__/
 
 # volume-engine cloned targets + generated queue
 hunts/_volume/
+
+# fetch_source.py output (deployed verified source pulled by address — third-party)
+fetched/

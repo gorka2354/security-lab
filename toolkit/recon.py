@@ -54,7 +54,8 @@ INLINE_AUTH = re.compile(
     r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*(msg\.sender|_msgSender)|"
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforceAccessControl|"
     r"_verifySignatures|verifySignature|_checkAccess|_checkSender|"
-    r"_?require\w*Only\b|_?check\w*Only\b")   # e.g. requireGovernanceOnly()
+    r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
+    r"_only\w+\s*\(")   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
 
 
 def iter_sol(root):

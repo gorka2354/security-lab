@@ -49,6 +49,8 @@ check(not flagged(recon.det_access, "contract C{function setX(uint x) external {
       "msg.sender comparison guard NOT flagged")
 check(flagged(recon.det_access, "contract C{function setFee(uint x) external { emit Set(msg.sender,x); fee=x; }}", "setFee"),
       "fix: trailing emit(msg.sender) does NOT mask a real ungated setter")
+check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint x) external { _onlyAdminOrRole(R); allowed[x]=true; }}"),
+      "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
 
 print("== det_sibling (regression technique + initializer) ==")
 sib = ("contract C{function setA(uint x) external onlyOwner { a=x; }"
@@ -116,6 +118,18 @@ check(bool(hypothesize.STATE.search("s.aavegotchis[id].collateral=c")), "STATE m
 check(bool(hypothesize.STATE.search("ds.layout=x")), "STATE matches ds. (diamond storage)")
 check("s.foo" in hypothesize.direct_writes("s.foo = 1;"), "direct_writes captures a diamond s. write")
 check("state.data.x" in hypothesize.direct_writes("state.data.x = 1;"), "direct_writes captures a state. write")
+
+print("== fetch_source (live-first: etherscan source parsing, no network) ==")
+import fetch_source  # noqa: E402
+check(fetch_source.parse_etherscan_source("contract C{}", "MyToken") == {"MyToken.sol": "contract C{}"},
+      "flat source -> single ContractName.sol")
+_sj = fetch_source.parse_etherscan_source(
+    '{{"sources":{"src/A.sol":{"content":"contract A{}"},"src/B.sol":{"content":"contract B{}"}}}}')
+check(_sj.get("src/A.sol") == "contract A{}" and _sj.get("src/B.sol") == "contract B{}",
+      "standard-json {{..}} double-wrap -> multi-file map keyed by path")
+check(fetch_source.parse_etherscan_source('{"sources":{"X.sol":{"content":"contract X{}"}}}').get("X.sol") == "contract X{}",
+      "single-brace standard-json also parsed")
+check(fetch_source.parse_etherscan_source("") == {}, "empty SourceCode -> empty map (graceful)")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
