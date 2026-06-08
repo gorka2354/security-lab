@@ -160,7 +160,15 @@ def main():
     if not targets:
         ap.error("give proxy address(es) or --config")
 
-    print(f"livecheck chain {a.chain} - {len(targets)} address(es). DRIFT = live code newer than audit.\n")
+    # RPC health probe: a dead/blocked RPC (e.g. llamarpc HTTP 526) otherwise makes resolve_impl
+    # raise -> swallowed -> every proxy silently mislabeled "non-proxy". Fail loud instead.
+    rpc = a.rpc or fs.DEFAULT_RPC.get(str(a.chain))
+    if latest_block(a.chain, rpc) is None:
+        print(f"[!] RPC not responding: {rpc or '(no default for chain ' + a.chain + ')'}. "
+              f"A dead RPC makes every proxy look like 'non-proxy' - aborting. Pass a working --rpc.")
+        return
+
+    print(f"livecheck chain {a.chain} - {len(targets)} address(es) via {rpc}. DRIFT = live code newer than audit.\n")
     drifted = 0
     for p in targets:
         r = check(p, a.chain, a.audited, a.since, a.rpc)
