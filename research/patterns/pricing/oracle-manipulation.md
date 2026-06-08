@@ -10,7 +10,7 @@ The unsafe price source, in order of how often it bites:
 1. **Spot AMM reserves / `getAmountOut` on a single pool** — `price = reserveB/reserveA` read live. A flash-loaned swap
    moves it, the protocol reads the moved value, attacker reverts the swap. Mid-price (no slippage) is the worst.
 2. **`token.balanceOf(pool)` / LP-token value via balances** — donate/skew balances → mis-valued LP or collateral.
-3. **Vault share rate as price** — see [erc4626-inflation](erc4626-inflation.md) flavor (b) (Venus, Inertia).
+3. **Vault share rate as price** — see [erc4626-inflation](../accounting/erc4626-inflation.md) flavor (b) (Venus, Inertia).
 4. **Chainlink/feed misuse** — no staleness (`updatedAt`), no `answeredInRound`, no `price>0`, wrong `decimals`, or a
    single feed for a thinly-traded asset. (Our `det_oracle` 3-guard checklist lives here — T1.)
 5. **Read-only reentrancy** — read the price *during* a victim contract's callback (e.g. Curve `get_virtual_price`

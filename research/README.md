@@ -27,6 +27,8 @@ T2/T3.** This library's job: turn T2/T3 patterns into (a) the few extra T1 detec
 sharp, reusable HYPOTHESES + INVARIANTS for the T2/T3 reasoning layer.
 
 ## Method per pattern (the template)
+Every pattern follows **[TEMPLATE.md](TEMPLATE.md)** — copy it, don't free-form. Six fixed sections so a missing one is
+*visibly* missing (that's how we catch our own blind spots):
 1. **Mechanism** — how the rule breaks, precisely.
 2. **Real examples** — post-mortems + our own first-hand session finds (we read the code).
 3. **The "tell"** — what to grep / read / ask to spot it.
@@ -34,14 +36,30 @@ sharp, reusable HYPOTHESES + INVARIANTS for the T2/T3 reasoning layer.
 5. **Hypothesis / invariant (T2/T3)** — the property to assert + how to fuzz/reason it.
 6. **Mitigations to RECOGNIZE** — so we don't FP on safe code (the session's #1 lesson: most flags are mitigated).
 
-## Index
-- [x] **[erc4626-inflation.md](erc4626-inflation.md)** — vault share-price / exchange-rate manipulation (donation/first-depositor; vault-as-oracle). *Densest class; bit dStake, Venus, Inertia.*
-- [ ] oracle-manipulation — spot-vs-TWAP, AMM-reserve, read-only-reentrancy price, cross-decimal/stale. *(Likwid truncatedReserves = the mitigation to study.)*
-- [ ] reward-accounting — wave/queue/contribution double-claim, dust, timing windows. *(CU LibRewards = the correct design to study.)*
-- [ ] liquidation-math — bad-debt socialization, self-liquidation, half-liquidation threshold, rounding direction.
-- [ ] index/rate-manipulation — Aave-fork liquidityIndex inflation on empty markets. *(dTRINITY $257k.)*
-- [ ] cross-chain / AA — mutable-chainId domain-separator replay (zkMarkets); extcodesize/EIP-1271 on zkSync (`det_l2_footgun`).
-- [ ] interest/fee rounding — mulDivUp vs mulDivDown asymmetry over manipulable totals (Monolith soft-spot).
-- [ ] init / upgrade / storage — front-run init, uninitialized impl, storage-collision, transitive proxy.
+## Layout — split by class, so the system is extensible
+One file = one pattern, one screen. Folders = the vuln class (= the future detector module it feeds). Add a pattern by
+dropping a `TEMPLATE.md` copy into the right class folder; add a class by adding a folder. Nothing is "overloaded".
+```
+research/
+  TEMPLATE.md                     pattern skeleton (copy this)
+  patterns/
+    accounting/  erc4626-inflation · reward-accounting     → det_erc4626, invariant: sharePrice/claim conservation
+    pricing/     oracle-manipulation · index-manipulation  → det_oracle,  invariant: 1-block price move bounded
+    liquidation/ liquidation-math                          → invariant: no bad-debt / no self-profit liquidation
+    signatures/  cross-chain-and-aa                        → det_sig / det_l2_footgun, invariant: no replay
+```
+
+## Index (6 patterns)
+| ✓ | Class | Pattern | Tier | Hook |
+|---|---|---|---|---|
+| ✅ | accounting | [erc4626-inflation](patterns/accounting/erc4626-inflation.md) | T2 | donation/first-depositor + vault-as-oracle. *dStake (first-hand), Venus, Inertia.* |
+| ✅ | accounting | [reward-accounting](patterns/accounting/reward-accounting.md) | T2/T3 | wave/queue double-claim, dust, timing. *CU LibRewards = the correct design (first-hand).* |
+| ✅ | pricing | [oracle-manipulation](patterns/pricing/oracle-manipulation.md) | T2/T3 | spot-vs-TWAP, AMM-reserve, read-only-reentrancy. *Likwid truncatedReserves = the mitigation.* |
+| ✅ | pricing | [index-manipulation](patterns/pricing/index-manipulation.md) | T2/T3 | Aave-fork `liquidityIndex` inflation on empty markets. *dTRINITY $257k (first-hand).* |
+| ✅ | liquidation | [liquidation-math](patterns/liquidation/liquidation-math.md) | T2/T3 | bad-debt socialization, self-liquidation, threshold, rounding direction. *TermMax/CU (first-hand).* |
+| ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
+
+**Backlog (not yet written):** interest/fee rounding (mulDivUp/Down asymmetry — Monolith soft-spot) · init/upgrade/storage
+(front-run init, uninitialized impl, storage-collision, transitive proxy).
 
 > Sync the transferable lessons into the Obsidian "Крипто безопасность" vault (heuristics + pattern notes) — that's the public/study face; this dir is the toolkit-feeding face.
