@@ -360,6 +360,30 @@ def det_erc4626(text, rel):
              "first-depositor inflation attack? (verify by hand)", 0)]
 
 
+# ── Detector 7: L2 / native Account-Abstraction footguns (zkSync Era) ──
+L2_FOOTGUNS = [
+    (r"\bextcodesize\b",
+     "extcodesize as EOA/contract check -> zkSync & native-AA: EOAs can have code and a counterfactual "
+     "smart-account has none; auth/signature gates on 'isContract' are bypassable"),
+    (r"\b\w+\.code\.length\b",
+     "address.code.length as an EOA/contract check -> unreliable on AA chains (zkSync)"),
+    (r"function\s+\w*[Ii]sContract\b",
+     "custom isContract() -> if it branches signature/auth verification, the EOA-vs-smart-account split "
+     "breaks on zkSync AA (cf. zkMarkets TransactFacet.verifySignature)"),
+]
+
+
+def det_l2_footgun(text, rel):
+    """zkSync-Era / native Account-Abstraction footguns: code that assumes 'EOA == no code' or
+    branches signature/auth on extcodesize breaks where ANY account can be a smart contract.
+    Learned from zkMarkets' extcodesize-branched EIP-1271/ECDSA signature path."""
+    out = []
+    for pat, note in L2_FOOTGUNS:
+        for m in re.finditer(pat, text):
+            out.append((rel, lineno(text, m.start()), m.group(0)[:60], note, 1))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -385,6 +409,8 @@ DETECTORS = [
      "Heuristic 2: staleness(updatedAt) + price>0 + decimals()."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
+    ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
+     "zkSync native AA: 'EOA == no code' is false -> isContract/extcodesize-gated auth+signatures bypassable."),
 ]
 
 
@@ -398,7 +424,7 @@ def det_key(title):
                    ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("upgrade", "upgrade"), ("unchecked", "unchecked"),
                    ("erc4626", "erc4626"), ("oracle", "oracle"),
-                   ("dangerous", "danger"), ("disabled", "disabled")):
+                   ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
         if sub in t:
             return k
     return "other"

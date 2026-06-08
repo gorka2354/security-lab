@@ -149,5 +149,13 @@ check(fetch_source.impl_from_eip1167("0x363d3d373d3d3d363d73" + "ab" * 20 + "5af
       == "0x" + "ab" * 20, "EIP-1167 minimal-proxy: impl address parsed from bytecode")
 check(fetch_source.impl_from_eip1167("0x6080604052348015") is None, "non-proxy bytecode -> None (no false impl)")
 
+print("== det_l2_footgun (zkSync / native-AA EOA-assumption footguns) ==")
+check(flagged(recon.det_l2_footgun, "function isContract(address a) internal view returns(bool){uint s; assembly{s:=extcodesize(a)} return s>0;}"),
+      "extcodesize + custom isContract flagged (zkSync AA footgun, from zkMarkets)")
+check(flagged(recon.det_l2_footgun, "function verify(address signer,bytes sig) public { if (signer.code.length==0){ ECDSA.recover(h,sig); } }"),
+      "address.code.length EOA-check flagged (AA footgun)")
+check(not flagged(recon.det_l2_footgun, "function transfer(address to, uint x) external { balances[to]+=x; }"),
+      "ordinary code NOT flagged by det_l2_footgun")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
