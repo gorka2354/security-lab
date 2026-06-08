@@ -60,7 +60,11 @@ Currently `det_erc4626` flags "vault with no `_decimalsOffset`/dead-shares". Sha
 
 ## 6. Mitigations to RECOGNIZE (avoid FP — the session's #1 lesson)
 A vault is **safe / not a finding** if ANY of these is present:
-- **Virtual shares:** `_decimalsOffset()` overridden to return >0 (OZ ≥4.9 default mitigation).
+- **Virtual shares:** `_decimalsOffset()` overridden to return >0 (OZ ≥4.9 default mitigation). **Nuance verified against
+  real OZ ERC4626** (`invariant-lab/test/real/`): virtual shares make the attack **economically unprofitable** (attacker
+  can't recoup the donation) but **NOT absolute** — a deep-pocketed griefer can still round a meaningful deposit to 0
+  under a large donation with offset 0. Absolute no-grief needs a **seed / dead-shares / large offset** (Kiln uses ≤23).
+  So "has `_decimalsOffset`" ⇒ no *profitable* theft, but still verify a seed if griefing matters.
 - **Dead shares:** initializer mints a chunk of shares to `address(0)`/the contract/a burn address (Uniswap-v2 style).
 - **Internal accounting:** `totalAssets()` returns a tracked `_totalDeposited` accumulator, NOT `balanceOf` → donations ignored.
 - **Min-deposit / MIN_SHARES floor** that makes the rounding-loss negligible (but check the arithmetic is symmetric —
