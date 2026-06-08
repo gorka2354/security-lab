@@ -89,13 +89,23 @@ forge test --root malda-lz-poc -vv
 # [PASS] test_real_executor_drains_bridge  -> "CONFIRMED with REAL BaseOftMessageExecutor source"
 ```
 
+## This is a REGRESSION (the protocol's other bridges already have the missing check)
+The receive path of every other bridge validates `market`; only the new LZ bridge dropped it:
+- **`AcrossBridge.handleV3AcrossMessage`** (active, audited): decodes `market` from the message then
+  `require(IRebalancer(REBALANCER).isMarketWhitelisted(market), AcrossBridge_InvalidReceiver());` **before**
+  `safeTransfer(market, amount)`.
+- **`EverclearBridgeV2.sendMsg`**: `require(receiver == _market, ...)` (and it has no permissionless receive hook).
+- **`LZUnifiedBridge.lzCompose`**: **no market validation at all.**
+So the fix is literally "do what AcrossBridge already does." This also confirms the bug is real and
+intended-to-be-guarded, not a design choice.
+
 ## Recommendation
-- **Validate `market`** before any transfer, e.g. `require(operator.isMarket(market))` (or the bridge's
-  own allow-list), so funds can only be forwarded to a legitimate market.
+- **Add the same market allow-list check** the other bridges use, in `lzCompose` before delegating:
+  `require(IRebalancer(REBALANCER).isMarketWhitelisted(market), ...);` (matching `AcrossBridge`).
 - Prefer binding the compose to the **exact delivered amount and original sender** encoded in the OFT
   message, rather than sweeping `balanceOf(address(this))` to a caller-supplied address.
-- Consider a `nonReentrant`/pull pattern and not trusting `market.underlying()` (an external call to a
-  caller-controlled contract) before the `from` check.
+- Consider not calling `market.underlying()` (an external call to a caller-controlled contract) before
+  the market is validated.
 
 ## Notes
 Found via post-audit `diffscan` (HEAD vs audited base `c60d6c3`) + manual verification. The audited

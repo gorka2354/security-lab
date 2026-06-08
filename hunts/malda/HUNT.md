@@ -93,4 +93,21 @@ _(verdicts as we sweep - every entry point, FP or real, with why)_
   accumulated-amount + processed cap (`mintAmount <= accAmountIn - inPerChain`), routing validated
   (`dstChainId==block.chainid`, `market==address(this)`, `allowedChains[chainId]`). Audited + unchanged.
 - `mErc20Host.updateAllowedChain` [recon UNGATED] -> **FP** (gated `_onlyAdminOrRole(CHAINS_MANAGER)`).
-- **`LZUnifiedBridge.lzCompose` -> HIGH finding (above).**
+- **`LZUnifiedBridge.lzCompose` -> HIGH finding (above), CONFIRMED as a REGRESSION (see below).**
+
+### Rest of the post-audit drift swept (verdicts)
+- **`EverclearBridgeV2.sendMsg`** [recon reentrancy, post-audit] -> **FP**: `onlyRebalancer` (trusted caller),
+  validates `receiver == _market`, and EverclearBridgeV2 has **no permissionless receive hook** (Everclear
+  is intent-based, no compose callback). Active bridge, sound vs this class.
+- **`AcrossBridge.handleV3AcrossMessage`** (active, audited): the receive analog of lzCompose, but it
+  **DOES** `require(isMarketWhitelisted(market))` before transfer -> SOUND. **This is the reference that
+  proves the LZ bug is a regression: every other bridge validates `market`; only LZUnifiedBridge dropped it.**
+- **`Migrator.migrateAllPositions`** [recon UNGATED] -> **FP**: self-scoped (acts on `msg.sender`'s own
+  Mendi positions); existed at audit.
+- **Oracle V4 (`MixedPriceOracleV4`)** [recon oracle] -> **low/FP**: existed at audit; has per-symbol
+  staleness + dual-feed checks. Not post-audit drift.
+- delegatecalls / `tx.origin` (firewall) flags -> within the bridge/firewall design (gated paths); no new lead.
+
+**Drift sweep conclusion:** the ONE real finding is `LZUnifiedBridge.lzCompose` (HIGH, regression of the
+market-allow-list check the active bridges have; currently behind the inactive LZ bridge -> fix-before-
+activation). The active bridges (Across/Everclear) and the audited core are sound.
