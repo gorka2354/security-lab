@@ -136,6 +136,9 @@ check(_sj.get("src/A.sol") == "contract A{}" and _sj.get("src/B.sol") == "contra
 check(fetch_source.parse_etherscan_source('{"sources":{"X.sol":{"content":"contract X{}"}}}').get("X.sol") == "contract X{}",
       "single-brace standard-json also parsed")
 check(fetch_source.parse_etherscan_source("") == {}, "empty SourceCode -> empty map (graceful)")
+check(fetch_source.impl_from_eip1167("0x363d3d373d3d3d363d73" + "ab" * 20 + "5af43d82803e903d91602b57fd5bf3")
+      == "0x" + "ab" * 20, "EIP-1167 minimal-proxy: impl address parsed from bytecode")
+check(fetch_source.impl_from_eip1167("0x6080604052348015") is None, "non-proxy bytecode -> None (no false impl)")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

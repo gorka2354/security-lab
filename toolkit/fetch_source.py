@@ -17,13 +17,51 @@ ASCII output. Stdlib only (urllib). Chain ids: 1 eth, 8453 base, 42161 arb, 5914
 import argparse
 import json
 import os
+import re
 import urllib.request
+
+# EIP-1967 implementation slot = keccak256("eip1967.proxy.implementation") - 1
+EIP1967_IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+DEFAULT_RPC = {
+    "1": "https://ethereum-rpc.publicnode.com", "8453": "https://base-rpc.publicnode.com",
+    "42161": "https://arbitrum-one-rpc.publicnode.com", "10": "https://optimism-rpc.publicnode.com",
+    "59144": "https://linea-rpc.publicnode.com", "137": "https://polygon-bor-rpc.publicnode.com",
+}
 
 
 def _get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "security-lab/1.0"})
     with urllib.request.urlopen(req, timeout=40) as r:
         return r.read().decode("utf-8", "replace")
+
+
+def _rpc(rpc, method, params):
+    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
+    req = urllib.request.Request(rpc, data=body,
+                                 headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read()).get("result")
+
+
+def impl_from_eip1167(code):
+    """Extract the implementation address embedded in EIP-1167 minimal-proxy bytecode. Pure (testable)."""
+    m = re.search(r"363d3d373d3d3d363d73([0-9a-fA-F]{40})5af4", code or "")
+    return "0x" + m.group(1) if m else None
+
+
+def resolve_impl(address, chain, rpc=None):
+    """Follow an EIP-1967 (storage slot) or EIP-1167 (minimal-proxy bytecode) proxy to its
+    implementation address. Returns None for an EOA / non-proxy / unknown chain. Needs an RPC."""
+    rpc = rpc or DEFAULT_RPC.get(str(chain))
+    if not rpc:
+        return None
+    try:
+        raw = _rpc(rpc, "eth_getStorageAt", [address, EIP1967_IMPL_SLOT, "latest"]) or ""
+        if raw and set(raw[2:]) != {"0"}:
+            return "0x" + raw[-40:]
+        return impl_from_eip1167(_rpc(rpc, "eth_getCode", [address, "latest"]) or "")
+    except Exception:
+        return None
 
 
 def parse_etherscan_source(src, name="Contract"):
@@ -83,19 +121,30 @@ def main():
     ap.add_argument("address")
     ap.add_argument("--chain", default="1", help="chain id (1 eth, 8453 base, 42161 arb, 59144 linea)")
     ap.add_argument("--out", help="output dir (default: fetched/<chain>_<address>)")
+    ap.add_argument("--proxy", action="store_true",
+                    help="follow EIP-1967/1167 proxy to its impl and fetch THAT (live drift-hunting)")
+    ap.add_argument("--rpc", help="RPC url for --proxy (default: a public node for the chain)")
     a = ap.parse_args()
-    out = a.out or os.path.join("fetched", f"{a.chain}_{a.address}")
+    address = a.address
+    if a.proxy:
+        impl = resolve_impl(a.address, a.chain, a.rpc)
+        if impl and impl.lower() != a.address.lower():
+            print(f"[proxy] {a.address} -> implementation {impl} (fetching the live logic, not the stub)")
+            address = impl
+        else:
+            print(f"[proxy] no proxy impl resolved for {a.address} (EOA / non-proxy / no RPC) - fetching as-is")
+    out = a.out or os.path.join("fetched", f"{a.chain}_{address}")
 
     key = os.environ.get("ETHERSCAN_API_KEY")
     files, backend = None, None
     if key:
-        files = from_etherscan(a.address, a.chain, key)
+        files = from_etherscan(address, a.chain, key)
         backend = "Etherscan v2"
     if not files:
-        files = from_sourcify(a.address, a.chain)
+        files = from_sourcify(address, a.chain)
         backend = "Sourcify"
     if not files:
-        print(f"[!] no verified source for {a.address} on chain {a.chain} "
+        print(f"[!] no verified source for {address} on chain {a.chain} "
               f"({'set ETHERSCAN_API_KEY for full coverage' if not key else 'unverified / not on Sourcify'})")
         return
 
