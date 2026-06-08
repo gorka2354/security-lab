@@ -13,7 +13,7 @@
                     +------------------+------------------+
                                        v
                         recon.py — МЕТАЛЛОИСКАТЕЛЬ (L1)
-                        12 детекторов, быстрый триаж, приоритет [!]
+                        17 детекторов, быстрый триаж, приоритет [!]
                                        |
                         ledger.py — КАРТОТЕКА ВЕРДИКТОВ
                         гасит уже засуженные (FP/known) → вижу только НОВОЕ
@@ -38,7 +38,9 @@
   +----------------------------------------------------------+
 ```
 
-**Цикл самосовершенствования:** изучили реальный баг → добавили в картотеку + детектор → ловим класс на любом репо. Ложная тревога → подтачиваем (за разработку — **13 фиксов точности**, последний — драйвнут тестом). Каждый вердикт пишется в **ledger**, поэтому уже разобранные лиды больше не всплывают — **шум падает с каждым прогоном**. Чем больше примеров — тем умнее система.
+**Цикл самосовершенствования:** изучили реальный баг → добавили в картотеку + детектор → ловим класс на любом репо. Ложная тревога → подтачиваем (за разработку — **23 фикса точности**, свежие — из живого таргета Morpho Midnight). Каждый вердикт пишется в **ledger**, поэтому уже разобранные лиды больше не всплывают — **шум падает с каждым прогоном**. Чем больше примеров — тем умнее система.
+
+**Пайплайн «паттерн → детектор → инвариант»** (`research/` → `recon.py` → `invariant-lab/`): каждый класс багов изучаем в [`research/patterns/`](research/) (T0→T3 + примеры), статически-ловимое куём в детектор recon, а reasoning-слой (T2/T3) — в **самопроверяющийся invariant-шаблон**. Прогнан на живом коде обоими плечами: детекторное (Morpho Midnight) + инвариантное (реальный OZ ERC4626).
 
 **Слои:** L1 быстрый скан (regex) → L2 глубокий анализ (Slither) → L3 краш-тест математики (invariant-фаззинг) → **L4 = я (Claude)** рассуждаю и оркестрирую. Объём (orchestrate) × Свежесть (diffscan) × Глубина (L2/L3) — три оси охоты.
 
@@ -58,26 +60,31 @@
 ## Карта папки
 ```
 security-lab/
-├─ README.md / CLAUDE.md / ROADMAP.md     ← вход, контекст для меня, роадмап
+├─ README.md / CLAUDE.md / ROADMAP.md / PLAYBOOK.md  ← вход · контекст · роадмап · цепочка охоты
 ├─ toolkit/
-│   ├─ orchestrate.py     ← ОБЪЁМ: скан многих таргетов + ранг (targets.txt)
-│   ├─ diffscan.py        ← СВЕЖЕСТЬ: скан только изменённого кода (audit-drift)
-│   ├─ recon.py           ← L1 сканер: 12 детекторов наших эвристик
-│   ├─ ledger.py          ← память вердиктов (triage-ledger.json): гасит known FP
-│   ├─ analyze.py         ← L2: recon + Slither + кросс-корреляция
-│   ├─ scaffold.py        ← L3: генератор invariant-харнесса
-│   ├─ targets.txt · security_audit.py · PROMPTS.md · WORKFLOW.md
+│   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
+│   ├─ recon.py                       ← L1 сканер: 17 детекторов наших эвристик
+│   ├─ fetch_source.py · livecheck.py ← LIVE-FIRST: verified-source по адресу · дрейф impl vs аудит
+│   ├─ scope.py · analyze.py          ← карта функций/ролей · L2 Slither + кросс-корреляция
+│   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
+│   ├─ ledger.py · watch.py · pdftext.py  ← память вердиктов · cron-монитор парковок · текст из аудит-PDF
+├─ research/            ← БИБЛИОТЕКА ПАТТЕРНОВ (T0→T3): паттерн → детектор → инвариант
+│   └─ TEMPLATE.md + patterns/{accounting,pricing,liquidation,signatures}/  (6 паттернов)
+├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ
 ├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
-│   ├─ exactly/ infrared/ yo/ stakelink/  (+ yo/oracle-fuzz — deep-invariant)
-├─ nomad-poc/ oracle-poc/ invariant-lab/   ← Foundry PoC + invariant-лаба
-└─ .github/workflows/   ← CI: security-audit + Slither (L2 на Linux)
+├─ monitor/watchlist.json  ← припаркованные находки → watch.py следит, [FIRED] при деплое
+├─ tests/test_detectors.py ← 77 golden-fixture проверок (CI-гейт)
+└─ nomad-poc/ oracle-poc/  ← Foundry PoC
 ```
 
-## 12 детекторов (recon.py)
+## 17 детекторов (recon.py)
 disabled-signals · access-control · **sibling-inconsistency** · supply-integrity (mint/burn) ·
 reentrancy (CEI) · arbitrary-call (approval-drain) · **signature/ecrecover** (replay) ·
-**UUPS upgrade-safety** · **unchecked ERC20 return** · **ERC4626 inflation** · oracle 3-guard · dangerous primitives.
-Детекторы под access-control (sibling+access) объединены в группу — один вердикт в ledger гасит оба.
+**domain-separator** (cross-chain/fork replay) · **UUPS upgrade-safety** · **unchecked ERC20 return** ·
+**ERC4626 inflation** · **reward/claim-accounting** (double-claim) · oracle 3-guard (+spot-reserve sub-check) ·
+**interest-index inflation** (Aave-fork empty-market) · **liquidation-math** · dangerous primitives · **L2/AA-footguns** (zkSync).
+Access-control (sibling+access) объединены в группу — один вердикт гасит оба. Каждый детектор — **lead, не verdict**.
+4 новых детектора + 2 уточнения выкованы из библиотеки паттернов (`research/`); закалён **fix#14–#23** (последние — из живого Morpho Midnight).
 
 ## База знаний — отдельно (Obsidian)
 `...\Obsidian Vault\Крипто безопасность\` — паттерны, разборы, findings, шаблоны.
@@ -99,9 +106,12 @@ forge test --root invariant-lab -vvv               # прогнать фаззи
 
 ## Статус
 - ✅ Полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH** (recon → Slither → scaffold+fuzz → L4)
-- ✅ 7 классов багов + 7 эвристик в картотеке; **12 детекторов**; закалён **13 фиксами**
-- ✅ **Регресс-тесты** (`tests/test_detectors.py`, 29 golden-fixture проверок) — жёсткий гейт в CI: фикс не сломает другой детектор молча
+- ✅ 7 классов багов + 7 эвристик в картотеке; **17 детекторов**; закалён **23 фиксами** (fix#14–#23)
+- ✅ **research/** — библиотека из 6 баг-паттернов (T0→T3) + TEMPLATE; пайплайн паттерн → детектор → инвариант
+- ✅ **invariant-lab/** — 6 самопроверяющихся invariant-шаблонов + wire к реальному OZ ERC4626 (25 тестов, fmt-чисто)
+- ✅ **Регресс-тесты** (`tests/test_detectors.py`, **77** golden-fixture проверок) — жёсткий гейт: фикс не сломает другой детектор молча
 - ✅ **ledger** (память вердиктов) — шум падает каждый прогон; **diffscan** — хантинг по audit-drift
-- 🎯 Охоты: Nomad (учебная), Exactly/Infrared/YO/stakelink (триаж), YO oracle (deep-invariant)
-- 🔎 Живой лид: `hunts/stakelink/HUNT.md` — оракул-адаптер на mainnet маскирует staleness (impact на доверификации)
+- 🎯 Живые тесты пайплайна: **Morpho Midnight** (детекторное плечо → fix#21/#22/#23) · **реальный OZ ERC4626** (инвариантное → находка «экономическая vs абсолютная защита»)
+- 🎯 Охоты: Nomad (учебная) + Exactly/YO/Cap/Likwid/TermMax/Crypto-Unicorns/Morpho-Midnight (триаж — все добротны)
+- 🔎 Парковка: `monitor/watchlist.json` (Malda LZ bridge + Cap upgrades) → `watch.py` следит
 - 📌 Бэклог в `ROADMAP.md` (MCP-сервер отложен)
