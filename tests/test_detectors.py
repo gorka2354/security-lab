@@ -53,6 +53,10 @@ check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint
       "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
 check(not flagged(recon.det_access, "contract C{function slash(address a) external checkAccess(this.slash.selector) { x=a; }}"),
       "fix#15: checkAccess(this.fn.selector) selector-gating NOT flagged (Cap pattern)")
+check(not flagged(recon.det_access, "contract C{function withdrawAll(address t) external { LibDiamond.enforceIsContractOwner(); pay(t); }}"),
+      "fix#18: Diamond library auth LibDiamond.enforceIsContractOwner() NOT flagged (Crypto Unicorns facet)")
+check(not flagged(recon.det_access, "contract C{function mintUNIM(address t,uint a) external { LibUNIMController.enforceIsController(); _mint(t,a); }}", "mintUNIM"),
+      "fix#18: enforceIsController() Diamond auth NOT flagged")
 
 print("== det_sibling (regression technique + initializer) ==")
 sib = ("contract C{function setA(uint x) external onlyOwner { a=x; }"

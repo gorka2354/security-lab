@@ -52,7 +52,7 @@ ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
 # (that just means "uses the caller as an actor", e.g. _balances[msg.sender]).
 INLINE_AUTH = re.compile(
     r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*(msg\.sender|_msgSender)|"
-    r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforceAccessControl|"
+    r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforce[A-Za-z]\w*\s*\(|"   # fix#18: Diamond/library enforce-auth (enforceIsContractOwner / enforceIsController / LibX.enforce*)
     r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_only\w+\s*\(")   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
