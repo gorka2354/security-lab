@@ -105,3 +105,28 @@ caller chain (does PriceOracle check `lastUpdated`/`price>0` from `ChainlinkAdap
 (3) FP-calibrate the `_authorizeUpgrade` cluster; (4) deep-read the 2026-02 delegation/lender deltas.
 Also: **livecheck is now the engine to scan OTHER candidates for a CLEANER drift target** (single
 audit + single unaudited upgrade beats Cap's actively-maintained churn).
+
+---
+
+## B DEEP-DIVE RESULT (same day): drift is SOUND. No new bug. Toolkit improved.
+
+Worked the diffscan drift leads top-down:
+- **Oracle (best real-bug-class lead) → FP.** `PriceOracle.getPrice` (L44-48) handles it correctly:
+  `price==0 || _isStale` → try backup → if backup also bad → `revert PriceError`. Staleness is
+  per-asset, `setStaleness` is `checkAccess`-gated; adapters return `lastUpdated` (chained = MIN) and
+  negative price → 0 (rejected). The `ChainlinkAdapterChained`/`FalconX`/`LBTC` "MISSING staleness"
+  flags are det_oracle cross-file FPs (guard lives in the caller, not the adapter file).
+- **`ico/CCAToken` mint/burn/`_authorizeUpgrade` → FP.** All `checkAccess(...)`-gated. recon's
+  det_mint + det_upgrade didn't recognize selector-gating → **toolkit fix#16 (det_mint) + fix#17
+  (det_upgrade)** added (same lesson as fix#15). diffscan 77→67; the public-mint / unguarded-upgrade
+  cluster cleared.
+- **`fractionalReserve/Harvester.harvest` → FP/by-design + known.** Permissionless, but `_cusd` is
+  caller-supplied → attacker passes their own fake = harvests their own nothing; on the real cUSD it's
+  a standard keeper harvest (no funds to caller). The `realizeInterest` angle = known contest **#413**.
+- **`gelato/*` notify/harvest, `ReserveLogic.setInterestReceiver`** → permissionless-by-design keepers /
+  library fns gated in the calling contract / known (`notify` = #565/#546/#507).
+
+**Verdict: Cap's post-audit drift is well-gated and sound — no new finding.** Consistent with an
+actively-maintained ($67M, live bounty, 400-sub contest) protocol whose upgrades are reviewed.
+Cap → archived as a methodology + tooling win (fix#15/#16/#17, fetch_source --proxy, livecheck born here).
+Re-check only on a fresh proxy upgrade.

@@ -16,6 +16,11 @@ This tool walks a proxy on-chain and reports:
 Then for any DRIFTed proxy:
     python toolkit/fetch_source.py <proxy> --chain 1 --proxy   # fetch the live (drifted) impl
     diff vs the audited source -> recon the delta. Stdlib only.
+
+LIMITATION: only sees EIP-1967 `Upgraded(address)` + EIP-1167 minimal proxies. Custom router proxies
+(e.g. Instadapp Fluid's InfiniteProxy emits `LogSetImplementation(address,bytes4[])`, OZ beacons,
+diamond/EIP-2535) are invisible here and their EIP-1967 slot read can return garbage -> verify the
+proxy pattern before trusting a "match" on a non-standard proxy.
 """
 
 import argparse

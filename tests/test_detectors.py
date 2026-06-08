@@ -74,6 +74,9 @@ check(recon.det_mint("contract C{function mint(uint a) external onlyMinter { _mi
 check(not (recon.det_mint("contract C{function mint(uint a) external { require(_msgSender()==backingManager); _mint(a); }}", "src/Fix.sol")
           and recon.det_mint("contract C{function mint(uint a) external { require(_msgSender()==backingManager); _mint(a); }}", "src/Fix.sol")[0][4] == 0),
       "fix#12: _msgSender() gate on mint -> not prio-0")
+_capmint = recon.det_mint("contract C{function mint(address t,uint a) external checkAccess(this.mint.selector) { _mint(t,a); }}", "src/Fix.sol")
+check(bool(_capmint) and "GATED" in _capmint[0][3],
+      "fix#16: checkAccess(this.mint.selector) mint recognized as GATED, not 'PUBLIC mint' (Cap CCAToken)")
 
 print("== det_unchecked (silent transfer, super. fix) ==")
 check(flagged(recon.det_unchecked, "x.transferFrom(a, b, c);"), "bare transferFrom flagged")
@@ -89,6 +92,8 @@ check(flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address)
       "empty _authorizeUpgrade flagged")
 check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal override onlyOwner {}}"),
       "onlyOwner _authorizeUpgrade NOT flagged")
+check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal view override checkAccess(bytes4(0)) {}}"),
+      "fix#17: checkAccess(bytes4(0)) _authorizeUpgrade NOT flagged (Cap selector-gating)")
 check(flagged(recon.det_oracle, "contract C{ function p() external { (,int a,,,)=feed.latestRoundData(); } }"),
       "latestRoundData with missing guards flagged")
 

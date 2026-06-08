@@ -169,6 +169,7 @@ def det_mint(text, rel):
         nxt = text.find("function ", m.end())
         body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
         gated = ("only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob)
+                 or INLINE_AUTH.search(blob)   # fix#16: auth modifier in signature, e.g. checkAccess(this.mint.selector)
                  or INLINE_AUTH.search(body) or "msg.sender" in body)
         is_test = bool(re.search(r"(^|/)(test|tests|mock|mocks)", rel, re.I))
         if gated:
@@ -299,8 +300,8 @@ def det_upgrade(text, rel):
         blob = m.group(1)
         nxt = text.find("function ", m.end())
         body = text[m.end():(nxt if nxt > 0 else m.end() + 240)]
-        gated = ("only" in blob.lower() or re.search(
-            r"msg\.sender|hasRole|_checkRole|_checkOwner|owner\(\)|require|revert", body))
+        gated = ("only" in blob.lower() or INLINE_AUTH.search(blob)   # fix#17: auth modifier in signature, e.g. checkAccess(bytes4(0))
+                 or re.search(r"msg\.sender|hasRole|_checkRole|_checkOwner|owner\(\)|require|revert", body))
         if not gated:
             out.append((rel, lineno(text, m.start()), "function _authorizeUpgrade(...)",
                         "UUPS _authorizeUpgrade with NO access check -> anyone upgrades the "
