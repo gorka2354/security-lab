@@ -209,6 +209,10 @@ check(not flagged(recon.det_liquidation, "contract C{function deposit(uint a) ex
       "non-liquidation function NOT surfaced")
 _hg = recon.det_liquidation("contract C{function liquidate(address u) external { require(debt > maxDebt, NotLiquidatable()); x = a.mulDivUp(b); }}", "src/C.sol")
 check(bool(_hg) and _hg[0][4] == 1, "fix#22: health-gated liquidation with up-rounding -> [.] not [!] (Morpho Midnight)")
+_su = recon.det_liquidation("contract C{function liquidate(address u) external { uint seized = repay.mulDivUp(price); coll[u]-=seized; }}", "src/C.sol")
+check(bool(_su) and "collateral-OUT" in _su[0][3], "fix#23: seize/collateral-OUT rounds up -> flagged (favors liquidator)")
+_ru = recon.det_liquidation("contract C{function liquidate(address u) external { require(isHealthy(u)==false); uint repaid = seized.mulDivUp(price); }}", "src/C.sol")
+check(bool(_ru) and "collateral-OUT" not in _ru[0][3], "fix#23: repaid/debt-side rounds up -> NOT flagged for rounding (protocol-favorable)")
 
 print("== det_oracle (spot-reserve pricing sub-check) ==")
 check(flagged(recon.det_oracle, "contract C{function getPrice() public view returns(uint){ (uint112 r0,uint112 r1,)=pair.getReserves(); return uint(r1)*1e18/uint(r0); }}", "function getPrice"),

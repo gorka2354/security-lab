@@ -9,17 +9,32 @@ pragma solidity ^0.8.13;
 contract MockERC20 {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
-    function mint(address to, uint256 a) external { balanceOf[to] += a; }
-    function approve(address s, uint256 a) external returns (bool) { allowance[msg.sender][s] = a; return true; }
-    function transfer(address to, uint256 a) external returns (bool) { _move(msg.sender, to, a); return true; }
+
+    function mint(address to, uint256 a) external {
+        balanceOf[to] += a;
+    }
+
+    function approve(address s, uint256 a) external returns (bool) {
+        allowance[msg.sender][s] = a;
+        return true;
+    }
+
+    function transfer(address to, uint256 a) external returns (bool) {
+        _move(msg.sender, to, a);
+        return true;
+    }
+
     function transferFrom(address f, address to, uint256 a) external returns (bool) {
         uint256 al = allowance[f][msg.sender];
         if (al != type(uint256).max) allowance[f][msg.sender] = al - a;
-        _move(f, to, a); return true;
+        _move(f, to, a);
+        return true;
     }
+
     function _move(address f, address to, uint256 a) internal {
         require(balanceOf[f] >= a, "insufficient");
-        balanceOf[f] -= a; balanceOf[to] += a;
+        balanceOf[f] -= a;
+        balanceOf[to] += a;
     }
 }
 
@@ -31,14 +46,18 @@ contract StakingRewards {
     uint256 public duration = 7 days;
     uint256 public finishAt;
     uint256 public updatedAt;
-    uint256 public rewardRate;             // reward tokens per second
-    uint256 public rewardPerTokenStored;   // scaled 1e18
+    uint256 public rewardRate; // reward tokens per second
+    uint256 public rewardPerTokenStored; // scaled 1e18
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
-    constructor(MockERC20 s, MockERC20 r, bool _buggy) { stakingToken = s; rewardToken = r; buggy = _buggy; }
+    constructor(MockERC20 s, MockERC20 r, bool _buggy) {
+        stakingToken = s;
+        rewardToken = r;
+        buggy = _buggy;
+    }
 
     function lastTimeApplicable() public view returns (uint256) {
         return finishAt < block.timestamp ? finishAt : block.timestamp;
@@ -46,8 +65,7 @@ contract StakingRewards {
 
     function rewardPerToken() public view returns (uint256) {
         if (totalSupply == 0) return rewardPerTokenStored;
-        return rewardPerTokenStored
-            + (rewardRate * (lastTimeApplicable() - updatedAt) * 1e18) / totalSupply;
+        return rewardPerTokenStored + (rewardRate * (lastTimeApplicable() - updatedAt) * 1e18) / totalSupply;
     }
 
     function earned(address a) public view returns (uint256) {
@@ -58,17 +76,22 @@ contract StakingRewards {
     modifier update(address a) {
         rewardPerTokenStored = rewardPerToken();
         updatedAt = lastTimeApplicable();
-        if (a != address(0)) { rewards[a] = earned(a); userRewardPerTokenPaid[a] = rewardPerTokenStored; }
+        if (a != address(0)) {
+            rewards[a] = earned(a);
+            userRewardPerTokenPaid[a] = rewardPerTokenStored;
+        }
         _;
     }
 
     function stake(address a, uint256 amt) external update(a) {
         stakingToken.transferFrom(a, address(this), amt);
-        balanceOf[a] += amt; totalSupply += amt;
+        balanceOf[a] += amt;
+        totalSupply += amt;
     }
 
     function withdraw(address a, uint256 amt) external update(a) {
-        balanceOf[a] -= amt; totalSupply -= amt;
+        balanceOf[a] -= amt;
+        totalSupply -= amt;
         stakingToken.transfer(a, amt);
     }
 

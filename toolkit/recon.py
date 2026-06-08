@@ -523,15 +523,19 @@ def det_liquidation(text, rel):
         body = text[m.end():(nxt if nxt > 0 else m.end() + 1800)]
         self_guard = bool(re.search(r"!=\s*msg\.sender|msg\.sender\s*!=|\bborrower\s*!=|"
                                     r"SelfLiquidat", body))
-        rounds_up = bool(re.search(r"mulDivUp|mulDivRoundingUp|divUp|ceilDiv", body))
+        # fix#23 (from Morpho Midnight): collateral-OUT (what the liquidator RECEIVES) rounding UP
+        # favors the liquidator (bad); repaid/debt-side rounding up favors the protocol (fine). Only
+        # flag the former -> match an up-rounding assigned to a seize/collateral-out/amount-out var.
+        seize_up = bool(re.search(
+            r"\b(seiz\w*|\w*[Cc]ollateralOut\w*|\w*[Aa]mountOut\w*|liquidatorGets\w*)\s*=\s*"
+            r"[^;]*?(mulDivUp|mulDivRoundingUp|divUp|ceilDiv)", body, re.I))
         health = bool(re.search(r"health|getUserAccountData|isHealthy|solvent|collateralValue|"
                                 r"_validate|liquidatable", body, re.I))
         flags = []
         if not self_guard:
             flags.append("no self-liquidation guard (liquidator==borrower?)")
-        if rounds_up:
-            flags.append("rounds UP -> ok if it's the REPAID/debt side (protocol-favorable); "
-                         "bad only if collateral-OUT rounds up")
+        if seize_up:
+            flags.append("collateral-OUT (liquidator's seize) rounds UP -> favors the liquidator, verify")
         base = ("liquidation entrypoint -> 4-check: manipulable health price? self-liq? "
                 "close-factor cap? rounding direction?")
         note = base + (" | " + "; ".join(flags) if flags else (" (health gate present)" if health else ""))

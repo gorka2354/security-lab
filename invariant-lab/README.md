@@ -44,9 +44,9 @@ forge test                              # whole lab (256 runs x 100 depth per in
 forge test --mc ShareInflation -vv      # one template (invariant + self-check)
 forge fmt                               # templates are fmt-clean
 ```
-**Note on conventions:** the templates are green-by-default. The original `StakingInvariant.t.sol` keeps the older
-demo style where `BuggyStakingTest` fails on purpose (the teaching artifact), so a full `forge test` shows that one
-intentional failure. New templates do not add red — they prove the bug via the deterministic self-check instead.
+**Conventions:** everything is green-by-default and `forge fmt`-clean — a full `forge test` is all-green (the worked
+example and every template prove their bug via a deterministic self-check + a flip-to-fail invariant, never a committed
+red test). `forge test --mc ShareInflationReal` additionally needs the OZ dep (see the real-code wire below).
 
 ## Real-code wire — `test/real/ShareInflationReal.t.sol`
 The first template run against **production code, not a mock**: OpenZeppelin's actual `ERC4626` (v5.1.0) — the base
