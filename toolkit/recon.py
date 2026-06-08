@@ -57,6 +57,11 @@ INLINE_AUTH = re.compile(
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_only\w+\s*\(")   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
 
+# fix#19: a thin facet/wrapper whose body just delegates to a library call (Lib*.fn(...)) often has
+# its auth INSIDE that library (Chikn _claimEggs, Crypto Unicorns LibStaking.unstake) -> the wrapper
+# looks "ungated" but isn't. Don't suppress (the lib MIGHT not gate), but downgrade [!] -> [.] + note.
+LIB_DELEGATE = re.compile(r"\b(?:Lib|I?[A-Z]\w*Lib)\w*\.\w+\s*\(")
+
 
 def iter_sol(root):
     for cur, dirs, files in os.walk(root):
@@ -114,8 +119,11 @@ def det_access(text, rel):
                 or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", top)):
             continue
         if PRIV.search(name):
-            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
-                        "external/public + privileged name, NO only* / inline auth", 0))
+            delegates = bool(LIB_DELEGATE.search(text[m.end():end]))   # fix#19: thin facet delegator
+            note = "external/public + privileged name, NO only* / inline auth"
+            if delegates:
+                note += " (thin facet delegator -> auth may be enforced in the Lib fn; verify there)"
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)", note, 1 if delegates else 0))
     return out
 
 

@@ -57,6 +57,11 @@ check(not flagged(recon.det_access, "contract C{function withdrawAll(address t) 
       "fix#18: Diamond library auth LibDiamond.enforceIsContractOwner() NOT flagged (Crypto Unicorns facet)")
 check(not flagged(recon.det_access, "contract C{function mintUNIM(address t,uint a) external { LibUNIMController.enforceIsController(); _mint(t,a); }}", "mintUNIM"),
       "fix#18: enforceIsController() Diamond auth NOT flagged")
+_deleg = recon.det_access("contract C{function setConfig(uint t) external { LibCfg.setConfig(t); }}", "src/Facet.sol")
+check(bool(_deleg) and _deleg[0][4] == 1 and "delegator" in _deleg[0][3],
+      "fix#19: thin facet delegator (LibCfg.setConfig) downgraded [!]->[.] prio 1 + noted (Crypto Unicorns/Chikn leaf-gating FP)")
+check(recon.det_access("contract C{function setFee(uint x) external { fee=x; }}", "src/C.sol")[0][4] == 0,
+      "fix#19: genuinely ungated non-delegating setter stays [!] prio 0")
 
 print("== det_sibling (regression technique + initializer) ==")
 sib = ("contract C{function setA(uint x) external onlyOwner { a=x; }"
