@@ -281,6 +281,18 @@ check(not flagged(recon.det_mapping_default, "contract C{function claim(uint id)
 check(not flagged(recon.det_mapping_default, "contract C{function f(address u) external { require(balances[u] > 0); }}"),
       "ordinary balances gate NOT flagged (not a security mapping)")
 
+print("== det_strict_balance (force-feed DoS) ==")
+check(flagged(recon.det_strict_balance, "contract C{function f() external { require(address(this).balance == target, 'bad'); }}"),
+      "strict == on address(this).balance flagged")
+check(flagged(recon.det_strict_balance, "contract C{function f() external { if (token.balanceOf(address(this)) == expected) run(); }}"),
+      "strict == on balanceOf flagged")
+check(not flagged(recon.det_strict_balance, "contract C{function f() external { require(token.balanceOf(address(this)) >= expected); }}"),
+      "balanceOf with >= (delta-safe) NOT flagged")
+check(not flagged(recon.det_strict_balance, "contract C{function f() external { uint b = address(this).balance; pay(b); }}"),
+      "reading balance without an equality comparison NOT flagged")
+check(not flagged(recon.det_strict_balance, "contract C{function f(bytes4 sig) external { if (sig == I.balanceOf.selector || sig == I.balanceOfBatch.selector) revert(); }}"),
+      "FP guard: == ...balanceOf.selector (a selector ref, not a balance value) NOT flagged")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")

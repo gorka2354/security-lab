@@ -693,6 +693,30 @@ def det_mapping_default(text, rel):
     return out
 
 
+# ── Detector 21: strict balance equality (force-feed DoS) ── basic classic
+STRICT_BAL = re.compile(
+    r"(?:address\s*\([^)]*\)\s*\.\s*balance\b|\b\w+\s*\.\s*balance\b|balanceOf\s*\([^;{}]*\))\s*(?:==|!=)"
+    r"|(?:==|!=)\s*(?:address\s*\([^)]*\)\s*\.\s*balance\b|\b\w+\s*\.\s*balance\b|balanceOf\s*\([^;{}]*\))")
+
+
+def det_strict_balance(text, rel):
+    """A strict == / != on an ETH or token balance is brittle: anyone can force ETH in
+    (selfdestruct, a pre-funded CREATE2 address, block reward) or transfer tokens IN to
+    break the exact match -> the gated path bricks (DoS) or an accounting assumption fails.
+    Use >= / <= and track deltas, not absolute equality."""
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith("//") or s.startswith("*") or s.startswith("/*"):
+            continue
+        if STRICT_BAL.search(s):
+            out.append((rel, i, s[:85],
+                        "strict == / != on a balance (this.balance / balanceOf) -> force-feed "
+                        "(selfdestruct / direct transfer) breaks the exact match (DoS / bad "
+                        "accounting); use >= or <= and deltas", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -733,6 +757,9 @@ DETECTORS = [
     ("MAPPING-DEFAULT trust (Nomad: unset key passes a gate)", det_mapping_default,
      "Heuristic 1 / Nomad $190M: a trust gate reads a security mapping whose default (unset=0/"
      "false) passes -> attacker submits an unset key. Reasoning-tier LEAD; verify by hand."),
+    ("STRICT balance equality (force-feed DoS)", det_strict_balance,
+     "== / != on this.balance or balanceOf is brittle: anyone force-feeds ETH/tokens to break "
+     "the exact match -> DoS / bad accounting. Use >= / <= and deltas."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
@@ -753,7 +780,7 @@ def det_key(title):
                    ("reward", "reward"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
-                   ("mapping-default", "mapdefault"),
+                   ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
         if sub in t:
             return k
