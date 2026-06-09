@@ -126,10 +126,13 @@ def det_access(text, rel):
         # ungated setter. Bounded by the next function (no bleed).
         nxt = text.find("function ", m.end())
         end = nxt if nxt > 0 else m.end() + 1500
-        top = text[m.end():min(m.end() + 280, end)]
         if ("only" in blob.lower() or INLINE_AUTH.search(blob)   # fix#15: auth modifier in signature (checkAccess(...))
                 or INLINE_AUTH.search(text[m.end():end])
-                or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", top)):
+                # fix#26 (MagicSwap StakingContract.claimRewards): self-scope by a mapping KEY
+                # anywhere in the body, not just the first 280 chars -- user-claim fns index
+                # userStakes[msg.sender] deep in a loop. The [msg.sender]-as-key shape is specific
+                # (not the bare msg.sender of fix#13) so widening it won't unmask a real admin setter.
+                or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", text[m.end():end])):
             continue
         if PRIV.search(name):
             delegates = bool(LIB_DELEGATE.search(text[m.end():end]))   # fix#19: thin facet delegator

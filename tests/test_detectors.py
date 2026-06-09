@@ -49,6 +49,9 @@ check(not flagged(recon.det_access, "contract C{function setX(uint x) external {
       "msg.sender comparison guard NOT flagged")
 check(flagged(recon.det_access, "contract C{function setFee(uint x) external { emit Set(msg.sender,x); fee=x; }}", "setFee"),
       "fix: trailing emit(msg.sender) does NOT mask a real ungated setter")
+check(not flagged(recon.det_access,
+      "contract C{function claimRewards(uint[] ids) external { for(uint i;i<ids.length;i++){ accrue(ids[i]); uint a; uint b; uint c; pay(userStakes[msg.sender][ids[i]].liq); } }}", "claimRewards"),
+      "fix#26: self-scope userStakes[msg.sender] DEEP in the body (past 280 chars) NOT flagged (MagicSwap claimRewards)")
 check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint x) external { _onlyAdminOrRole(R); allowed[x]=true; }}"),
       "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
 check(not flagged(recon.det_access, "contract C{function slash(address a) external checkAccess(this.slash.selector) { x=a; }}"),

@@ -67,6 +67,50 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "magicswap|src/Rewards/StakingContractMainnet.sol|ac|function claimRewards(uint256[] calldata incentiveIds)",
+      "target": "magicswap",
+      "file": "src/Rewards/StakingContractMainnet.sol",
+      "line": 325,
+      "detector": "access",
+      "snippet": "function claimRewards(uint256[] calldata incentiveIds)",
+      "verdict": "fp",
+      "reason": "user self-claim userStakes[msg.sender], nonReentrant; det_access self-scope window gap -> fix#26",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "magicswap|src/Router/MagicSwapV2Router.sol|reentrancy|function addLiquidityNFT(...)",
+      "target": "magicswap",
+      "file": "src/Router/MagicSwapV2Router.sol",
+      "line": 92,
+      "detector": "reentrancy",
+      "snippet": "function addLiquidityNFT(...)",
+      "verdict": "fp",
+      "reason": "periphery router, no persistent state; deposit callbacks to trusted vault; pair.mint balance-based",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "magicswap|src/Vault/NftVault.sol|ac|function skim(address _to, NftType nftType, ...)",
+      "target": "magicswap",
+      "file": "src/Vault/NftVault.sol",
+      "line": 245,
+      "detector": "access",
+      "snippet": "function skim(address _to, NftType nftType, ...)",
+      "verdict": "fp",
+      "reason": "gated by isTokenAllowed->revert; rescues only NON-backing tokens (Uniswap skim pattern)",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "magicswap|src/VaultPermissioned/NftVaultPermissioned.sol|strictbal|balanceOf(this) == amountBurned - UNIV2_MINIMUM_LIQUIDITY",
+      "target": "magicswap",
+      "file": "src/VaultPermissioned/NftVaultPermissioned.sol",
+      "line": 234,
+      "detector": "strictbal",
+      "snippet": "balanceOf(this) == amountBurned - UNIV2_MINIMUM_LIQUIDITY",
+      "verdict": "fp",
+      "reason": "force-feed only falls through to the working normal burn path, not a DoS",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
