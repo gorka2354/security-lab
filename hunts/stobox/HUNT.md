@@ -32,9 +32,29 @@ layer (who may hold/transfer), not the ERC20 plumbing.
 - L2/AA footguns x2 (recon) -- if deployed on zkSync, the `to.code.length > 0` ERC677 check + any
   isContract-style gate; verify per deployed chain (it's on BSC/Arb/Polygon -> likely N/A, but confirm).
 
-## Status -- PARTIAL (greenfield triage; CCT layer clean; compliance layer parked)
-Reachability fix VALIDATED end-to-end: scout(github) -> CORE repo -> forkdrift(original/unaudited) -> recon.
-CCT/ERC20 plumbing is standard-and-clean; the EV is in the compliance/transfer-validation facets (parked).
-LIVE-FIRST: STV3 is deployed (~$15.1M across Arb/BSC/Polygon) -- confirm the exact deployed facet addresses
-+ an in-scope bounty before treating any compliance-bypass as a finding. Ledger: CCT by-design (known),
-compliance todo.
+## Deep-dive result -- the REPO is CLEAN; the compliance bug-surface is OFF-REPO
+Read the full chokepoint + admin model:
+- **Validation is correctly centralized:** `LibERC20._update` (the single path for transfer/transferFrom/
+  mint/burn) calls `ITransferValidation(address(this)).beforeUpdateValidation` (pre) + `afterUpdateValidation`
+  (post) on EVERY balance change -- incl. CCT mint (from==0) and burn (to==0). Right design (no path skips it).
+- **...but the shipped validator is a NO-OP:** `DefaultValidationFacet.{before,after}UpdateValidation` are
+  empty. So this repo's default token has NO transfer restrictions -- the real compliance facet (whitelist/
+  blacklist/holder-caps) is cut in per-deployment via `diamondCut` and is **NOT in this repo**. The genuinely-
+  custom RWA bug-surface (restriction bypass) therefore cannot be hunted from source here.
+- **Admin model is coherent:** `DiamondCutFacet.diamondCut` -> `enforceIsDeployer` (deployer = super-admin:
+  add/replace facets + arbitrary `_init` delegatecall); `transferOwnership`/`setDeployer` -> `onlyDeployer`;
+  CCT operator mgmt -> `onlyOwner`. `initializeDiamondCut` (recon :158) reachable only via the deployer-gated
+  cut/constructor -> FP. No unprotected init / re-init.
+- ERC20/Diamond/CCT all standard. No first-depositor/oracle/reentrancy/supply issue. **No finding in-repo.**
+
+## Status -- CLEAN (repo); deeper surface UNREACHABLE (DefiLlama gave the token, not a deployed diamond)
+Reachability fix VALIDATED end-to-end (scout github -> CORE repo -> forkdrift original/unaudited -> recon ->
+read). The repo is a clean, minimal Diamond CCT-ERC20 with an extensible no-op validator -- no in-repo finding.
+On-chain probe to reach the real validation facet: `facetAddresses()` (DiamondLoupe) on the DefiLlama address
+0xa642...50ed -> it has code ONLY on Ethereum and is NOT a diamond (returns nothing); no code on BSC/Arb/
+Polygon. => 0xa642 is the **STBX token**, not a deployed STV3 diamond. The actual per-asset STV3 diamonds
+(carrying the real compliance facet) are at addresses DefiLlama does not list -> the compliance bug-surface is
+**not reachable** without those addresses (the gov-token trap, again -- even the github-CORE-repo route can't
+recover a per-deployment facet that isn't in the repo). VERDICT: clean triage, closed. To revisit, one would
+need a concrete deployed STV3-diamond address (Stobox app/docs/an issuer's token) -> DiamondLoupe -> fetch the
+cut-in validator -> hunt restriction-bypass. Ledger: repo + CCT clean (known); compliance facet = unreachable.

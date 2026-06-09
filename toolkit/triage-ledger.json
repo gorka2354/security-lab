@@ -590,8 +590,8 @@
       "line": 0,
       "detector": "access",
       "snippet": "",
-      "verdict": "todo",
-      "reason": "Reached via scout reachability-fix (github CORE repo, not STBX gov token). Greenfield Diamond RWA security-token, unaudited. CCT layer clean; deep-dive surface = compliance/transfer-validation (restriction bypass? enforced on all paths incl CCT mint-to?). Confirm deployed facets + bounty (LIVE-FIRST).",
+      "verdict": "known",
+      "reason": "Repo CLEAN: validation centralized in LibERC20._update (all paths incl CCT mint/burn), but shipped validator is NO-OP default; real compliance facet is cut-in per-deployment, NOT in repo. diamondCut deployer-gated, init constructor-only. On-chain: DefiLlama addr 0xa642 = STBX token (not a diamond; facetAddresses empty, code only on ETH) -> deployed STV3 diamonds at unknown addrs -> compliance facet unreachable. Closed.",
       "date": "2026-06-09"
     },
     {
