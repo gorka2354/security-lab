@@ -179,11 +179,23 @@ def flags_from_text(text, rel):
     return out
 
 
-def auto_propose(by_verb, pairs, ranked, rflags, invs):
+def _is_gated(blob, body):
+    """Auth-gated (NOT attacker-reachable)? only*/ward-auth/inline-auth/initializer. A self-scoped
+    `mapping[msg.sender]` fn is NOT gated -> still attacker-reachable (cross-user emergent)."""
+    if "only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob):
+        return True
+    if recon is not None:
+        return bool(recon.INLINE_AUTH.search(blob) or recon.WARD_MOD.search(blob)
+                    or recon.INLINE_AUTH.search(body))
+    return bool(re.search(r"\bauth\b", blob) or re.search(r"require\s*\([^;{]*msg\.sender", body))
+
+
+def auto_propose(by_verb, pairs, ranked, rflags, invs, open_fns=None):
     """Deterministic hypothesis TEXT from the structural seeds (NO LLM/API): round-trips from
-    inverse pairs, emergent interactions from shared state (prioritized when recon also flagged
-    a writer), and the missing-invariant complement. L4 picks the sharpest and proves it; this
-    just drafts candidates from math."""
+    inverse pairs, emergent interactions from shared state (prioritized by ATTACKER-CONTROLLABILITY
+    then recon flags), and the missing-invariant complement. A root written by permissionless fns
+    is hotter than one written only by admin fns. L4 picks the sharpest and proves it."""
+    open_fns = open_fns or set()
     props = []
     for (v, inv) in pairs:
         a = (by_verb.get(v) or [None])[0]
@@ -191,16 +203,29 @@ def auto_propose(by_verb, pairs, ranked, rflags, invs):
         if a and b:
             props.append(f"ROUND-TRIP `{a}` -> `{b}`: assert the caller is NEVER richer after "
                          f"(rounding/fee leak); fuzz forall amounts -> post <= pre.")
-    for root, writers in ranked[:6]:
+    for root, writers in ranked[:8]:
         ws = sorted(writers)
+        opens = [w for w in ws if w in open_fns]
         flagged = [w for w in ws if w in rflags]
-        if flagged:
+        hot = [w for w in opens if w in rflags]
+        if hot:                                   # attacker-reachable AND recon-flagged = hottest
+            f = hot[0]
+            others = [w for w in ws if w != f][:2]
+            keys = ",".join(sorted(rflags[f]))
+            props.append(f"EMERGENT+RECON+OPEN `{f}` (recon:{keys}, ATTACKER-CALLABLE) shares `{root}` with "
+                         f"{others} -> TOP PRIORITY: interleave permissionlessly; can it desync `{root}` / "
+                         f"re-trigger an effect? (assert `{root}` conservation)")
+        elif flagged:
             f = flagged[0]
             others = [w for w in ws if w != f][:2]
             keys = ",".join(sorted(rflags[f]))
             props.append(f"EMERGENT+RECON `{f}` (recon:{keys}) shares `{root}` with {others} -> "
                          f"interleave: can a co-writer re-trigger {f}'s effect or desync `{root}`? "
                          f"(assert `{root}` conservation across the pair)")
+        elif len(opens) >= 2:                     # 2+ permissionless writers = attacker can interleave directly
+            props.append(f"EMERGENT-OPEN `{root}`: {len(opens)} ATTACKER-REACHABLE writers "
+                         f"({', '.join(opens[:3])}) -> interleave (no auth needed, cross-user/cross-fn); "
+                         f"assert the `{root}` invariant holds.")
         elif len(ws) >= 3:
             props.append(f"EMERGENT `{root}`: {len(ws)} writers ({', '.join(ws[:3])} ...) -> interleave "
                          f"the 2 most cross-file; assert the `{root}` invariant survives.")
@@ -238,7 +263,7 @@ def main():
     dyn_state = build_state_re(getters)
 
     # 1) parse EVERY function (incl internal/library) -> direct writes + callees
-    dwrites, callees, entry = {}, {}, {}
+    dwrites, callees, entry, open_fns = {}, {}, {}, set()
     for path in iter_sol(a.path):
         try:
             text = open(path, encoding="utf-8", errors="ignore").read()
@@ -251,6 +276,8 @@ def main():
             statey = re.search(r"\b(external|public)\b", blob) and not re.search(r"\b(view|pure)\b", blob)
             if statey:
                 entry[name] = rel
+                if not _is_gated(blob, body):   # attacker-reachable (permissionless / self-scoped)
+                    open_fns.add(name)
 
     known = set(dwrites)
     for n in callees:
@@ -317,16 +344,31 @@ def main():
     if not seen:
         out.append("  (no obvious inverse verb pairs)")
 
-    # section 2: shared-state (transitive)
-    out.append("\n## 2. Shared-state -> EMERGENT-interaction hypotheses  (call-graph transitive)")
-    out.append("_storage roots written by MANY entry-fns: interleave a CROSS-FILE pair; invariant break?_\n")
-    ranked = sorted(((r, w) for r, w in field_writers.items() if len(w) >= 2), key=lambda kv: -len(kv[1]))
+    # section 2: shared-state, RANKED BY ATTACKER-CONTROLLABILITY (open writers) + cross-contract span
+    out.append("\n## 2. Shared-state -> EMERGENT-interaction hypotheses  (ranked by attacker-controllability)")
+    out.append("_roots written by PERMISSIONLESS fns (attacker can interleave w/o auth) rank first; "
+               "cross-contract span = coupled across files. Admin-only roots are cold._\n")
+
+    def open_count(writers):
+        return sum(1 for w in writers if w in open_fns)
+
+    def files_of(writers):
+        return {entry[w] for w in writers if w in entry}
+
+    ranked = sorted(((r, w) for r, w in field_writers.items() if len(w) >= 2),
+                    key=lambda kv: (-open_count(kv[1]), -len(files_of(kv[1])), -len(kv[1])))
     if not ranked:
         out.append("  (none with >=2 writers - try --slither/Grade B for accurate dataflow)")
     for root, writers in ranked[:a.top]:
         ws = sorted(writers)
-        out.append(f"- `{root}`  <- {len(writers)} fns: {', '.join(ws[:9])}" + (" ..." if len(ws) > 9 else ""))
-    out.append("\n  Pick a root written by 3+ entry-fns -> those fns are emergent-interaction candidates.")
+        opens = [w for w in ws if w in open_fns]
+        nfiles = len(files_of(writers))
+        tag = (f"  [{len(opens)} ATTACKER-REACHABLE: {', '.join(opens[:4])}]" if opens else "  [all gated]")
+        if nfiles >= 2:
+            tag += f"  [cross-contract x{nfiles}]"
+        out.append(f"- `{root}`  <- {len(writers)} fns: {', '.join(ws[:9])}" + (" ..." if len(ws) > 9 else "") + tag)
+    out.append("\n  Prioritize roots with 2+ ATTACKER-REACHABLE writers (no auth to interleave) + cross-contract "
+               "span -> the real emergent targets. All-gated roots = admin-coordination only (cold).")
 
     # section 3: their invariants
     out.append("\n## 3. Their DECLARED invariants (write what's NOT here)")
@@ -362,7 +404,7 @@ def main():
     bridged = sum(1 for r, w in ranked if any(x in rflags for x in w))
     out.append(f"_pure-math draft from sections 1-3 + recon ({len(rflags)} flagged fns, "
                f"{bridged} shared-state roots touch a flagged fn). L4 verifies; no API in interactive mode._\n")
-    props = auto_propose(by_verb, seen, ranked, rflags, invs)
+    props = auto_propose(by_verb, seen, ranked, rflags, invs, open_fns)
     if props:
         for p in props[:14]:
             out.append(f"- {p}")

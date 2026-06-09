@@ -180,6 +180,16 @@ check(any("EMERGENT+RECON" in p and "reward" in p for p in _em),
       "auto_propose fuses a recon flag + shared state into an emergent hypothesis (the bridge)")
 check(any("INVARIANT-GAP" in p for p in hypothesize.auto_propose({}, set(), [], {}, [])),
       "auto_propose proposes the missing-invariant complement when their harness declares none")
+check(hypothesize._is_gated("(uint x) external onlyOwner", "fee=x;") and hypothesize._is_gated("(uint x) external auth", "fee=x;"),
+      "controllability: only*/ward `auth` -> gated (NOT attacker-reachable)")
+check(not hypothesize._is_gated("(uint x) external", "balances[msg.sender]+=x;"),
+      "controllability: self-scoped mapping[msg.sender] fn is attacker-reachable (NOT gated)")
+check(any("EMERGENT-OPEN" in p for p in hypothesize.auto_propose({}, set(), [("s.pot", {"a", "b"})], {}, [], {"a", "b"})),
+      "auto_propose: 2 attacker-reachable writers -> EMERGENT-OPEN (no auth needed to interleave)")
+check(any("EMERGENT+RECON+OPEN" in p for p in hypothesize.auto_propose({}, set(), [("s.pot", {"a", "b"})], {"a": {"reward"}}, [], {"a", "b"})),
+      "auto_propose: attacker-reachable + recon-flagged writer -> hottest EMERGENT+RECON+OPEN")
+check(not any("EMERGENT-OPEN" in p for p in hypothesize.auto_propose({}, set(), [("s.cfg", {"a", "b", "c"})], {}, [], set())),
+      "auto_propose: all-gated root (no open writers) is NOT EMERGENT-OPEN (cold, admin-only)")
 
 print("== fetch_source (live-first: etherscan source parsing, no network) ==")
 import fetch_source  # noqa: E402
