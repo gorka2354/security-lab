@@ -427,6 +427,32 @@ check(forkdrift.pick_canonical("FeeRegistry.sol", "0.5.0", _canon) == "src/proto
       "forkdrift.pick_canonical: unversioned-dir file still pairs by basename")
 check(forkdrift.pick_canonical("Nonexistent.sol", "0.5.0", _canon) is None,
       "forkdrift.pick_canonical: a fork-only file has no canonical counterpart (-> NEW)")
+# audit-awareness: a repo audit/ dir is GROUND TRUTH (Royco Dawn showed DefiLlama audits=0 yet ships 5 reports)
+_aud = forkdrift.detect_audit_evidence(
+    ["audit/Certora-Royco-Dawn-1.pdf", "audit/Hexens-Royco-Dawn-2.pdf", "src/RoycoKernel.sol"], "")
+check(_aud["audited"] and _aud["formal"] and "Certora" in _aud["firms"] and "Hexens" in _aud["firms"] and len(_aud["reports"]) == 2,
+      "forkdrift.detect_audit_evidence: audit/ PDFs -> audited=True, firms=[Certora,Hexens], formal=True (Royco Dawn)")
+check(forkdrift.detect_audit_evidence(["src/Vault.sol", "README.md"], "This vault was audited by Trail of Bits.")["audited"]
+      and not forkdrift.detect_audit_evidence(["src/Vault.sol"], "Audited by Trail of Bits.")["formal"],
+      "forkdrift.detect_audit_evidence: a README 'audited by <firm>' claim counts; a non-Certora firm is not 'formal'")
+check(not forkdrift.detect_audit_evidence(["src/Vault.sol", "README.md"], "We plan to get an audit soon. Audit pending.")["audited"],
+      "forkdrift.detect_audit_evidence: 'plan to get an audit' (no firm, no report file) is NOT audited (no false-audited)")
+# Ledgity FALSE-AUDITED guards (its only 'report' was a slither dump; 'consensys' was a Linea logo badge;
+# 'Security audit reports' was a folder label) -> must resolve to NOT audited (it's our real Medium target).
+check(not forkdrift.detect_audit_evidence(["audit/slither-report.md", "src/WrappedLToken.sol"], "")["audited"],
+      "forkdrift: a slither-report.md (automated TOOL output) is NOT a professional audit (Ledgity guard)")
+check(not forkdrift.detect_audit_evidence(["src/X.sol"], '<img src="https://img.shields.io/badge/Linea?logo=consensys" />')["audited"],
+      "forkdrift: a `logo=consensys` shield BADGE is not an audit-firm claim (README-noise stripped; Ledgity guard)")
+check(not forkdrift.detect_audit_evidence(["src/X.sol"], "Repo layout:\n  audit/   Security audit reports")["audited"],
+      "forkdrift: 'Security audit reports' as a FOLDER LABEL is not an audit claim (strong-claim regex; Ledgity guard)")
+check(forkdrift.detect_audit_evidence(["audit/Certora-Dawn.pdf"], "")["audited"]
+      and forkdrift.detect_audit_evidence(["src/X.sol"], "The protocol has been audited by Hexens.")["audited"],
+      "forkdrift: a REAL report file (Certora-Dawn.pdf) or a strong README claim ('has been audited by Hexens') still counts")
+check(forkdrift.likely_out_of_scope(
+        ["src/integrations/Maple.sol", "src/core/Vault.sol", "src/periphery/Zap.sol",
+         "src/interfaces/external/IMaple.sol", "test/Foo.t.sol", "script/Deploy.s.sol"])
+      == ["src/integrations/Maple.sol", "src/periphery/Zap.sol"],
+      "forkdrift.likely_out_of_scope: integrations/periphery IMPLs flagged; interfaces/tests/scripts/core excluded")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

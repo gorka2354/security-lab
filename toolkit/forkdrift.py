@@ -213,6 +213,173 @@ def read(path):
         return ""
 
 
+# ---------------------------------------------------------------------------
+# Audit-awareness. "Audited" is NOT "skip" -- audited code still has bugs. It means: do not
+# re-review the COVERED core blind (low EV vs the firms + any formal proof); ROUTE the hunt to the
+# angles audits miss -> (1) post-audit DRIFT, (2) OUT-OF-SCOPE/integration code, (3) ECONOMIC invariants.
+# Also fixes scout v2's mis-select: it trusts DefiLlama's `audits` field, which can be wrong (Royco
+# Dawn showed audits=0 on DefiLlama yet ships 5 audit reports) -> a repo audit/ dir is ground truth.
+# ---------------------------------------------------------------------------
+AUDIT_FIRMS = [  # (display, [lowercase match substrings], is_formal_verification)
+    ("Certora", ["certora"], True),
+    ("Cantina/Spearbit", ["cantina", "spearbit"], False),
+    ("Hexens", ["hexens"], False),
+    ("Trail of Bits", ["trailofbits", "trail-of-bits", "trail of bits"], False),
+    ("OpenZeppelin", ["openzeppelin-audit", "oz-audit", "openzeppelin security"], False),
+    ("Sherlock", ["sherlock"], False),
+    ("Code4rena", ["code4rena", "code-423n4"], False),
+    ("Zellic", ["zellic"], False),
+    ("Quantstamp", ["quantstamp"], False),
+    ("Consensys Diligence", ["consensys diligence", "consensys-diligence"], False),  # not bare "consensys" (a chain/logo brand: Linea)
+    ("Halborn", ["halborn"], False),
+    ("ChainSecurity", ["chainsecurity"], False),
+    ("WatchPug", ["watchpug"], False),
+    ("PeckShield", ["peckshield"], False),
+    ("Cyfrin", ["cyfrin"], False),
+    ("Pashov", ["pashov"], False),
+    ("0xMacro", ["0xmacro"], False),
+]
+# a repo file that looks like an audit report (path segment `audit(s)/` or an audit/review-named pdf/md)
+_RE_AUDIT_FILE = re.compile(r"(^|/)audits?(/|$)|(audit|review|assessment)[^/]*\.(pdf|md|markdown)$", re.IGNORECASE)
+# ...but automated-TOOL output is NOT a professional audit (Ledgity's only "report" was a slither dump)
+_RE_TOOL_REPORT = re.compile(r"slither|mythril|mythx|4naly3er|aderyn|semgrep|solhint|coverage|lcov|\.sarif", re.IGNORECASE)
+# README phrasing that ASSERTS a real audit (strong only -- "Security audit reports" as a folder label or a
+# generic "security audit" heading must NOT count; rely on report-files + firm-names for those)
+_RE_AUDIT_CLAIM = re.compile(r"audited by|audit by|has been audited|been audited by|audit(?:s)? (?:by|completed|performed|conducted)|formally verified|formal verification", re.IGNORECASE)
+# README noise (badges/logos/images/links) where a firm-brand substring is NOT an audit claim (Linea's
+# `logo=consensys` badge falsely matched Consensys Diligence) -> strip these lines before firm matching.
+_RE_README_NOISE = re.compile(r"img\.shields\.io|<img|!\[|\]\(https?://|badge|logo=", re.IGNORECASE)
+# path keywords for code an audit's core scope often EXCLUDES -> hunt these first on an audited target
+OOS_HINTS = ("integration", "external", "adapter", "periphery", "wrapper", "bridge",
+             "connector", "router", "zap", "migrat", "plugin", "strategy")
+
+
+def _clean_readme(text):
+    """Drop badge/logo/image/link lines from a README so a brand substring in a shield badge (Linea's
+    `logo=consensys`) is not mistaken for an audit-firm claim. PURE."""
+    return "\n".join(l for l in (text or "").splitlines() if not _RE_README_NOISE.search(l))
+
+
+def detect_audit_evidence(file_list, readme_text=""):
+    """Did this repo get a PROFESSIONAL audit? PURE (file_list = repo-relative paths; readme_text = README).
+    Returns {audited, reports:[...], firms:[...], formal:bool, evidence:[...]}. Excludes automated-tool dumps
+    (slither/mythril/...) from reports; strips README badges before firm matching; a real audit needs a
+    report FILE, a named FIRM, or a STRONG claim ('audited by ...'/'formal verification') -- not a folder label."""
+    low_files = [f.replace("\\", "/") for f in (file_list or [])]
+    reports = [f for f in low_files if _RE_AUDIT_FILE.search(f) and not _RE_TOOL_REPORT.search(f)]
+    clean = _clean_readme(readme_text)
+    hay = (" ".join(low_files) + "\n" + clean).lower()
+    firms, formal = [], False
+    for disp, subs, is_formal in AUDIT_FIRMS:
+        if any(s in hay for s in subs):
+            firms.append(disp)
+            formal = formal or is_formal
+    if "formal verification" in hay or "formally verified" in hay:
+        formal = True
+    claim = bool(_RE_AUDIT_CLAIM.search(clean)) or bool(firms)
+    audited = bool(reports) or claim
+    evidence = []
+    if reports:
+        evidence.append(f"{len(reports)} report file(s): " + ", ".join(reports[:8]) + (" ..." if len(reports) > 8 else ""))
+    if firms:
+        evidence.append("firm(s) named: " + ", ".join(sorted(set(firms))))
+    if _RE_AUDIT_CLAIM.search(readme_text or ""):
+        evidence.append("README asserts an audit")
+    return {"audited": audited, "reports": reports, "firms": sorted(set(firms)), "formal": formal, "evidence": evidence}
+
+
+# non-logic / non-deployed code -> never an out-of-scope HUNT target (interfaces are ABIs; mocks/tests/scripts
+# aren't deployed). Path-segment / suffix match.
+_OOS_SKIP = ("/interfaces/", "interfaces/", "/interface/", "/mocks/", "/mock/", "/test/", "/tests/",
+             "test/", "tests/", "/script/", "scripts/", "/lib/", "/examples/")
+
+
+def likely_out_of_scope(sol_files):
+    """Heuristic: IMPLEMENTATION .sol whose location suggests it sits OUTSIDE a core audit's scope
+    (integrations / external adapters / periphery / wrappers). Excludes interfaces, mocks, tests, scripts
+    (no exploitable/deployed logic). Hunt these first on an audited target. PURE."""
+    out = []
+    for f in (sol_files or []):
+        p = f.replace("\\", "/").lower()
+        if any(s in p for s in _OOS_SKIP) or p.endswith((".t.sol", ".test.sol", ".s.sol")):
+            continue
+        if any(k in p for k in OOS_HINTS):
+            out.append(f)
+    return sorted(out)
+
+
+def _repo_root_near(src_dir):
+    """Walk up from src_dir (incl itself) to the dir that looks like the repo root (has README/.git/audit).
+    Returns that dir (or src_dir if none found). IO."""
+    cur = os.path.abspath(src_dir)
+    for _ in range(4):
+        try:
+            entries = {e.lower() for e in os.listdir(cur)}
+        except Exception:
+            break
+        if {".git", "readme.md", "audit", "audits", "foundry.toml"} & entries:
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cur = parent
+    return os.path.abspath(src_dir)
+
+
+def _scan_repo_files(root):
+    """List repo-relative file paths (skip lib/node_modules/.git) + read the README. IO."""
+    files, readme = [], ""
+    for dp, dns, fns in os.walk(root):
+        dns[:] = [d for d in dns if d.lower() not in ("lib", "node_modules", ".git", "out", "cache")]
+        for fn in fns:
+            rel = os.path.relpath(os.path.join(dp, fn), root)
+            files.append(rel)
+            if fn.lower() in ("readme.md", "readme") and not readme:
+                readme = read(os.path.join(dp, fn))
+    return files, readme
+
+
+def _print_audit_route(src_dir, is_fork, ver):
+    """Detect audit evidence near src_dir and print the AUDIT verdict + hunt router (or greenfield note)."""
+    root = _repo_root_near(src_dir)
+    repo_files, readme = _scan_repo_files(root)
+    aud = detect_audit_evidence(repo_files, readme)
+    oos = likely_out_of_scope([f for f in repo_files if f.endswith(".sol")])
+
+    print("\n## AUDIT STATUS")
+    if not aud["audited"]:
+        print("  NO audit evidence in the repo (consistent with UNDER-REVIEWED) -- the high-EV case.")
+        print("  -> Greenfield: hunt the WHOLE surface (recon + hypothesize). Confirm DEPLOYED + in-scope bounty first.")
+        return
+    tag = "AUDITED (audits != 0 -> NOT under-reviewed" + (", incl. FORMAL VERIFICATION" if aud["formal"] else "") + ")"
+    print(f"  {tag}")
+    for e in aud["evidence"]:
+        print(f"    - {e}")
+    print("  NOTE: audited != bug-free. But do NOT re-review the COVERED core blind (low EV vs the firms"
+          + (" + formal proof" if aud["formal"] else "") + "). ROUTE the hunt to what audits miss:")
+    print("  1. DRIFT (highest EV): diff DEPLOYED code vs the AUDITED commit -- audits cover commit X, deployed = X+N.")
+    print("       Find the audited commit (audit/ filenames, README, or the report's first page), then:")
+    print(f"         diffscan.py <repo> --since <audit-tag>   |   forkdrift.py diff <deployed-src> <audited-commit-src>")
+    print("  2. OUT-OF-SCOPE (verify vs each report's scope section) -- code a core audit often skips:")
+    if oos:
+        for f in oos[:12]:
+            print(f"         {f}")
+        if len(oos) > 12:
+            print(f"         ... (+{len(oos) - 12} more)")
+    else:
+        print("         (none flagged by path; read each report's scope section for the excluded list)")
+    print("  3. ECONOMIC: hypothesize.py -> reasoning-tier invariants (cross-component / oracle-edge / MEV)")
+    print("     that checklist audits under-cover. Prove with an invariant STRONGER than theirs, not by reading.")
+    if is_fork:
+        print("  (FORK + AUDITED: the fork inherits the base's audit, so DRIFT above is doubly the move.)")
+
+
+def cmd_audit(repo_dir):
+    """Standalone: just the audit verdict + hunt router for a cloned repo."""
+    print(f"# forkdrift audit: {repo_dir}")
+    _print_audit_route(repo_dir, is_fork=False, ver=None)
+
+
 def cmd_fingerprint(src_dir):
     files = list_sol(src_dir)
     if not files:
@@ -229,6 +396,7 @@ def cmd_fingerprint(src_dir):
         print("  -> (Or the base just isn't in BASES yet - eyeball storage-namespaces / unique names and add it.)")
         if ver:
             print(f"\n  self-reported version: v{ver}  (via {vhow})")
+        _print_audit_route(src_dir, is_fork=False, ver=ver)
         return
 
     top = bases[0]
@@ -256,6 +424,7 @@ def cmd_fingerprint(src_dir):
     print("     (e.g. RockSolid was missing the v0.5.1 whitelist patch, but its vault is permissionless")
     print("      on-chain -> isWhitelisted()==true for all -> the patch was MOOT. Always check live config.)")
     print("  5. If the diff is cosmetic-only (no substantive lines) -> verbatim audited fork, no finding.")
+    _print_audit_route(src_dir, is_fork=True, ver=ver)
 
 
 def cmd_diff(target_dir, canon_dir):
@@ -303,16 +472,20 @@ def cmd_diff(target_dir, canon_dir):
 def main():
     ap = argparse.ArgumentParser(description="Detect a fork of a known-audited base + diff the drift")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    f = sub.add_parser("fingerprint", help="which audited base is this a fork of? which version? plan")
+    f = sub.add_parser("fingerprint", help="which audited base is this a fork of? version? audited? -> route")
     f.add_argument("src_dir")
     d = sub.add_parser("diff", help="normalized substantive diff of a fork vs its canonical base")
     d.add_argument("target_dir")
     d.add_argument("canon_dir")
+    au = sub.add_parser("audit", help="audit verdict + hunt router for a cloned repo (drift/out-of-scope/economic)")
+    au.add_argument("repo_dir")
     a = ap.parse_args()
     if a.cmd == "fingerprint":
         cmd_fingerprint(a.src_dir)
     elif a.cmd == "diff":
         cmd_diff(a.target_dir, a.canon_dir)
+    elif a.cmd == "audit":
+        cmd_audit(a.repo_dir)
 
 
 if __name__ == "__main__":
