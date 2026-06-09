@@ -366,6 +366,12 @@ check(scout.age_days("2025-06-09", "2026-06-09") > 360 and scout.age_days("2026-
       "scout.age_days: ~1yr apart > 360; 8 days apart == 8")
 check(any(k in "lending vault for cross-chain stablecoin".lower() for k in scout.WHEELHOUSE),
       "scout.WHEELHOUSE matches our-zone keywords (vault/lend/stablecoin/cross-chain)")
+check(scout.audits_int("0") == 0 and scout.audits_int("2") == 2 and scout.audits_int(None) == 9,
+      "scout v2: audits_int parses DefiLlama stringy audit count (None -> high so it's filtered)")
+check(scout.is_all_non_evm(["Solana", "Sui"]) and not scout.is_all_non_evm(["Ethereum", "Solana"]),
+      "scout v2: is_all_non_evm skips pure non-EVM, keeps protocols with an EVM chain (engines are Solidity)")
+check(scout.is_suppressed("mellow-flexible-vaults", {"mellow"}) and not scout.is_suppressed("aave-v3", {"cap"}),
+      "scout v2: is_suppressed matches a hunted target by first segment, not by tiny coincidences")
 
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
