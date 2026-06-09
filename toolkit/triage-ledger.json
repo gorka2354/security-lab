@@ -111,6 +111,39 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "dreusd|dreusd/contracts/dreUSDManager.sol|supply|function mintFrom(... bytes authorizeSig)",
+      "target": "dreusd",
+      "file": "dreusd/contracts/dreUSDManager.sol",
+      "line": 373,
+      "detector": "supply",
+      "snippet": "function mintFrom(... bytes authorizeSig)",
+      "verdict": "fp",
+      "reason": "signature-gated meta-tx mint; EIP-712 _authorize binds all params+nonce; collateral pulled from 'from'",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "dreusd|dreusd/contracts/dreUSDManager.sol|reentrancy|function fillWithdrawal(...) onlyRole(TREASURY_ROLE)",
+      "target": "dreusd",
+      "file": "dreusd/contracts/dreUSDManager.sol",
+      "line": 534,
+      "detector": "reentrancy",
+      "snippet": "function fillWithdrawal(...) onlyRole(TREASURY_ROLE)",
+      "verdict": "fp",
+      "reason": "TREASURY_ROLE-gated keeper fn, not attacker-callable",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "dreusd|dreusd/contracts/dreUSDs.sol|erc4626|contract dreUSDs is ERC4626Upgradeable",
+      "target": "dreusd",
+      "file": "dreusd/contracts/dreUSDs.sol",
+      "line": 20,
+      "detector": "erc4626",
+      "snippet": "contract dreUSDs is ERC4626Upgradeable",
+      "verdict": "fp",
+      "reason": "totalAssets uses _virtualBalance (internal accounting, ignores direct transfers) -> donation-inflation neutralized",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "etherorcs|src/mainnet/EtherOrcsAllies.sol|supply|function mintRogues(uint256 amount)",
       "target": "etherorcs",
       "file": "src/mainnet/EtherOrcsAllies.sol",
