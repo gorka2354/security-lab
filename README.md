@@ -68,6 +68,7 @@ security-lab/
 │   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
 │   ├─ recon.py                       ← L1 сканер: 21 детектор наших эвристик
 │   ├─ fetch_source.py · livecheck.py ← LIVE-FIRST: verified-source по адресу · дрейф impl vs аудит
+│   ├─ forkdrift.py                   ← форк-ли это аудированного base? (fingerprint) + substantive-диф дрейфа vs канон
 │   ├─ scope.py · analyze.py          ← карта функций/ролей · L2 Slither + кросс-корреляция
 │   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
 │   ├─ ledger.py · watch.py · pdftext.py  ← память вердиктов · cron-монитор парковок · текст из аудит-PDF
@@ -76,7 +77,7 @@ security-lab/
 ├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ
 ├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
 ├─ monitor/watchlist.json  ← припаркованные находки → watch.py следит, [FIRED] при деплое
-├─ tests/test_detectors.py ← 137 golden-fixture проверок (CI-гейт)
+├─ tests/test_detectors.py ← 151 golden-fixture проверок (CI-гейт)
 └─ nomad-poc/ oracle-poc/  ← Foundry PoC
 ```
 
@@ -115,7 +116,7 @@ forge test --root invariant-lab -vvv               # прогнать фаззи
 - ✅ 7 классов багов + 7 эвристик в картотеке; **21 детектор**; закалён **31 фиксом** (fix#14–#31; #27/#28 Centrifuge, #29/#30 dreUSD-контест, #31 bare-mint-делегатор из живого Mellow-контеста)
 - ✅ **research/** — библиотека из 6 баг-паттернов (T0→T3) + TEMPLATE; пайплайн паттерн → детектор → инвариант
 - ✅ **invariant-lab/** — 6 самопроверяющихся invariant-шаблонов + wire к реальному OZ ERC4626 (25 тестов, fmt-чисто)
-- ✅ **Регресс-тесты** (`tests/test_detectors.py`, **137** golden-fixture проверок) — жёсткий гейт: фикс не сломает другой детектор молча
+- ✅ **Регресс-тесты** (`tests/test_detectors.py`, **151** golden-fixture проверок) — жёсткий гейт: фикс не сломает другой детектор молча
 - ✅ **ledger** (память вердиктов) — шум падает каждый прогон; **diffscan** — хантинг по audit-drift
 - 🎯 Живые тесты пайплайна: **Morpho Midnight** (детекторное плечо → fix#21/#22/#23) · **реальный OZ ERC4626** (инвариантное → находка «экономическая vs абсолютная защита»)
 - 🎯 Охоты: Nomad (учебная) + Exactly/YO/Cap/Likwid/TermMax/Crypto-Unicorns/Morpho-Midnight (триаж — все добротны)

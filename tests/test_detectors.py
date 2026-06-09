@@ -378,5 +378,49 @@ _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
 check(len(set(_keys)) == len(_keys), "each detector has a UNIQUE det_key (no silent ledger-group collisions)")
 
+print("== forkdrift (fork-of-audited-base detection + substantive drift diff) ==")
+import forkdrift  # noqa: E402
+# detect_base: the Lagoon/Hopper storage-namespace fingerprint (RockSolid was a verbatim Lagoon fork)
+_lag = forkdrift.detect_base("bytes32 c = 0x..; /// @custom:storage-location erc7201:hopper.storage.vault")
+check(bool(_lag) and "Lagoon" in _lag[0][1], "forkdrift.detect_base flags the hopper.storage namespace as Lagoon")
+check(forkdrift.detect_base("contract MyToken is ERC20 { uint x; }") == [],
+      "forkdrift.detect_base: original code (no base sig) -> no false fork match")
+check(forkdrift.detect_base("library SupplyLogic{function executeSupply()internal{} } contract P{function borrowLogic()external{}}")[0][1].startswith("Aave"),
+      "forkdrift.detect_base: Aave v3 IMPL-INTERNAL fingerprint (SupplyLogic+executeSupply+borrowLogic) matches")
+# anti-FP (the Ledgity case): a protocol that INTEGRATES Aave (calls IPool.getReserveData / reads
+# liquidityIndex via the interface) but has NONE of Aave's impl internals -> NOT flagged as a fork.
+check(forkdrift.detect_base(
+        "import {IPool} from '@aave/core-v3/contracts/interfaces/IPool.sol';"
+        "contract Strat{ function f()external{ pool.getReserveData(a); uint i=r.liquidityIndex; r.reserveConfiguration; } }"
+      ) == [],
+      "forkdrift.detect_base: an Aave INTEGRATOR (interface calls only, no impl internals) is NOT a false fork (Ledgity FP fix)")
+# detect_version: version() return is the strongest signal; src/vX path is the fallback
+check(forkdrift.detect_version('function version() public pure returns(string memory){return "v0.5.0";}') == ("0.5.0", "version() returns"),
+      "forkdrift.detect_version reads the version() return string (RockSolid -> v0.5.0)")
+check(forkdrift.detect_version("// New variables introduce with v0.5.1")[0] == "0.5.1",
+      "forkdrift.detect_version falls back to an 'introduced with vX' comment")
+check(forkdrift.detect_version("contract C{}")[0] is None,
+      "forkdrift.detect_version: no version evidence -> None (no fabrication)")
+check(forkdrift._ver_tuple("0.5.1") > forkdrift._ver_tuple("0.5.0") and forkdrift._ver_tuple("0.6.0") > forkdrift._ver_tuple("0.5.1"),
+      "forkdrift._ver_tuple orders semver so 'next version' selection is correct")
+# norm_line / substantive_diff: CRLF + whitespace + the spurious quoted-pragma reflow are NOT drift...
+check(forkdrift.norm_line('pragma   solidity\t"0.8.26";\r') == 'pragma solidity "0.8.26";',
+      "forkdrift.norm_line collapses CRLF + internal whitespace (Etherscan/Sourcify noise)")
+check(forkdrift.substantive_diff("function f(uint a, uint b) external {\r\n  x=1;\r\n}",
+                                  "function f(\n    uint a,\n    uint b\n) external {\n    x = 1;\n}") == [],
+      "forkdrift.substantive_diff: pure reflow/CRLF (no logic change) -> EMPTY (cosmetic, not flagged)")
+_real = forkdrift.substantive_diff("if (!isWhitelisted(owner)) revert NotWhitelisted();",
+                                   "_doubleWhitelistedCheck(owner, controller);")
+check(bool(_real) and any("doubleWhitelistedCheck" in l for l in _real),
+      "forkdrift.substantive_diff: a real logic change (the v0.5.1 whitelist patch) IS surfaced")
+# pick_canonical: choose the smallest version >= the fork's version (the patch it SHOULD have taken)
+_canon = ["src/v0.5.1/Vault.sol", "src/v0.6.0/Vault.sol", "src/protocol-v1/FeeRegistry.sol"]
+check(forkdrift.pick_canonical("Vault.sol", "0.5.0", _canon) == "src/v0.5.1/Vault.sol",
+      "forkdrift.pick_canonical: fork v0.5.0 -> pairs with the NEXT canonical (v0.5.1), not v0.6.0")
+check(forkdrift.pick_canonical("FeeRegistry.sol", "0.5.0", _canon) == "src/protocol-v1/FeeRegistry.sol",
+      "forkdrift.pick_canonical: unversioned-dir file still pairs by basename")
+check(forkdrift.pick_canonical("Nonexistent.sol", "0.5.0", _canon) is None,
+      "forkdrift.pick_canonical: a fork-only file has no canonical counterpart (-> NEW)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
