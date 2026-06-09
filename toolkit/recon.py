@@ -56,7 +56,8 @@ INLINE_AUTH = re.compile(
     r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_only\w+\s*\(|"   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
-    r"_is(?:Manager|Authoriz\w*|Authed|Ward|Admin|Owner|Operator|HubManager|PoolManager|PoolAdmin)\w*\s*\(")  # fix#27: inline predicate gate (Centrifuge Hub `_isManager(poolId)`)
+    r"_is(?:Manager|Authoriz\w*|Authed|Ward|Admin|Owner|Operator|HubManager|PoolManager|PoolAdmin)\w*\s*\(|"  # fix#27: inline predicate gate (Centrifuge Hub `_isManager(poolId)`)
+    r"_authorize\s*\(|_validate(?:Controller|Caller|Sender|Owner|Operator|Signature|Sig)\w*\s*\(")  # fix#30: caller-auth helpers (DRE `_authorize` EIP-712 sig, MagicSwap `_validateController`) -- NOT input validators (_validateAmount/_validateAddress sanctions)
 
 # fix#27: ward-model (MakerDAO dss / Centrifuge): `modifier auth { require(wards[msg.sender]==1) }`,
 # applied as a trailing modifier `external auth`. Recognize it as a gate (it's not "only*"-named and
@@ -201,7 +202,9 @@ def det_mint(text, rel):
         if not re.search(r"mint|burn", name, re.I):
             continue
         nxt = text.find("function ", m.end())
-        body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
+        # fix#30: scan the FULL function body (not just 280 chars) so a gate deep behind preamble
+        # is seen -- DRE mintFrom's `_authorize` sits past validations/reverts (cf. fix#26 for det_access).
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
         gated = ("only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob)
                  or INLINE_AUTH.search(blob)   # fix#16: auth modifier in signature, e.g. checkAccess(this.mint.selector)
                  or WARD_MOD.search(blob)   # fix#27: ward-model `auth` / authOrHook modifier

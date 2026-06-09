@@ -67,10 +67,30 @@ partial fills/refunds; the Aave-adapter withdraw accounting; whether a sanctione
 NFT permanently strands its slice of `expressWithdrawalAvailable`. None rose to a confident, demonstrable
 finding in this pass.
 
+## Thread follow-up (the 3 unexhausted threads) -> all by-design + 1 system fix
+- **dreAaveAdapter:** well-built -- `withdraw` is `msg.sender==dreUSDManager`-gated, stateless,
+  balance-diff'd (donated aUSDC can't affect fills), `withdrawn>=amount`. recon reentrancy:109 = FP
+  (the post-call write is a LOCAL decl `uint256 delta = ...`, not a state write).
+- **Express-NFT stranding:** a sanctioned-after-request express NFT is skipped by the operator and
+  its slice of `expressWithdrawalAvailable` strands (never restored without admin config). But an
+  attacker can't self-sanction (would only burn their OWN dreUSD for an unfillable NFT = self-harm),
+  and admin can re-bump the limit -> Low / by-design liveness, not attacker-profit.
+- **Cross-chain compose:** `dreOVaultComposer` is the audited LZ `VaultComposerSync` base (source
+  validation unchanged); overrides are documented post-audit fixes (see above). No issue surfaced.
+
+## Useful for the SYSTEM (this dig's payoff): fix#30
+- **fix#30 INLINE_AUTH + det_mint full-body:** recognize the recurring caller-auth idiom `_authorize(`
+  (DRE EIP-712 sig gate) and `_validate(Controller|Caller|Sender|Owner|Operator|Signature)(` (MagicSwap
+  AsyncVault), and widen det_mint's gate scan to the FULL function body (DRE `mintFrom`'s `_authorize`
+  sat past 280 chars of preamble, cf. fix#26). Effect: DRE `mintFrom` and MagicSwap `AsyncVault.mint`
+  no longer FP as "PUBLIC mint". Deliberately EXCLUDES input validators (`_validateAmount`/`_validateAddress`
+  sanctions) -- those aren't caller-auth. Regression tests +3.
+
 ## System notes (backlog, not fixed -- avoid over-fitting)
+- **det_reentrancy local-decl FP:** the post-external-call "state write" it flags is often a LOCAL
+  declaration (`uint256 delta = token.balanceOf(this) - before;`, a return-value capture) -- very common
+  after a transfer. Distinguishing local-decl from a storage write via regex is nuanced (named-return
+  assignments too) -> note, don't auto-fix yet (risk of under-flagging real reentrancy).
 - **det_erc4626 refinement candidate:** a vault whose `totalAssets()` uses internal accounting
-  (`_virtualBalance` / `_totalAssets`, NOT `balanceOf(this)`) is donation-resistant -> the inflation
-  lead could be DOWNGRADED (complement of fix#20's balance-based sharpening). Nuanced (internal
-  accounting alone doesn't kill first-deposit rounding) -> note, don't auto-fix.
-- `_authorize` / `_validateAddress` / `_validateController` (DRE, Centrifuge, MagicSwap) are a
-  recurring inline-auth idiom family worth recognizing later; left as triaged FPs for now.
+  (`_virtualBalance`, NOT `balanceOf(this)`) is donation-resistant -> the inflation lead could be
+  DOWNGRADED (complement of fix#20). Nuanced -> note, don't auto-fix.

@@ -107,6 +107,11 @@ check(bool(_wm) and "GATED" in _wm[0][3],
       "fix#27: mint override delegating to super.mint (parent gate) recognized as GATED (Centrifuge ShareToken)")
 _am = recon.det_mint("contract C is Auth{function mint(address t,uint a) external auth { _mint(t,a); }}", "src/Fix.sol")
 check(bool(_am) and "GATED" in _am[0][3], "fix#27: ward `external auth` mint recognized as GATED, not PUBLIC")
+_vc = recon.det_mint("contract C{function mint(uint shares,address controller) external { _validateController(controller); m.mint(shares); }}", "src/V.sol")
+check(bool(_vc) and "GATED" in _vc[0][3], "fix#30: _validateController gate -> mint GATED (MagicSwap AsyncVault)")
+check(bool(recon.INLINE_AUTH.search("_authorize(from, receiver, asset)")), "fix#30: INLINE_AUTH matches _authorize() EIP-712 gate (DRE mintFrom)")
+check(not recon.INLINE_AUTH.search("_validateAmount(x);") and not recon.INLINE_AUTH.search("_validateDeadline(d);"),
+      "fix#30 guard: input validators (_validateAmount/_validateDeadline) NOT treated as auth")
 
 print("== det_unchecked (silent transfer, super. fix) ==")
 check(flagged(recon.det_unchecked, "x.transferFrom(a, b, c);"), "bare transferFrom flagged")
