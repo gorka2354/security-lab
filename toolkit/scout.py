@@ -133,6 +133,85 @@ def kw_hits(blob):
     return sorted({k for k in WHEELHOUSE if k in blob})
 
 
+# ── reachability (the post-scout-v2 bottleneck): a DefiLlama `address` is usually the GOV/UTILITY
+# TOKEN, not the core mechanism (hit 3x: Usual ETH0, Lista RWA, Venus Flux all gave gov tokens).
+# Fix: resolve the protocol's own GitHub CORE-contracts repo (clone the mechanism, not the token), and
+# flag non-EVM langs early (Templar's `contracts` repo is Rust/NEAR -> our Solidity engines can't read it).
+NON_EVM_LANGS = {"rust", "move", "cairo", "go", "c++", "python", "ruby", "haskell", "scala",
+                 "clarity", "michelson", "motoko", "fc", "func", "teal"}
+_CORE_POS = ("contract", "core", "protocol", "monorepo", "-v1", "-v2", "periphery", "vault", "lend",
+             "perp", "pool", "engine", "money-market")
+_CORE_NEG = ("frontend", "interface", " ui", "-ui", "ui-", "sdk", "docs", "doc-", "website", "webapp",
+             "-site", "www", "indexer", "subgraph", "-bot", "-cli", "cli-", "-api", "backend", "server",
+             "example", "template", "landing", "brand", "asset", "deploy", "script", "mock", "defillama",
+             ".github", "audit", "whitepaper", "paper", "sdk-")
+
+
+def lang_is_evm(lang):
+    """A GitHub primary language compatible with our Solidity engines? Rust/Move/Cairo/... -> False
+    (non-EVM, like Templar's NEAR contracts). TS/JS/None stay True (often a Foundry/Hardhat monorepo). PURE."""
+    return (lang or "").strip().lower() not in NON_EVM_LANGS
+
+
+def dl_github_orgs(p):
+    """Extract GitHub org/user handles from a DefiLlama protocol record's `github` field
+    (list | str | url | '@handle' | missing). Returns a clean list of handles. PURE."""
+    g = p.get("github")
+    if not g:
+        return []
+    items = g if isinstance(g, list) else [g]
+    out = []
+    for x in items:
+        h = str(x).strip().rstrip("/").split("github.com/")[-1].lstrip("@").split("/")[0]
+        if h:
+            out.append(h)
+    return out
+
+
+def repo_core_score(repo, protocol_name):
+    """Score a GitHub repo for 'is this the protocol's CORE contracts repo': + Solidity/contracts-y name,
+    - frontend/sdk/docs/indexer noise, + name matches the protocol. archived -> rejected. PURE."""
+    if repo.get("archived") or repo.get("fork"):
+        return -999
+    rn = (repo.get("name") or "").lower()
+    desc = (repo.get("description") or "").lower()
+    lang = (repo.get("language") or "")
+    s = 0
+    if lang == "Solidity":
+        s += 50           # bonus breaks ties toward the EVM repo; non-EVM is FLAGGED in main, not penalized
+    elif lang in ("Vyper", "Yul"):
+        s += 40
+    if any(k in rn for k in _CORE_NEG):
+        s -= 40
+    s += 12 * sum(1 for k in _CORE_POS if k in rn)
+    if any(w in desc for w in ("smart contract", "contracts", "protocol", "money market", "lending", "vault")):
+        s += 8
+    slug = re.sub(r"[^a-z0-9]", "", (protocol_name or "").lower())
+    if slug and (slug in re.sub(r"[^a-z0-9]", "", rn) or re.sub(r"[^a-z0-9]", "", rn) in slug):
+        s += 10
+    return s
+
+
+def pick_core_repo(repos, protocol_name):
+    """From a list of GitHub repo dicts, return the best CORE-contracts candidate (or None if none scores
+    positive). PURE (no IO)."""
+    best, bestsc = None, 0
+    for r in (repos or []):
+        sc = repo_core_score(r, protocol_name)
+        if sc > bestsc:
+            best, bestsc = r, sc
+    return best
+
+
+def resolve_core_repo(protocol_name, gh_orgs):
+    """IO: across a protocol's GitHub org(s), find its core-contracts repo. Returns the repo dict or None.
+    Bounded to the first 2 orgs (rate-limit friendly)."""
+    pool = []
+    for org in (gh_orgs or [])[:2]:
+        pool += org_repos(org)
+    return pick_core_repo(pool, protocol_name)
+
+
 def defillama_protocols():
     d = _get("https://api.llama.fi/protocols")
     return d if isinstance(d, list) else []
@@ -172,6 +251,7 @@ def collect_defillama(done, tvl_min, tvl_max, max_audits, today):
                   else f"locate repo/addrs via {p.get('url','?')}  (DefiLlama has no github/address)")
         cands.append({
             "key": key, "name": name, "score": sc, "src": "defillama",
+            "gh_orgs": dl_github_orgs(p),   # for core-repo resolution in main (reachability fix)
             "lines": [
                 f"- **{name}**  (DefiLlama, {cat}, TVL ${tvl/1e6:.1f}M, audits={aud}, listed {listed or '?'})"
                 + (f"  zone:{','.join(kw)}" if kw else "  zone:-"),
@@ -225,6 +305,8 @@ def main():
     ap.add_argument("--tvl-max", type=float, default=1.5e8, help="defillama: max TVL (avoid over-combed giants)")
     ap.add_argument("--max-audits", type=int, default=1, help="defillama: keep protocols with <= N audits")
     ap.add_argument("--top", type=int, default=25)
+    ap.add_argument("--resolve-top", type=int, default=12,
+                    help="defillama: resolve the GitHub CORE-contracts repo for the top N candidates (reachability)")
     ap.add_argument("--today", default="")
     ap.add_argument("--out", default="hunts/_volume/scout-queue.md")
     a = ap.parse_args()
@@ -239,6 +321,22 @@ def main():
     if a.source in ("defillama", "both"):
         cands += collect_defillama(done, a.tvl_min, a.tvl_max, a.max_audits, today)
     cands.sort(key=lambda c: -c["score"])
+
+    # reachability: resolve the CORE-contracts GitHub repo for the top defillama candidates so we clone the
+    # mechanism (not the gov token DefiLlama lists). Bounded to --resolve-top to respect GH rate limits.
+    resolved = 0
+    for c in cands[:a.top]:
+        if c.get("src") != "defillama" or not c.get("gh_orgs") or resolved >= a.resolve_top:
+            continue
+        resolved += 1
+        repo = resolve_core_repo(c["name"], c["gh_orgs"])
+        if not repo:
+            continue
+        url = repo.get("clone_url") or f"https://github.com/{repo.get('full_name', '')}.git"
+        lang = repo.get("language") or "?"
+        flag = "" if lang_is_evm(lang) else f"  [!] {lang} = likely NON-EVM (our Solidity engines can't read it)"
+        c["lines"][2] = (f"    `git clone --depth 1 {url} hunts/_volume/{c['key']}`"
+                         f"  # CORE repo (DefiLlama github, {lang}){flag}")
 
     head = (f"# Scout queue (source={a.source})\n\nRef {today}. {len(cands)} candidates after "
             f"ledger-suppression ({len(done)} hunted).")

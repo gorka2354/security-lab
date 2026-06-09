@@ -378,6 +378,24 @@ check(scout.is_all_non_evm(["Solana", "Sui"]) and not scout.is_all_non_evm(["Eth
       "scout v2: is_all_non_evm skips pure non-EVM, keeps protocols with an EVM chain (engines are Solidity)")
 check(scout.is_suppressed("mellow-flexible-vaults", {"mellow"}) and not scout.is_suppressed("aave-v3", {"cap"}),
       "scout v2: is_suppressed matches a hunted target by first segment, not by tiny coincidences")
+# reachability fix: resolve the CORE-contracts GitHub repo (not the gov token DefiLlama lists)
+check(scout.dl_github_orgs({"github": ["RoycoProtocol", "https://github.com/foo/bar"]}) == ["RoycoProtocol", "foo"]
+      and scout.dl_github_orgs({"github": "hopperlabsxyz"}) == ["hopperlabsxyz"]
+      and scout.dl_github_orgs({}) == [],
+      "scout.dl_github_orgs: parses DefiLlama github field (list/url/str/missing) into clean handles")
+check(scout.lang_is_evm("Solidity") and scout.lang_is_evm("TypeScript") and not scout.lang_is_evm("Rust")
+      and not scout.lang_is_evm("Move"),
+      "scout.lang_is_evm: Solidity/TS huntable; Rust/Move flagged non-EVM (the Templar=NEAR/Rust case)")
+_repos = [{"name": "contracts", "language": "Solidity", "description": "core smart contracts"},
+          {"name": "interface", "language": "TypeScript"}, {"name": "docs", "language": "MDX"},
+          {"name": "sdk", "language": "TypeScript"}]
+check((scout.pick_core_repo(_repos, "Foo") or {}).get("name") == "contracts",
+      "scout.pick_core_repo: picks the Solidity `contracts` repo over interface/docs/sdk noise")
+check(scout.pick_core_repo([{"name": "contracts", "language": "Solidity", "archived": True}], "Foo") is None,
+      "scout.pick_core_repo: an archived repo is rejected (-> None, nothing to clone)")
+check((scout.pick_core_repo([{"name": "contracts", "language": "Rust"}, {"name": "cli", "language": "Rust"}], "Templar") or {}).get("name") == "contracts"
+      and not scout.lang_is_evm("Rust"),
+      "scout: Templar-shape repo still picks `contracts`, but lang_is_evm flags it NON-EVM (skip early)")
 
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
