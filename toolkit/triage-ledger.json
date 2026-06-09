@@ -408,6 +408,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "royco-v2|audit/|target|",
+      "target": "royco-v2",
+      "file": "audit/",
+      "line": 0,
+      "detector": "target",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Royco V2 Dawn DEPLOYED (factory 0x7cC6..253C live eth+arb) BUT heavily audited: Cantina+Certora(formal)+Hexens x3+whitelist. DefiLlama audits=0 = data error scout trusted. Low EV -> abandoned. Lesson: scout must check repo audit/ dir.",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "royco-v2|src/kernels/base/RoycoKernel.sol|oracle|",
       "target": "royco-v2",
       "file": "src/kernels/base/RoycoKernel.sol",

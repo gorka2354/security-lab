@@ -40,11 +40,20 @@ Ledger: burn/burnFrom FP. Guard test keeps a `setRestrictedFlag` (names but does
   claims <= assets). 
 - REENTRANCY x6 / SUPPLY x3 -- lower priority (burn/mint are `restricted`/kernel-gated; verify on the deep pass).
 
-## Status -- CODE-STUDY (no live finding; deploy UNCONFIRMED -> not prioritized per LIVE-FIRST)
-royco-dawn shows NO deployment artifacts (no broadcast/deployments, no audit/mainnet mention), codename
-"Dawn" + a `royco-dusk-paper` formal-specs repo + active self-bugfixes -> looks PRE-deploy / in active dev.
-Per CLAUDE.md LIVE-FIRST: any finding here is "fix but do NOT prioritize" until deployment + in-scope bounty
-is confirmed (check RoycoFactory on-chain / their docs / Immunefi before any disclosure). Primary win this
-pass = the ENGINE (fix#32) + proving the forkdrift-first workflow surfaces genuinely-novel targets.
-Next session (if pursued): confirm deploy/scope -> deep-dive the oracle-3guard x10 + accountant attribution
-(scaffold an ST/JT round-trip + solvency invariant in invariant-lab).
+## Status -- ABANDONED: deployed BUT heavily audited (DefiLlama "audits=0" was a DATA ERROR)
+Deploy check (the question that gated everything): **DEPLOYED.** `script/config` references a pre-deployed
+`ROYCO_FACTORY = 0x7cC6fB28eC7b5e7afC3cB3986141797ffc27253C`; on-chain `eth_getCode` confirms it is LIVE on
+**Ethereum + Arbitrum** (no code on Base). So LIVE-FIRST is satisfied.
+BUT the repo's `audit/` dir holds reports from **Cantina + Certora (formal verification) + Hexens x3 +
+whitelist audits** (+ WatchPug/Hexens for the Pendle-SY integration). i.e. Royco Dawn is among the MOST-
+audited protocols -- the exact opposite of "under-reviewed". **DefiLlama's `audits=0` is a data error**, and
+scout v2 trusted it. Per the core diagnosis (audited code = competing with pro wardens + here, formal
+verification) -> very LOW EV. ABANDONED (not worth the oracle/accountant deep-dive).
+
+## Wins banked (despite no finding)
+1. **fix#32** (OZ AccessManager `restricted`) -- broadly useful, 47->0 FPs, +3 golden tests. The real take.
+2. **forkdrift-first workflow proven** -- it correctly classified Royco as original (non-fork) novel code.
+3. **Lesson -> next tool:** scout v2 must NOT trust DefiLlama's `audits` field. A cloned repo with an
+   `audit/` dir or `*audit*.pdf` (or README "audited by") is audited regardless. Add a post-clone audit-
+   evidence check (natural home: extend `forkdrift fingerprint` -> "AUDITED: N reports in audit/ -> downgrade")
+   so we never again sink a hunt into an audited-but-mislabeled target. (Would have saved this entire hunt.)
