@@ -31,7 +31,9 @@ Regression tests 112 -> 119; both fixes verified on the live Centrifuge tree.
 | `AsyncVault.mint:135` (PUBLIC mint) | **FP** -- ERC-7540 async: gated by `_validateController(controller)`; mints user's already-requested shares via the gated asyncManager (a `_validate*` idiom we don't yet recognize) |
 | `Gateway.withBatch:230` reentrancy / arbitrary-call | **refuted** -- callback-to-caller batching; `callbackValue <= msg.value` (no ETH drain); the `_batcher==0` lock forces `lockCallback()` |
 | `BalanceSheet.revoke:172` etc. sibling | **FP** -- `isManager(poolId)` modifier (now recognized, fix#27) |
-| `Spoke.updateContract:159`, `NAVManager:155`, `BatchRequestManager:448/562` sibling-inconsistent | **TODO / park** -- ungated next to `auth` siblings; multi-line signatures + receiving-side auth not yet read. Candidates for a deeper pass (or another unrecognized gate idiom) |
+| `Spoke.updateContract:159` sibling-inconsistent | **by-design** (deep pass) -- the **UNtrusted** permissionless update: emits `UntrustedContractUpdate` and sends `msg.sender.toBytes32()` as origin; security is delegated to the receiving target (a trusted variant goes via Hub with `auth`) |
+| `NAVManager.updateHoldingValue:155` | **by-design** -- permissionless value-REFRESH poke (recompute); the privileged sibling `updateHoldingValuation` (sets the valuation source) is `onlyManager` |
+| `BatchRequestManager.notifyDeposit:448/562` | **FP** -- has a `protected` modifier (an unrecognized gate idiom) + it's a user-facing deposit claim for `investor` |
 | `SignatureLib.ecrecover:28` (no nonce/deadline) | TODO -- verify replay protection at the caller |
 | unchecked transfers (BalanceSheet/Spoke/Escrow/Recoverable), initialize (Hub/Holdings) | hygiene / diamond-init by-design |
 
@@ -43,3 +45,11 @@ ward noise is gone.
 
 **Lesson:** on a ward-model protocol the FIRST pass is mostly the auth-pattern FP; recognizing the
 pattern is what makes the real leads visible. The system now reads ward-model code cleanly.
+
+## Deep pass on the parked leads (the closest thing to a finding) -> all by-design
+Read each sibling-inconsistent lead to ground: `Spoke.updateContract` is the UNtrusted permissionless
+path (tags `msg.sender` as origin; receiver validates); `NAVManager.updateHoldingValue` is a
+permissionless recompute poke (the valuation-SOURCE setter is `onlyManager`); `BatchRequestManager.
+notifyDeposit` is a `protected` user-claim. No missing-auth bug. Centrifuge fully cleared -- no finding;
+the durable value remains fix#27 (ward-model) + fix#28 (self-call). (`protected` / `_validateController`
+noted as further unrecognized gate idioms -- left as triaged FPs, not over-fitted into the detector.)

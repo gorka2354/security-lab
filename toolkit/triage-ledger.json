@@ -34,6 +34,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "centrifuge|src/core/spoke/Spoke.sol|ac|function updateContract(...) -> sendUntrustedContractUpdate(msg.sender)",
+      "target": "centrifuge",
+      "file": "src/core/spoke/Spoke.sol",
+      "line": 159,
+      "detector": "sibling",
+      "snippet": "function updateContract(...) -> sendUntrustedContractUpdate(msg.sender)",
+      "verdict": "fp",
+      "reason": "by-design: UNtrusted permissionless update, tags msg.sender as origin; receiver validates (deep pass)",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "centrifuge|src/managers/hub/NAVManager.sol|ac|function updateHoldingValue(...)",
+      "target": "centrifuge",
+      "file": "src/managers/hub/NAVManager.sol",
+      "line": 155,
+      "detector": "sibling",
+      "snippet": "function updateHoldingValue(...)",
+      "verdict": "fp",
+      "reason": "permissionless value-refresh poke; valuation-source setter sibling is onlyManager",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "centrifuge|src/vaults/AsyncVault.sol|supply|function mint(uint shares,address receiver,address controller)",
       "target": "centrifuge",
       "file": "src/vaults/AsyncVault.sol",
@@ -42,6 +64,17 @@
       "snippet": "function mint(uint shares,address receiver,address controller)",
       "verdict": "fp",
       "reason": "ERC-7540: _validateController gate; mints user-requested shares via gated asyncManager",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "centrifuge|src/vaults/BatchRequestManager.sol|ac|function notifyDeposit(...) external payable protected",
+      "target": "centrifuge",
+      "file": "src/vaults/BatchRequestManager.sol",
+      "line": 448,
+      "detector": "sibling",
+      "snippet": "function notifyDeposit(...) external payable protected",
+      "verdict": "fp",
+      "reason": "has protected modifier (unrecognized gate) + user-facing deposit claim",
       "date": "2026-06-09"
     },
     {
