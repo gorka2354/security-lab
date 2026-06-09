@@ -12,6 +12,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "alchemix-v3|src/AlchemistV3.sol|reward|",
+      "target": "alchemix-v3",
+      "file": "src/AlchemistV3.sol",
+      "line": 655,
+      "detector": "reward",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Greenfield V3 self-repaying loans, deployed+in-scope+bountied (Immunefi, via scout v3). Core novel math parked for PoC: (1) liquidation health-price = MYT ERC4626 share-price manipulability; (2) earmark/redemption Q128 survival-ratio conservation; (3) ERC4626Strategy first-depositor; (4) Transmuter 176/209. Self-liq=by-design, deposit CEI=intentional, AlEth=mock.",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "alchemix-v3|src/external/AlEth.sol|ac|",
+      "target": "alchemix-v3",
+      "file": "src/external/AlEth.sol",
+      "line": 65,
+      "detector": "sibling",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "Ungated setWhitelist/pauseAlchemist/setCeiling (stale 'admin only' NatSpec, empty body) -> looks like 1-call infinite mint. BUT AlEth.sol is a TEST MOCK (header: 'modified for V3 invariant testing'); deployed token = CrossChainCanonicalAlchemicTokenV3 extends audited AlchemicTokenV2Base (role-gated). Mock not deployed -> FP.",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "cap|contracts/delegation/Delegation.sol|ac|function distributeRewards(address _agent, address _asset)",
       "target": "cap",
       "file": "contracts/delegation/Delegation.sol",
