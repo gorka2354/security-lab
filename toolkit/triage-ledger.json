@@ -15,11 +15,11 @@
       "sig": "alchemix-v3|src/AlchemistV3.sol|reward|",
       "target": "alchemix-v3",
       "file": "src/AlchemistV3.sol",
-      "line": 655,
+      "line": 1478,
       "detector": "reward",
       "snippet": "",
-      "verdict": "todo",
-      "reason": "Greenfield V3 self-repaying loans, deployed+in-scope+bountied (Immunefi, via scout v3). Core novel math parked for PoC: (1) liquidation health-price = MYT ERC4626 share-price manipulability; (2) earmark/redemption Q128 survival-ratio conservation; (3) ERC4626Strategy first-depositor; (4) Transmuter 176/209. Self-liq=by-design, deposit CEI=intentional, AlEth=mock.",
+      "verdict": "known",
+      "reason": "Deep-dive: liquidation math correct (standard restore-to-target); earmark/redemption Q128 rebasing-index conservation is protocol-safe (mulDivUp on per-account debits -> SUM(local)<=global); scar-tissue comments show class already hardened. No demonstrable static finding. Residual (needs their fuzz harness): MYT ERC4626 share-price -> liquidation-health; core conservation across redeem epochs (their suite fuzzes the allocator, not the core). Pattern captured.",
       "date": "2026-06-09"
     },
     {

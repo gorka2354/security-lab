@@ -42,7 +42,35 @@ the debt away over time -> `liquidate` when collateralization <= lower bound. Co
 5. `Transmuter.sol:176/209` reentrancy + "reward payout, no claimed-marker" (double-claim?) -- the al<->underlying converter.
 6. TODO/FIXME (incomplete logic): `PerpetualGauge:164`, `ZeroXSwapVerifier:128/141`.
 
-## Status -- PARTIAL (greenfield, in-scope, bountied; surface triaged, core-math parked for PoC)
+## Deep-dive pass (autonomous, 2026-06-09) -- RESULT: no demonstrable finding from static analysis
+Read the core math end-to-end:
+- **Liquidation** (`calculateLiquidation` 774, `_liquidate` 1048, `_doLiquidation` 1149, `_isAccountHealthy` 1135):
+  the seize formula is the standard "restore to target collateralization" math, derived & CORRECT
+  (`x = (m*d - adjCollat)/(m-1)`); fee from surplus; seize clamped to realized collateral; rounds protocol-safe.
+  No self-liq guard = by-design (self-repaying -> self-liq just pays yourself the fee from your own collateral).
+- **Conversions** (896-923): collateral value = `IVaultV2(myt).convertToAssets(shares)` (ERC-4626 share price) +
+  a fixed decimals factor. Liquidation health therefore rides the MYT share price -> the ONE real residual surface,
+  but MYT is their MultiStrategy vault with caps + heavy share-price-non-decreasing fuzzing; manipulating it needs
+  the full strategy deploy (out of reach for an isolated static PoC). Parked as the #1 thing to test on their harness.
+- **Earmark/redemption conservation** (`_earmark` 1582, `_sync` 1442, `_computeUnrealizedAccount` 1478, survival
+  ratios 1747/1768): Q128.128 packed (epoch,index) + `_survivalAccumulator` rebasing-index. Traced the global-vs-local
+  conservation: `_mytSharesDeposited` & `collateralBalance` move together in deposit/`_subCollateralBalance`; `redeem`
+  decrements the global once, sync debits each account lazily via **`mulDivUp` (round UP)** -> `SUM(local) <= global` =
+  **protocol-safe** (users lose dust, pool never short = the SAFE direction). The function carries scar-tissue comments
+  ("avoids amplifying ceil rounding", "avoids both over- and under-redemption", pre/post epoch-boundary split) -> this
+  exact class was their battleground and is hardened. No conservation break found.
+- `external/AlEth.sol` ungated mint = **TEST MOCK** (FP, see above). `ZeroXSwapVerifier` TODOs (128/141) = a
+  self-acknowledged "should we ALSO verify saa.buyToken?" hardening question; `_verifyActions` already enforces
+  targetToken + slippage -> not a demonstrable bug.
+
+**Conclusion:** Alchemix V3 core is hardened, conservative-by-design, and actively fuzzed -> no static finding.
+Knowledge captured as a reusable pattern: `research/patterns/accounting/index-accumulator-earmark-accounting.md`
+(the conservation-invariant checklist + safe-rounding rule for this class). **Constructive note for the team:** their
+invariant suite fuzzes the MultiStrategy ALLOCATOR heavily but NOT the AlchemistV3 core debt/earmark/redemption
+conservation -- extending it there (SUM-local == global across interleaved redeem/earmark epochs) is the highest-value
+next check, plus the MYT-share-price -> liquidation-health coupling. (Both need their full harness, not a static PoC.)
+
+## Status -- DEEP-DIVE DONE: no demonstrable finding (greenfield, in-scope, bountied; core hardened)
 **Whole-session win:** the scout-v3 Immunefi pipeline reached a deployed, in-scope, BOUNTIED, unaudited,
 novel target end-to-end -- exactly the goal. Top "critical" lead correctly verified as a test mock. Next:
 focused PoC deep-dive on (1) MYT-share-price liquidation manipulation and (2) the earmark/redemption survival-
