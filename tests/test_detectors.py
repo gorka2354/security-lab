@@ -146,6 +146,18 @@ check(bool(hypothesize.STATE.search("ds.layout=x")), "STATE matches ds. (diamond
 check("s.foo" in hypothesize.direct_writes("s.foo = 1;"), "direct_writes captures a diamond s. write")
 check("state.data.x" in hypothesize.direct_writes("state.data.x = 1;"), "direct_writes captures a state. write")
 
+print("== hypothesize bridge + auto-propose (recon -> hypothesizer; deterministic, NO API) ==")
+_fft = hypothesize.flags_from_text("contract C{function setFee(uint x) external { fee=x; }}", "src/C.sol")
+check("setFee" in _fft and "access" in _fft["setFee"],
+      "bridge: recon flags an ungated setFee and flags_from_text surfaces it to the hypothesizer")
+_rt = hypothesize.auto_propose({"deposit": ["deposit"], "withdraw": ["withdraw"]}, {("deposit", "withdraw")}, [], {}, [])
+check(any("ROUND-TRIP" in p for p in _rt), "auto_propose drafts a round-trip hypothesis from an inverse pair")
+_em = hypothesize.auto_propose({}, set(), [("state.shares", {"a", "b", "c"})], {"a": {"reward"}}, [])
+check(any("EMERGENT+RECON" in p and "reward" in p for p in _em),
+      "auto_propose fuses a recon flag + shared state into an emergent hypothesis (the bridge)")
+check(any("INVARIANT-GAP" in p for p in hypothesize.auto_propose({}, set(), [], {}, [])),
+      "auto_propose proposes the missing-invariant complement when their harness declares none")
+
 print("== fetch_source (live-first: etherscan source parsing, no network) ==")
 import fetch_source  # noqa: E402
 check(fetch_source.parse_etherscan_source("contract C{}", "MyToken") == {"MyToken.sol": "contract C{}"},

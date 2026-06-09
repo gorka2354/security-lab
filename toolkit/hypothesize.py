@@ -20,11 +20,22 @@ COMBINE (analyzer -> hypothesizer): the shared-state matrix follows the CALL GRA
 Lib.foo(state,...)) are attributed to the entry fn - "poor man's dataflow" (Grade A,
 runs anywhere). The accurate version uses Slither's `state_variables_written` (Grade B,
 CI/Linux); see ROADMAP "combine engines". ASCII output. Heuristic - it surfaces, you reason.
+
+Section 5 closes the bridge: it AUTO-PROPOSES hypothesis TEXT (deterministic templates -
+NO LLM/API) from the seeds, and fuses recon's pattern flags in - a fn that recon flagged
+AND that shares state with others is a sharper emergent seed. The creative verification
+stays with L4 (Claude in the console, interactive = free); an API is only needed for the
+fully-autonomous mode. Generation is pure math; judgement is L4.
 """
 
 import argparse
 import os
 import re
+
+try:
+    import recon  # same toolkit dir: bridge recon's pattern flags into the structural seeds
+except Exception:  # recon optional; the structural seeds still work without it
+    recon = None
 
 SKIP = {"lib", "node_modules", "out", "artifacts", "cache", ".git", "forge-std",
         "openzeppelin", "deprecated", "script", "scripts", "broadcast"}
@@ -123,12 +134,71 @@ def slither_field_writers(target):
     return fw or None
 
 
+def flags_from_text(text, rel):
+    """Bridge: {function name -> set(recon detector keys)} for one file. A function that
+    recon FLAGGED (a known pattern) and that also shares mutable state with others (the
+    shared-state matrix) is a sharper emergent-attack seed than either signal alone.
+    Pure structural join - no API."""
+    out = {}
+    if recon is None:
+        return out
+    for title, fn, _ in recon.DETECTORS:
+        try:
+            leads = fn(text, rel)
+        except Exception:
+            continue
+        for tup in leads:
+            m = re.search(r"function\s+(\w+)", tup[2] or "")
+            if m:
+                out.setdefault(m.group(1), set()).add(recon.det_key(title))
+    return out
+
+
+def auto_propose(by_verb, pairs, ranked, rflags, invs):
+    """Deterministic hypothesis TEXT from the structural seeds (NO LLM/API): round-trips from
+    inverse pairs, emergent interactions from shared state (prioritized when recon also flagged
+    a writer), and the missing-invariant complement. L4 picks the sharpest and proves it; this
+    just drafts candidates from math."""
+    props = []
+    for (v, inv) in pairs:
+        a = (by_verb.get(v) or [None])[0]
+        b = (by_verb.get(inv) or [None])[0]
+        if a and b:
+            props.append(f"ROUND-TRIP `{a}` -> `{b}`: assert the caller is NEVER richer after "
+                         f"(rounding/fee leak); fuzz forall amounts -> post <= pre.")
+    for root, writers in ranked[:6]:
+        ws = sorted(writers)
+        flagged = [w for w in ws if w in rflags]
+        if flagged:
+            f = flagged[0]
+            others = [w for w in ws if w != f][:2]
+            keys = ",".join(sorted(rflags[f]))
+            props.append(f"EMERGENT+RECON `{f}` (recon:{keys}) shares `{root}` with {others} -> "
+                         f"interleave: can a co-writer re-trigger {f}'s effect or desync `{root}`? "
+                         f"(assert `{root}` conservation across the pair)")
+        elif len(ws) >= 3:
+            props.append(f"EMERGENT `{root}`: {len(ws)} writers ({', '.join(ws[:3])} ...) -> interleave "
+                         f"the 2 most cross-file; assert the `{root}` invariant survives.")
+    declared = " ".join(nm for _, _, nm in invs).lower()
+    std = [("solvency", "SUM(user claims) <= protocol assets, all markets/times"),
+           ("conservation", "total debt issued == total credit owed (no value minted in matching)"),
+           ("round", "do(x) then undo() leaves the caller <= start (never richer)"),
+           ("cross", "an op in A never breaks B's invariant via shared state"),
+           ("free", "no op sequence leaves caller richer with protocol unchanged")]
+    missing = [d for k, d in std if k not in declared]
+    if missing:
+        props.append("INVARIANT-GAP (not asserted by their harness): " + "; ".join(missing[:3])
+                     + " -> write STRONGER + fuzz.")
+    return props
+
+
 def main():
     ap = argparse.ArgumentParser(description="Extract attack-hypothesis seeds from contracts")
     ap.add_argument("path")
     ap.add_argument("--out")
     ap.add_argument("--top", type=int, default=18)
     ap.add_argument("--no-slither", action="store_true", help="force Grade A (call-graph regex)")
+    ap.add_argument("--no-recon", action="store_true", help="skip the recon->hypothesizer bridge")
     a = ap.parse_args()
     base = a.path if os.path.isdir(a.path) else os.path.dirname(a.path)
 
@@ -241,6 +311,28 @@ def main():
               "cross-component: an op in A never breaks B's invariant via shared state",
               "no-free-value: no op sequence leaves caller richer with protocol unchanged"]:
         out.append(f"- {s}")
+
+    # bridge: recon pattern flags per function (analyzer -> hypothesizer), then auto-propose
+    rflags = {}
+    if recon is not None and not a.no_recon:
+        for path in iter_sol(a.path):
+            try:
+                t = open(path, encoding="utf-8", errors="ignore").read()
+            except Exception:
+                continue
+            for fn_name, keys in flags_from_text(t, os.path.relpath(path, base)).items():
+                rflags.setdefault(fn_name, set()).update(keys)
+
+    out.append("\n## 5. AUTO-PROPOSED hypotheses (deterministic templates; NO LLM/API)")
+    bridged = sum(1 for r, w in ranked if any(x in rflags for x in w))
+    out.append(f"_pure-math draft from sections 1-3 + recon ({len(rflags)} flagged fns, "
+               f"{bridged} shared-state roots touch a flagged fn). L4 verifies; no API in interactive mode._\n")
+    props = auto_propose(by_verb, seen, ranked, rflags, invs)
+    if props:
+        for p in props[:14]:
+            out.append(f"- {p}")
+    else:
+        out.append("  (not enough structure -> reason over sections 1-4 manually)")
 
     report = "\n".join(out)
     print(report)
