@@ -354,6 +354,19 @@ check(not flagged(recon.det_strict_balance, "contract C{function f() external { 
 check(not flagged(recon.det_strict_balance, "contract C{function f(bytes4 sig) external { if (sig == I.balanceOf.selector || sig == I.balanceOfBatch.selector) revert(); }}"),
       "FP guard: == ...balanceOf.selector (a selector ref, not a balance value) NOT flagged")
 
+print("== scout (Stage-0 target sourcing: pure logic, no network) ==")
+import scout  # noqa: E402
+check(scout.target_key("2025-07-mellow-flexible-vaults") == "mellow-flexible-vaults",
+      "scout.target_key strips the sherlock YYYY-MM- date prefix")
+check(scout.target_key("dTRINITY-0xee5c6f15e8d0b55a5eff84bb66beeee0e6140ffe") == "dtrinity",
+      "scout.target_key strips the trailing hats -0x.. hash + lowercases")
+check(bool(scout.SKIP_NAME.search("2025-07-cap-judging")) and not scout.SKIP_NAME.search("2026-01-fluid-dex-v2"),
+      "scout.SKIP_NAME drops -judging mirrors, keeps real contest repos")
+check(scout.age_days("2025-06-09", "2026-06-09") > 360 and scout.age_days("2026-06-01", "2026-06-09") == 8,
+      "scout.age_days: ~1yr apart > 360; 8 days apart == 8")
+check(any(k in "lending vault for cross-chain stablecoin".lower() for k in scout.WHEELHOUSE),
+      "scout.WHEELHOUSE matches our-zone keywords (vault/lend/stablecoin/cross-chain)")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
