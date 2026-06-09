@@ -41,6 +41,32 @@ captures the return). A submission-worthy bug here would require deep economic/o
 pattern pass (e.g. the express-withdrawal NFT accounting, the dreUSDOracle pricing under depeg) -- noted
 for a possible focused follow-up before the 06-17 close.
 
+## Full-force ECONOMIC deep-dive (L4, beyond patterns) -> no demonstrable finding
+Read the full pricing + mint/redeem + express-withdrawal + vault economics:
+- **Oracle (`dreUSDOracle`):** sequencer-uptime + grace, per-token staleness (60s-24h), price>0,
+  deviation-from-$1 band (default 1%), decimals validation, sane-range feed check on `setOracle`. Solid.
+- **Mint vs redeem symmetry:** mint credits dreUSD via `getUsdValue` (truncates DOWN); redeem pays
+  `getTokenAmount` (truncates DOWN). Both round toward the PROTOCOL -> NO round-trip profit. Mint is
+  fee-on-transfer-safe (custodian balance-diff) and slippage-checked; `mintFrom`/FiatMint paths fully
+  bound (EIP-712 + nonce / custodian-sig + mintRef-replay + chainId + daily cap).
+- **Express withdrawal accounting:** internally consistent -- `expressWithdrawalAvailable` decremented
+  on request (`_queueExpressWithdrawal` line 733) and restored on filler payback; filler made whole via
+  `expressFillerDebt`; user pays the fee; NFT burned + fee deleted BEFORE transfer (CEI); nonReentrant +
+  EXPRESS_OPERATOR-gated fill. No double-fill, no available-cap bypass, no filler-debt drift.
+- **dreUSDs vault:** virtual-balance `totalAssets` (donation-resistant); rewards claimed inside deposit/
+  withdraw hooks (no instant vest-steal). UUPS/roles gated.
+- **Residual (Low / by-design, NOT a confident finding):** mint accepts MANY stablecoins but redeem is
+  USDC-only -> a cross-collateral oracle arb exists IF an oracle lags reality, but it's bounded by the
+  1% deviation band + staleness and is ~neutral in REAL value (oracle ~= real price) -> inherent accepted
+  multi-collateral risk, not a clean exploit. Calibrated down honestly (Malda/Cap discipline: never
+  report a non-demonstrable finding).
+
+**Outcome:** dreUSD held up under a full economic pass -- no submittable bug found. Threads a longer
+audit could still pull (not exhausted here): cross-chain share/asset conservation across hub+spoke under
+partial fills/refunds; the Aave-adapter withdraw accounting; whether a sanctioned-after-request express
+NFT permanently strands its slice of `expressWithdrawalAvailable`. None rose to a confident, demonstrable
+finding in this pass.
+
 ## System notes (backlog, not fixed -- avoid over-fitting)
 - **det_erc4626 refinement candidate:** a vault whose `totalAssets()` uses internal accounting
   (`_virtualBalance` / `_totalAssets`, NOT `balanceOf(this)`) is donation-resistant -> the inflation
