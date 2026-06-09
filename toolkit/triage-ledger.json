@@ -386,6 +386,28 @@
       "date": "2026-06-07"
     },
     {
+      "sig": "rocksolid|src/v0.5.0/Vault.sol|drift|",
+      "target": "rocksolid",
+      "file": "src/v0.5.0/Vault.sol",
+      "line": 0,
+      "detector": "drift",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Verbatim Lagoon v0.5.0 fork; only drift is version-lag (v0.5.1 whitelist patch), MOOT on-chain (isActivated==false, permissionless). No custom drift; NAV bookkept (no donation); inflation virtual-share-mitigated. CLEAN.",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "rocksolid|src/v0.5.0/Vault.sol|erc4626|",
+      "target": "rocksolid",
+      "file": "src/v0.5.0/Vault.sol",
+      "line": 63,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "totalAssets() returns bookkept $.totalAssets (not balanceOf) -> no donation attack; OZ virtual shares; vault already seeded ~$19M.",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeTokens(...)",
       "target": "stakelink",
       "file": "contracts/core/base/RewardsPoolController.sol",
@@ -516,6 +538,17 @@
       "verdict": "fp",
       "reason": "LTV-bounded over-collateralized mint: public wrapper -> VaultOsToken._mintOsToken reverts LowLtv if position > collateral*ltvPercent; _checkOsTokenPosition re-checks on collateral exit",
       "date": "2026-06-07"
+    },
+    {
+      "sig": "usual-eth0|token/Usual.sol|target|",
+      "target": "usual-eth0",
+      "file": "token/Usual.sol",
+      "line": 0,
+      "detector": "target",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "DefiLlama address = USUAL governance token (audited USD0/DaoCollateral machine), not novel ETH0 product code. Low EV; pivoted.",
+      "date": "2026-06-09"
     },
     {
       "sig": "wolfgame|Barn.sol|unchecked|wool.transfer return ignored",
