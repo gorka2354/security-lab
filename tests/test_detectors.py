@@ -254,6 +254,21 @@ check(not flagged(recon.det_weak_random, "contract C{ bytes32 d = keccak256(abi.
 check(not flagged(recon.det_weak_random, "contract C{function id(uint x) internal view returns(bytes32){ return keccak256(abi.encodePacked(x, address(this))); }}"),
       "keccak with NO block entropy NOT flagged as RNG")
 
+print("== det_swap_guard (slippage / deadline; sandwich/MEV) ==")
+check(flagged(recon.det_swap_guard, "contract C{function zap(uint a) external { router.swapExactTokensForTokens(a, 0, path, to, block.timestamp); }}"),
+      "V2 swapExactTokensForTokens with positional amountOutMin==0 flagged")
+_sv3 = recon.det_swap_guard("contract C{function s(uint a) external { router.exactInputSingle(ISwapRouter.ExactInputSingleParams({tokenIn:t0,tokenOut:t1,fee:500,recipient:msg.sender,deadline:block.timestamp,amountIn:a,amountOutMinimum:0,sqrtPriceLimitX96:0})); }}", "src/C.sol")
+check(bool(_sv3) and any(l[4] == 0 and "amountOutMin == 0" in l[3] for l in _sv3),
+      "V3 exactInputSingle with amountOutMinimum: 0 flagged [!]")
+check(not flagged(recon.det_swap_guard, "contract C{function s(uint a,uint minOut) external { router.swapExactTokensForTokens(a, minOut, path, to, deadline); }}"),
+      "swap with a real (non-zero) min-out NOT flagged")
+_sd = recon.det_swap_guard("contract C{function s(uint a,uint m) external { router.swapExactTokensForTokens(a, m, path, to, deadline); uint x; deadline = block.timestamp; }}", "src/C.sol")
+# deadline=block.timestamp near a swap -> [.] no-expiry note (only the deadline lead, not the safe swap)
+check(any(l[4] == 1 and "no expiry" in l[3] for l in _sd),
+      "deadline = block.timestamp near a swap -> [.] no-expiry lead")
+check(not flagged(recon.det_swap_guard, "contract C{function transfer(address to,uint a) external { bal[to]+=a; }}"),
+      "non-swap function NOT flagged")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")

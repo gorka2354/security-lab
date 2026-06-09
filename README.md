@@ -13,7 +13,7 @@
                     +------------------+------------------+
                                        v
                         recon.py — МЕТАЛЛОИСКАТЕЛЬ (L1)
-                        18 детекторов, быстрый триаж, приоритет [!]
+                        19 детекторов, быстрый триаж, приоритет [!]
                                        |
                         ledger.py — КАРТОТЕКА ВЕРДИКТОВ
                         гасит уже засуженные (FP/known) → вижу только НОВОЕ
@@ -63,7 +63,7 @@ security-lab/
 ├─ README.md / CLAUDE.md / ROADMAP.md / PLAYBOOK.md  ← вход · контекст · роадмап · цепочка охоты
 ├─ toolkit/
 │   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
-│   ├─ recon.py                       ← L1 сканер: 18 детекторов наших эвристик
+│   ├─ recon.py                       ← L1 сканер: 19 детекторов наших эвристик
 │   ├─ fetch_source.py · livecheck.py ← LIVE-FIRST: verified-source по адресу · дрейф impl vs аудит
 │   ├─ scope.py · analyze.py          ← карта функций/ролей · L2 Slither + кросс-корреляция
 │   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
@@ -73,17 +73,17 @@ security-lab/
 ├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ
 ├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
 ├─ monitor/watchlist.json  ← припаркованные находки → watch.py следит, [FIRED] при деплое
-├─ tests/test_detectors.py ← 88 golden-fixture проверок (CI-гейт)
+├─ tests/test_detectors.py ← 93 golden-fixture проверок (CI-гейт)
 └─ nomad-poc/ oracle-poc/  ← Foundry PoC
 ```
 
-## 18 детекторов (recon.py)
+## 19 детекторов (recon.py)
 disabled-signals · access-control · **sibling-inconsistency** · supply-integrity (mint/burn) ·
 reentrancy (CEI) · arbitrary-call (approval-drain) · **signature/ecrecover** (replay) ·
 **domain-separator** (cross-chain/fork replay) · **UUPS upgrade-safety** · **unchecked ERC20 return** ·
 **ERC4626 inflation** · **reward/claim-accounting** (double-claim) · oracle 3-guard (+spot-reserve sub-check) ·
 **interest-index inflation** (Aave-fork empty-market) · **liquidation-math** · **weak-randomness** (predictable on-chain RNG, GameFi) ·
-dangerous primitives · **L2/AA-footguns** (zkSync).
+**swap-slippage/deadline** (sandwich/MEV) · dangerous primitives · **L2/AA-footguns** (zkSync).
 Access-control (sibling+access) объединены в группу — один вердикт гасит оба. Каждый детектор — **lead, не verdict**.
 5 новых детекторов + 2 уточнения выкованы из библиотеки паттернов (`research/`) и живых охот; закалён **fix#14–#25**
 (последние fix#24/#25 + `det_weak_randomness` — из GameFi-прогона EtherOrcs/Wolf Game).
@@ -108,10 +108,10 @@ forge test --root invariant-lab -vvv               # прогнать фаззи
 
 ## Статус
 - ✅ Полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH** (recon → Slither → scaffold+fuzz → L4)
-- ✅ 7 классов багов + 7 эвристик в картотеке; **18 детекторов**; закалён **25 фиксами** (fix#14–#25)
+- ✅ 7 классов багов + 7 эвристик в картотеке; **19 детекторов**; закалён **25 фиксами** (fix#14–#25)
 - ✅ **research/** — библиотека из 6 баг-паттернов (T0→T3) + TEMPLATE; пайплайн паттерн → детектор → инвариант
 - ✅ **invariant-lab/** — 6 самопроверяющихся invariant-шаблонов + wire к реальному OZ ERC4626 (25 тестов, fmt-чисто)
-- ✅ **Регресс-тесты** (`tests/test_detectors.py`, **88** golden-fixture проверок) — жёсткий гейт: фикс не сломает другой детектор молча
+- ✅ **Регресс-тесты** (`tests/test_detectors.py`, **93** golden-fixture проверок) — жёсткий гейт: фикс не сломает другой детектор молча
 - ✅ **ledger** (память вердиктов) — шум падает каждый прогон; **diffscan** — хантинг по audit-drift
 - 🎯 Живые тесты пайплайна: **Morpho Midnight** (детекторное плечо → fix#21/#22/#23) · **реальный OZ ERC4626** (инвариантное → находка «экономическая vs абсолютная защита»)
 - 🎯 Охоты: Nomad (учебная) + Exactly/YO/Cap/Likwid/TermMax/Crypto-Unicorns/Morpho-Midnight (триаж — все добротны)

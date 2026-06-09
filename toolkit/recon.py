@@ -617,6 +617,36 @@ def det_weak_random(text, rel):
     return out
 
 
+# ── Detector 19: swap slippage / deadline guard (sandwich / MEV) ── backlog (basic DeFi)
+SWAP_FN = re.compile(r"\b(swapExactTokensFor\w+|swapTokensForExactTokens|swapExactETHFor\w+|"
+                     r"swapETHForExact\w+|exactInputSingle|exactInput|exactOutputSingle|exactOutput)\s*\(", re.I)
+SWAP_ZERO_MIN = re.compile(
+    r"(amountOutMin\w*|amountOutMinimum|minAmountOut|minOut|minReturn\w*|minTokensOut|minDy|minDx)\s*[:=]\s*0\b"
+    r"|swapExactTokensFor\w+\s*\(\s*[^,()]+,\s*0\s*,"     # V2 positional: 2nd arg (amountOutMin) == 0
+    r"|swapExactETHFor\w+\s*\(\s*0\s*,", re.I)
+SWAP_NO_DEADLINE = re.compile(r"deadline\s*[:=]\s*(block\.timestamp|type\s*\(\s*uint\d*\s*\)\s*\.\s*max)", re.I)
+
+
+def det_swap_guard(text, rel):
+    """A swap with no slippage bound (amountOutMin / amountOutMinimum == 0) is a free
+    sandwich: an MEV bot front-runs, moves the price, and the victim accepts ANY output.
+    A deadline of block.timestamp (or type(uint).max) gives no expiry -> a mempool-held tx
+    executes later at a stale price. Basic DeFi hygiene; verify the min-out is derived from
+    an oracle/quote, not hardcoded 0. (LEAD: an off-chain-supplied minOut is fine.)"""
+    out = []
+    for m in SWAP_ZERO_MIN.finditer(text):
+        out.append((rel, lineno(text, m.start()), m.group(0)[:70].strip().replace("\n", " "),
+                    "swap with amountOutMin == 0 -> NO slippage protection (sandwich/MEV); "
+                    "derive min-out from an oracle/quote, not 0", 0))
+    for m in SWAP_NO_DEADLINE.finditer(text):
+        ctx = text[max(0, m.start() - 220):m.start() + 220]
+        if SWAP_FN.search(ctx) or "swap" in ctx.lower():
+            out.append((rel, lineno(text, m.start()), m.group(0)[:60].strip().replace("\n", " "),
+                        "swap deadline = block.timestamp / uint.max -> no expiry (a mempool-held "
+                        "tx can execute later at a stale price)", 1))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -651,6 +681,9 @@ DETECTORS = [
     ("WEAK randomness (predictable on-chain RNG in an outcome path)", det_weak_random,
      "GameFi class: keccak of block.timestamp/blockhash/difficulty driving a reward/mint/raffle "
      "outcome -> grindable; an EOA-gate is only a speed bump. Use commit-reveal / Chainlink VRF."),
+    ("SWAP slippage / deadline guard (sandwich / MEV)", det_swap_guard,
+     "Basic DeFi: amountOutMin==0 = free sandwich; deadline=block.timestamp = no expiry. "
+     "Verify min-out is an oracle/quote, not hardcoded 0."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
@@ -670,7 +703,7 @@ def det_key(title):
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
                    ("reward", "reward"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
-                   ("randomness", "weakrand"),
+                   ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
         if sub in t:
             return k
