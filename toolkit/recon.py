@@ -74,7 +74,7 @@ LIB_DELEGATE = re.compile(r"\b(?:Lib|I?[A-Z]\w*Lib)\w*\.\w+\s*\(")
 # (EtherOrcs mintRogues -> loops mintRogue(); the gate lives in the sibling) looks ungated
 # but isn't the real mint. Matches a call to a sibling `mintX(`/`burnX(` that is NOT the
 # `_mint`/`_burn` primitive or an external `.mint()` -> downgrade [!]->[.] (fix#19 family).
-MINT_WRAPPER = re.compile(r"(?<![._A-Za-z0-9])(?:mint|burn)[A-Z]\w*\s*\(")
+MINT_WRAPPER = re.compile(r"(?<![._A-Za-z0-9])(?:mint|burn)(?:[A-Z]\w*)?\s*\(")  # fix#31: also a bare `mint(`/`burn(` public-sibling call (Mellow mintAllocatedShares -> gated mint())
 
 # ── research-engine harvest (patterns/ -> detectors). Each is a LEAD, not a verdict. ──
 # Pattern 03 reward-accounting: a write to an "already-claimed" marker. If a reward payout

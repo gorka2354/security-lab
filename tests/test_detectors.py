@@ -102,6 +102,11 @@ check(_mr[4] == 1 and "WRAPPER" in _mr[3],
       "fix#25: mint wrapper delegating to a gated sibling -> [.] not [!] (EtherOrcs mintRogues)")
 check(recon.det_mint("contract C{function mint(address t,uint a) external { _mint(t,a); }}", "src/Fix.sol")[0][4] == 0,
       "fix#25: a real ungated mint calling the _mint primitive stays [!] (not a wrapper)")
+_mas = recon.det_mint("contract C{function mintAllocatedShares(address a,uint v) external { allocated -= v; mint(a, v); }"
+                      " function mint(address a,uint v) public onlyVaultOrQueue { _mintShares(a,v); }}", "src/SM.sol")
+_masw = [l for l in _mas if "mintAllocatedShares" in l[2]][0]
+check(_masw[4] == 1 and "WRAPPER" in _masw[3],
+      "fix#31: mint wrapper calling a bare gated sibling mint() -> [.] (Mellow ShareManager.mintAllocatedShares)")
 _wm = recon.det_mint("contract C{function mint(address to,uint v) public override { super.mint(to,v); _onTransfer(to,v); }}", "src/ShareToken.sol")
 check(bool(_wm) and "GATED" in _wm[0][3],
       "fix#27: mint override delegating to super.mint (parent gate) recognized as GATED (Centrifuge ShareToken)")

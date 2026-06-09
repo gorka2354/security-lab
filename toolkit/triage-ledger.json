@@ -287,6 +287,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "mellow|src/managers/ShareManager.sol|supply|function mintAllocatedShares(address account, uint256 value) external",
+      "target": "mellow",
+      "file": "src/managers/ShareManager.sol",
+      "line": 212,
+      "detector": "supply",
+      "snippet": "function mintAllocatedShares(address account, uint256 value) external",
+      "verdict": "fp",
+      "reason": "transitively gated: calls sibling mint() which is onlyVaultOrQueue (msg.sender preserved); fix#31",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
