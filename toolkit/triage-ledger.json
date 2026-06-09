@@ -144,6 +144,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "dreusd|dreusd/contracts/ovault/dreOVaultComposer.sol|erc4626|contract dreOVaultComposer is VaultComposerSync",
+      "target": "dreusd",
+      "file": "dreusd/contracts/ovault/dreOVaultComposer.sol",
+      "line": 16,
+      "detector": "erc4626",
+      "snippet": "contract dreOVaultComposer is VaultComposerSync",
+      "verdict": "fp",
+      "reason": "thin override of audited LZ VaultComposerSync; lzCompose+source-validation in unchanged base; overrides are post-audit fixes",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "dreusd|dreusd/contracts/ovault/dreShareOFTAdapter.sol|unchecked|try IERC20(innerToken).transfer(to, amount) returns (bool success)",
+      "target": "dreusd",
+      "file": "dreusd/contracts/ovault/dreShareOFTAdapter.sol",
+      "line": 87,
+      "detector": "unchecked",
+      "snippet": "try IERC20(innerToken).transfer(to, amount) returns (bool success)",
+      "verdict": "fp",
+      "reason": "try/returns captures the return (bridge-delivery-must-not-revert -> stuckFundsRecipient); fix#29",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "etherorcs|src/mainnet/EtherOrcsAllies.sol|supply|function mintRogues(uint256 amount)",
       "target": "etherorcs",
       "file": "src/mainnet/EtherOrcsAllies.sol",

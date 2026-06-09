@@ -396,6 +396,10 @@ def det_unchecked(text, rel):
         head = s[:m.start()]
         if re.search(r"=|require|assert|return|\bif\b|&&|\|\||\?", head):
             continue                       # return value captured or checked
+        # fix#29 (dreUSD dreShareOFTAdapter): `try X.transfer(...) returns (bool ok)` captures the
+        # return in try/catch (bridge-delivery-must-not-revert pattern) -> not unchecked.
+        if re.search(r"\btry\b", head) and re.search(r"\breturns\s*\(", s[m.end():]):
+            continue
         if "," not in s[m.end():]:
             continue                       # 1 arg => ETH x.transfer(amt) (reverts), skip
         out.append((rel, i, s[:90],

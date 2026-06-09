@@ -114,6 +114,8 @@ check(not flagged(recon.det_unchecked, "x.safeTransfer(to, amt);"), "safeTransfe
 check(not flagged(recon.det_unchecked, "super.transfer(to, amt);"), "fix#9: super.transfer NOT flagged")
 check(not flagged(recon.det_unchecked, "payable(to).transfer(amt);"), "ETH payable.transfer NOT flagged")
 check(not flagged(recon.det_unchecked, "bool ok = token.transfer(to, amt);"), "captured-return transfer NOT flagged")
+check(not flagged(recon.det_unchecked, "try IERC20(innerToken).transfer(to, amount) returns (bool success) { return success; }"),
+      "fix#29: try X.transfer(...) returns(bool) captures the return NOT flagged (dreUSD dreShareOFTAdapter)")
 
 print("== det_signature / det_upgrade / det_oracle ==")
 check(flagged(recon.det_signature, "contract C{ function f() external { a = ecrecover(h,v,r,s); } }"),

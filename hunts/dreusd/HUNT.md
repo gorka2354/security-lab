@@ -18,18 +18,28 @@ would be disclosed via the official Sherlock channel (KYC) by the user.
 | `dreUSDManager.mintFrom:373` PUBLIC mint | supply `[!]` | **FP / well-built** -- a signature-gated meta-tx mint: collateral pulled from `from` via `_transferAndMint`; EIP-712 `_authorize` binds from/receiver/asset/amountIn/minAmountOut/deadline/**nonce**, domain separator uses live `block.chainid`, OZ `ECDSA.recover`, `signer!=from -> revert`. Replay/param-omission/fork-replay all closed. |
 | `dreUSDs` ERC4626 inflation | erc4626 `[!]` | **refuted** -- `totalAssets()` is internal-accounting (`_virtualBalance + vested`, NOT `balanceOf(this)`); virtual balance tracks deposits and IGNORES direct transfers -> donation can't move the share price (a sound, non-standard mitigation; `excessDreUSD()`/`withdrawExcessDreUSD` sweep stray tokens) |
 | `dreUSDManager.fillWithdrawal:534` reentrancy | reentrancy `[!]` | **refuted / low** -- `onlyRole(TREASURY_ROLE)` (trusted keeper), not attacker-callable |
-| `dreAaveAdapter:109` reentrancy, `dreShareOFTAdapter:87` unchecked transfer | reentrancy / unchecked `[!]` | TODO -- adapter CEI + SafeERC20 hygiene; verify |
-| ovault `dreShareOFT:13` / `dreOVaultComposer:16` ERC4626 | erc4626 `[!]` | TODO -- the OFT/compose layer (verify the lzCompose source-validation, our Malda class) |
+| `dreShareOFTAdapter:87` unchecked transfer | unchecked `[!]` | **FP -> fix#29** -- `try IERC20.transfer(...) returns (bool ok)` captures the return in try/catch (bridge-delivery-must-not-revert -> stuckFundsRecipient on failure); det_unchecked didn't see the try/returns capture |
+| `dreOVaultComposer:16` / `dreShareOFT:13` ERC4626 + OFT/compose (Malda class) | erc4626 `[!]` | **by-design** -- `dreOVaultComposer` is a THIN override of the audited LZ `VaultComposerSync`; `lzCompose` + source-validation live in the UNCHANGED base (not weakened). The overrides (`_depositAndSend`/`_redeemAndSend`/`_sendLocal`/`_refund`) are documented POST-AUDIT fixes (preserve minAmountLD, refund native, stuckFundsRecipient fallback) -- carefully done |
 
 ## Outcome -- no confirmed finding from the pattern leads (carefully-built protocol)
 The headline supply/inflation/reentrancy leads all triage to well-built: a correct EIP-712 auth,
 a virtual-balance inflation mitigation, role-gated keepers, sanctions/freeze hooks on every share
 transfer. The engines AIMED right (straight to the manager + vault) and the triage was rigorous.
 
-**The real finding, if any, lives in the cross-chain OFT/compose layer** (`dreShareOFT` /
-`dreOVaultComposer` / `dreShareOFTAdapter`) -- our studied Malda lzCompose class (does the compose
-handler validate the message source / the composed call's target?). NOT yet read -> the recommended
-next deep-dive (and the most submission-worthy angle on this live contest).
+**The OFT/compose deep-dive (the Malda angle) is now done -> also well-built.** `dreOVaultComposer`
+extends the audited LayerZero `VaultComposerSync`; the `lzCompose` entry + message-source validation
+(the Malda concern) live in the UNCHANGED base -- DRE did not override or weaken them. What DRE *did*
+override is explicitly post-audit hardening (the comments cite the prior audit issue): preserve
+`minAmountLD` for OFT slippage (was 0), refund native on local sends, and route failed refunds to a
+`stuckFundsRecipient` multisig so a frozen/sanctioned recipient can't trap a bridged message. These
+overrides read carefully; no missing source-check, no minAmountLD=0, no value-lock.
+
+**dreUSD conclusion: no confirmed finding** -- a carefully-built, post-audit-patched protocol. The
+durable value of this LIVE-contest pass: validated both upgraded engines on genuinely-fresh code (they
+aimed at the right contracts), and extracted **fix#29** (det_unchecked: `try X.transfer() returns(bool)`
+captures the return). A submission-worthy bug here would require deep economic/oracle reasoning beyond a
+pattern pass (e.g. the express-withdrawal NFT accounting, the dreUSDOracle pricing under depeg) -- noted
+for a possible focused follow-up before the 06-17 close.
 
 ## System notes (backlog, not fixed -- avoid over-fitting)
 - **det_erc4626 refinement candidate:** a vault whose `totalAssets()` uses internal accounting
