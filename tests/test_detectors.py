@@ -148,6 +148,15 @@ check(bool(hypothesize.STATE.search("s.aavegotchis[id].collateral=c")), "STATE m
 check(bool(hypothesize.STATE.search("ds.layout=x")), "STATE matches ds. (diamond storage)")
 check("s.foo" in hypothesize.direct_writes("s.foo = 1;"), "direct_writes captures a diamond s. write")
 check("state.data.x" in hypothesize.direct_writes("state.data.x = 1;"), "direct_writes captures a state. write")
+check(hypothesize.find_getters("function gs() internal pure returns (GameStorage storage) {}") == {"gs"},
+      "find_getters detects a gs() AppStorage accessor fn (Dark Forest)")
+_dsre = hypothesize.build_state_re({"gs", "ws"})
+check(bool(_dsre.search("gs().planets[id].owner")) and bool(_dsre.search("ws().whitelist[a]")),
+      "build_state_re matches gs()/ws() getter-style storage (Dark Forest gap fixed)")
+check("gs().planetIds" in hypothesize.direct_writes("gs().planetIds = x; gs().count += 1;", _dsre),
+      "direct_writes captures a gs() getter-style write when given the dynamic regex")
+check("s.foo" in hypothesize.direct_writes("s.foo = 1;", _dsre),
+      "dynamic regex still captures the base s. accessor (no regression)")
 
 print("== hypothesize bridge + auto-propose (recon -> hypothesizer; deterministic, NO API) ==")
 _fft = hypothesize.flags_from_text("contract C{function setFee(uint x) external { fee=x; }}", "src/C.sol")

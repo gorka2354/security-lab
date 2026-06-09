@@ -12,6 +12,39 @@
       "date": "2026-06-08"
     },
     {
+      "sig": "darkforest|contracts/facets/DFCoreFacet.sol|ac|function upgradePlanet(...) public notPaused",
+      "target": "darkforest",
+      "file": "contracts/facets/DFCoreFacet.sol",
+      "line": 161,
+      "detector": "sibling",
+      "snippet": "function upgradePlanet(...) public notPaused",
+      "verdict": "fp",
+      "reason": "ownership-gated in LibPlanet.upgradePlanet; onlyWhitelisted is for joining not in-game",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "darkforest|contracts/libraries/LibGameUtils.sol|ac|function updateWorldRadius()",
+      "target": "darkforest",
+      "file": "contracts/libraries/LibGameUtils.sol",
+      "line": 562,
+      "detector": "access",
+      "snippet": "function updateWorldRadius()",
+      "verdict": "fp",
+      "reason": "public library fn (diamond); deterministic recompute, no privileged effect",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "darkforest|contracts/libraries/LibPlanet.sol|danger|function initializePlanet(...) public (SNARK-gated)",
+      "target": "darkforest",
+      "file": "contracts/libraries/LibPlanet.sol",
+      "line": 99,
+      "detector": "danger",
+      "snippet": "function initializePlanet(...) public (SNARK-gated)",
+      "verdict": "fp",
+      "reason": "_initializePlanet has require(!isInitialized); SNARK-gated game action, not a contract initializer",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "etherorcs|src/mainnet/EtherOrcsAllies.sol|supply|function mintRogues(uint256 amount)",
       "target": "etherorcs",
       "file": "src/mainnet/EtherOrcsAllies.sol",

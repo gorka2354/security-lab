@@ -57,6 +57,26 @@ SETTER = re.compile(r"\.(set|push|pop|increase|decrease|mint|burn|transfer|creat
 CALL = re.compile(r"\b([a-zA-Z_]\w*)\s*\(")
 ROOT = re.compile(ACC + r"\.data\.\w+|" + ACC + r"\.\w+")  # normalize a field to its top root
 
+# getter-function storage accessors (diamond / AppStorage): `gs()`, `ws()`, `gameStorage()` -- a
+# write looks like `gs().planets[id] = x`. Learned from Dark Forest (the s./state. matrix was BLIND
+# to gs()/ws()). Detect the getter NAMES dynamically (low FP: only fns declared `returns (X storage)`),
+# then treat `getter().field` as state access too. (Storage-pointer-aliased writes still need Grade B.)
+GETTER_DECL = re.compile(r"function\s+(\w+)\s*\(\s*\)\s*internal\s+(?:pure\s+|view\s+)?returns\s*\(\s*\w+\s+storage\b")
+
+
+def find_getters(text):
+    """Storage-getter fn names declared `function NAME() internal ... returns (X storage)`."""
+    return set(GETTER_DECL.findall(text))
+
+
+def build_state_re(getters):
+    """STATE regex covering local accessors (state./s./ds./$.) AND getter-fn accessors
+    (gs()./ws().) so the shared-state matrix sees diamond/AppStorage-getter storage."""
+    alts = [r"state|s|ds|\$"]
+    if getters:
+        alts.append("|".join(re.escape(g) + r"\(\)" for g in sorted(getters)))
+    return re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(alts) + r")(?:\.\w+){1,4}")
+
 
 def iter_sol(root, with_tests=False):
     if os.path.isfile(root):
@@ -80,10 +100,12 @@ def func_records(text):
         yield m.group(1), m.group(2), text[m.end():end]
 
 
-def direct_writes(body):
-    """State roots written DIRECTLY in this body (assignment or setter receiver)."""
+def direct_writes(body, state_re=None):
+    """State roots written DIRECTLY in this body (assignment or setter receiver). `state_re`
+    defaults to the base STATE; main() passes a getter-aware regex (gs()/ws()) per repo."""
+    state_re = state_re or STATE
     w = set()
-    for m in STATE.finditer(body):
+    for m in state_re.finditer(body):
         tail = body[m.end():m.end() + 8]
         if ASSIGN.match(tail):
             w.add(_root(m.group(0)))
@@ -94,6 +116,9 @@ def direct_writes(body):
 
 
 def _root(s):
+    gm = re.match(r"\w+\(\)\.\w+", s)   # getter form gs().planets... -> root gs().planets
+    if gm:
+        return gm.group(0)
     m = ROOT.match(s)
     return m.group(0) if m else s
 
@@ -202,6 +227,16 @@ def main():
     a = ap.parse_args()
     base = a.path if os.path.isdir(a.path) else os.path.dirname(a.path)
 
+    # 0) pre-pass: learn storage-getter accessors (gs()/ws()/gameStorage()) across the repo so
+    #    the shared-state matrix sees diamond/AppStorage-getter storage (Dark Forest fix).
+    getters = set()
+    for path in iter_sol(a.path):
+        try:
+            getters |= find_getters(open(path, encoding="utf-8", errors="ignore").read())
+        except Exception:
+            pass
+    dyn_state = build_state_re(getters)
+
     # 1) parse EVERY function (incl internal/library) -> direct writes + callees
     dwrites, callees, entry = {}, {}, {}
     for path in iter_sol(a.path):
@@ -211,7 +246,7 @@ def main():
             continue
         rel = os.path.relpath(path, base)
         for name, blob, body in func_records(text):
-            dwrites.setdefault(name, set()).update(direct_writes(body))
+            dwrites.setdefault(name, set()).update(direct_writes(body, dyn_state))
             callees.setdefault(name, set()).update(CALL.findall(body))
             statey = re.search(r"\b(external|public)\b", blob) and not re.search(r"\b(view|pure)\b", blob)
             if statey:
