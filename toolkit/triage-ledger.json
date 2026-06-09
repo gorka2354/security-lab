@@ -188,6 +188,39 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "dtrinity|contracts/dstable/AmoManager.sol|reentrancy|function allocateAmo(address amoVault, uint256 dstableAmount)",
+      "target": "dtrinity",
+      "file": "contracts/dstable/AmoManager.sol",
+      "line": 123,
+      "detector": "reentrancy",
+      "snippet": "function allocateAmo(address amoVault, uint256 dstableAmount)",
+      "verdict": "fp",
+      "reason": "onlyRole(AMO_ALLOCATOR_ROLE) admin-gated; own token; AmoSupplyInvariantViolation guard",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "dtrinity|contracts/oracle_aggregator/helper/ChainlinkDecimalConverter.sol|oracle|decimal converter MISSING price>0",
+      "target": "dtrinity",
+      "file": "contracts/oracle_aggregator/helper/ChainlinkDecimalConverter.sol",
+      "line": 90,
+      "detector": "oracle",
+      "snippet": "decimal converter MISSING price>0",
+      "verdict": "todo",
+      "reason": "verify price>0/staleness enforced upstream in the consuming aggregator (cross-file)",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "dtrinity|contracts/vaults/dstake/DStakeToken.sol|erc4626|contract DStakeToken is ERC4626Upgradeable",
+      "target": "dtrinity",
+      "file": "contracts/vaults/dstake/DStakeToken.sol",
+      "line": 18,
+      "detector": "erc4626",
+      "snippet": "contract DStakeToken is ERC4626Upgradeable",
+      "verdict": "todo",
+      "reason": "first-depositor inflation candidate; OZ-v5 virtual-shares likely bound it; confirm totalAssets+deploy-seed",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "etherorcs|src/mainnet/EtherOrcsAllies.sol|supply|function mintRogues(uint256 amount)",
       "target": "etherorcs",
       "file": "src/mainnet/EtherOrcsAllies.sol",
