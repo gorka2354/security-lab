@@ -86,6 +86,13 @@ check(not (recon.det_mint("contract C{function mint(uint a) external { require(_
 _capmint = recon.det_mint("contract C{function mint(address t,uint a) external checkAccess(this.mint.selector) { _mint(t,a); }}", "src/Fix.sol")
 check(bool(_capmint) and "GATED" in _capmint[0][3],
       "fix#16: checkAccess(this.mint.selector) mint recognized as GATED, not 'PUBLIC mint' (Cap CCAToken)")
+_mw = recon.det_mint("contract C{function mintRogues(uint n) external { for(uint i;i<n;i++){ mintRogue(); } }"
+                     " function mintRogue() public { require(openForMint||auth[msg.sender]); _mint(msg.sender,1); }}", "src/Fix.sol")
+_mr = [l for l in _mw if "mintRogues" in l[2]][0]
+check(_mr[4] == 1 and "WRAPPER" in _mr[3],
+      "fix#25: mint wrapper delegating to a gated sibling -> [.] not [!] (EtherOrcs mintRogues)")
+check(recon.det_mint("contract C{function mint(address t,uint a) external { _mint(t,a); }}", "src/Fix.sol")[0][4] == 0,
+      "fix#25: a real ungated mint calling the _mint primitive stays [!] (not a wrapper)")
 
 print("== det_unchecked (silent transfer, super. fix) ==")
 check(flagged(recon.det_unchecked, "x.transferFrom(a, b, c);"), "bare transferFrom flagged")
@@ -219,6 +226,33 @@ check(flagged(recon.det_oracle, "contract C{function getPrice() public view retu
       "value/price fn dividing SPOT reserves -> spot-manip lead")
 check(not flagged(recon.det_oracle, "contract C{function getValue() public view returns(uint){ (uint r0,uint r1,)=pair.getReserves(); return cumulativePrice(r0) * 1e18 / r1; }}"),
       "getReserves but 'cumulative' (TWAP) in body NOT flagged (mitigation recognized)")
+
+print("== det_arbcall (fix#24: inline admin-gate on arbitrary call) ==")
+check(flagged(recon.det_arbcall, "contract C{function exec(address t, bytes d) external { t.call(d); }}", "exec"),
+      "permissionless (address+bytes)+call flagged as arbitrary-call drain")
+check(not flagged(recon.det_arbcall, "contract C{function replayCall(address t, bytes d) external { require(msg.sender==admin); t.call(d); }}"),
+      "fix#24: inline require(msg.sender==admin) admin-gate NOT flagged (EtherOrcs MainlandPortal.replayCall)")
+check(not flagged(recon.det_arbcall, "contract C{function exec(address t, bytes d) external onlyOwner { t.call(d); }}"),
+      "onlyOwner arbitrary call NOT flagged")
+
+print("== det_weak_random (predictable on-chain RNG in an outcome path) ==")
+_wr = recon.det_weak_random("contract G{function _getReward(uint id) internal view returns(uint){"
+                            " uint rdn = uint256(keccak256(abi.encodePacked(block.timestamp, blockhash(block.number-1), id))) % 10000; return rdn; }}", "src/Game.sol")
+check(bool(_wr) and _wr[0][4] == 0, "keccak over block.timestamp/blockhash + modulo in a reward fn -> [!]")
+check(flagged(recon.det_weak_random, "contract C{function _rand() internal view returns(uint){"
+      " return uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp, block.basefee, entropySauce))); }}"),
+      "EtherOrcs-style _rand() (keccak over block entropy, 'rand' context) flagged")
+_we = recon.det_weak_random("contract W{function mint() external { require(tx.origin == _msgSender());"
+                            " uint seed = uint256(keccak256(abi.encodePacked(tx.origin, blockhash(block.number-1), block.timestamp))); }}", "src/Woolf.sol")
+check(bool(_we) and "EOA-gate" in _we[0][3],
+      "fix: tx.origin==msg.sender EOA-gate noted as a speed bump, still flagged (Wolf Game class)")
+_wv = recon.det_weak_random("contract V is VRFConsumerBase{ function fulfillRandomWords(uint reqId, uint[] memory words) internal {"
+                            " uint r = uint256(keccak256(abi.encodePacked(words[0], block.timestamp))) % 10; } }", "src/V.sol")
+check(bool(_wv) and _wv[0][4] == 1, "VRF in file -> keccak-of-entropy downgraded to [.] (verify which path drives the outcome)")
+check(not flagged(recon.det_weak_random, "contract C{ bytes32 d = keccak256(abi.encode(TYPEHASH, block.chainid, address(this))); }"),
+      "EIP-712 domain separator (block.chainid) NOT flagged as RNG")
+check(not flagged(recon.det_weak_random, "contract C{function id(uint x) internal view returns(bytes32){ return keccak256(abi.encodePacked(x, address(this))); }}"),
+      "keccak with NO block entropy NOT flagged as RNG")
 
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]

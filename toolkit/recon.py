@@ -62,6 +62,12 @@ INLINE_AUTH = re.compile(
 # looks "ungated" but isn't. Don't suppress (the lib MIGHT not gate), but downgrade [!] -> [.] + note.
 LIB_DELEGATE = re.compile(r"\b(?:Lib|I?[A-Z]\w*Lib)\w*\.\w+\s*\(")
 
+# fix#25: a thin mint/burn WRAPPER whose body just calls a sibling mint entrypoint
+# (EtherOrcs mintRogues -> loops mintRogue(); the gate lives in the sibling) looks ungated
+# but isn't the real mint. Matches a call to a sibling `mintX(`/`burnX(` that is NOT the
+# `_mint`/`_burn` primitive or an external `.mint()` -> downgrade [!]->[.] (fix#19 family).
+MINT_WRAPPER = re.compile(r"(?<![._A-Za-z0-9])(?:mint|burn)[A-Z]\w*\s*\(")
+
 # ── research-engine harvest (patterns/ -> detectors). Each is a LEAD, not a verdict. ──
 # Pattern 03 reward-accounting: a write to an "already-claimed" marker. If a reward payout
 # transfers value but never writes one (or writes it AFTER the transfer), suspect double-claim.
@@ -192,9 +198,18 @@ def det_mint(text, rel):
                         "mint/burn entry, GATED -> verify the gate + that supply stays bounded",
                         2 if is_test else 1))
         else:
-            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
-                        "PUBLIC mint/burn, NO access control -> anyone can mint? (supply integrity)"
-                        + (" [test/mock]" if is_test else ""), 1 if is_test else 0))
+            # fix#25: a thin wrapper delegating to a gated sibling mint fn (mintRogues ->
+            # mintRogue()) isn't the real ungated mint -> downgrade + note, don't suppress.
+            delegates = (MINT_WRAPPER.search(body) is not None
+                         and not re.search(r"_mint\s*\(|_burn\s*\(|\.mint\s*\(|\.burn\s*\(", body))
+            if delegates:
+                out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                            "mint/burn WRAPPER delegating to a sibling mint fn (thin delegator -> "
+                            "gate may be in the called fn; verify there)", 2 if is_test else 1))
+            else:
+                out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                            "PUBLIC mint/burn, NO access control -> anyone can mint? (supply integrity)"
+                            + (" [test/mock]" if is_test else ""), 1 if is_test else 0))
     return out
 
 
@@ -281,9 +296,11 @@ def det_arbcall(text, rel):
             continue
         nxt = text.find("function ", m.end())
         body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
-        # skip if gated by access control inside the body (admin rescue pattern)
-        if re.search(r"enforceAccessControl|contractOwner|onlyOwner|_checkOwner|"
-                     r"_checkRole|hasRole|msg\.sender\s*[!=]=\s*\w*[Oo]wner", body):
+        # skip if gated by access control inside the body (admin rescue/replay pattern).
+        # fix#24 (EtherOrcs MainlandPortal.replayCall): INLINE_AUTH recognizes an inline
+        # require(msg.sender==admin) / role / enforce* gate, so an admin-only arbitrary call
+        # is no longer a permissionless-drain FP. (+contractOwner: Diamond owner getter.)
+        if INLINE_AUTH.search(body) or "contractOwner" in body:
             continue
         if ARBCALL.search(body):
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
@@ -546,6 +563,60 @@ def det_liquidation(text, rel):
     return out
 
 
+# ── Detector 18: weak on-chain randomness (predictable RNG in an outcome path) ── GameFi class
+RNG_ENTROPY = re.compile(
+    r"block\.(timestamp|difficulty|prevrandao|coinbase|basefee|number)\b|\bblockhash\s*\(|(?<![\w.])now\b")
+RNG_VRF = re.compile(r"\bVRFConsumer\w*|requestRandomness|fulfillRandomWords|requestRandomWords|"
+                     r"vrfCoordinator|\bVRFCoordinator\w*|fulfillRandomness", re.I)
+RNG_OUTCOME = re.compile(r"random|\brand\b|\b_rand\b|\bseed\b|\broll\b|spin|raffle|lottery|jackpot|"
+                         r"winner|reward|rarity|\bloot\b|gacha|breed|summon|\bmint\b|\bdraw\b|"
+                         r"dice|shuffle|chance|odds", re.I)
+RNG_EOA = re.compile(r"tx\.origin\s*==\s*(msg\.sender|_msgSender)|"
+                     r"(msg\.sender|_msgSender\(\))\s*==\s*tx\.origin|extcodesize|noCheaters", re.I)
+
+
+def det_weak_random(text, rel):
+    """Predictable on-chain 'randomness' -- keccak256 over block entropy (block.timestamp/
+    blockhash/difficulty/prevrandao/coinbase/basefee) -- feeding an OUTCOME (reward tier, mint
+    species, raffle winner) is grindable: a contract can predict-and-revert, and even a
+    tx.origin==msg.sender EOA-gate is only a SPEED BUMP (an EOA simulates the next block and
+    selectively submits -- how Wolf Game was actually exploited). Real fix = commit-reveal or
+    Chainlink VRF; if the file uses VRF we downgrade (verify which path drives the outcome).
+    The #1 on-chain-game bug class; learned from EtherOrcs Raids._rand + Wolf Game Woolf.random."""
+    has_vrf = bool(RNG_VRF.search(text))
+    eoa = bool(RNG_EOA.search(text))
+    out, seen = [], set()
+    for m in re.finditer(r"keccak256\s*\(", text):
+        # scope the entropy/modulo check to THIS statement (cut at the next ';') so a benign
+        # keccak doesn't borrow block-entropy from the following line/function.
+        semi = text.find(";", m.end())
+        end = semi if 0 < semi < m.end() + 400 else m.end() + 240
+        blob = text[m.end():end]
+        if not RNG_ENTROPY.search(blob):
+            continue
+        if "chainid" in blob.lower():            # EIP-712 domain separator, not RNG
+            continue
+        # confirm it's used as RANDOMNESS (not a timestamped id): an outcome-y identifier
+        # nearby, OR a modulo applied to the hash result (in this statement).
+        ctx = text[max(0, m.start() - 400):end]
+        if not (RNG_OUTCOME.search(ctx) or "%" in blob):
+            continue
+        ln = lineno(text, m.start())
+        if ln in seen:
+            continue
+        seen.add(ln)
+        note = ("predictable on-chain RNG: keccak256 over block entropy (timestamp/blockhash/"
+                "difficulty/coinbase) drives an outcome -> grindable (predict-and-revert; use "
+                "commit-reveal or Chainlink VRF)")
+        if eoa:
+            note += (" | EOA-gate present: blocks an atomic contract grind but NOT "
+                     "simulation+selective-submission (Wolf Game class)")
+        if has_vrf:
+            note += " | file ALSO references VRF -> verify which path actually drives the outcome"
+        out.append((rel, ln, "keccak256(... block entropy ...)", note, 1 if has_vrf else 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -577,6 +648,9 @@ DETECTORS = [
      "Pattern 04: liquidityIndex/borrowIndex compounds delta/supply -> empty market inflates it (dTRINITY)."),
     ("LIQUIDATION math (self-liq, rounding, bad-debt)", det_liquidation,
      "Pattern 05: liquidation entrypoint 4-check; [!] if no self-liq guard or rounds-up seize."),
+    ("WEAK randomness (predictable on-chain RNG in an outcome path)", det_weak_random,
+     "GameFi class: keccak of block.timestamp/blockhash/difficulty driving a reward/mint/raffle "
+     "outcome -> grindable; an EOA-gate is only a speed bump. Use commit-reveal / Chainlink VRF."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
@@ -596,6 +670,7 @@ def det_key(title):
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
                    ("reward", "reward"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
+                   ("randomness", "weakrand"),
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
         if sub in t:
             return k

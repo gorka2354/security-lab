@@ -12,6 +12,61 @@
       "date": "2026-06-08"
     },
     {
+      "sig": "etherorcs|src/mainnet/EtherOrcsAllies.sol|supply|function mintRogues(uint256 amount)",
+      "target": "etherorcs",
+      "file": "src/mainnet/EtherOrcsAllies.sol",
+      "line": 70,
+      "detector": "supply",
+      "snippet": "function mintRogues(uint256 amount)",
+      "verdict": "fp",
+      "reason": "thin-delegator: gate (openForMint||auth + burn 60BS) lives in delegated mintRogue() (fix#25 cand, fix#19 family)",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "etherorcs|src/mainnet/MainlandPortal.sol|arbitrary|function replayCall(address target, bytes memory data, bool reqSuccess)",
+      "target": "etherorcs",
+      "file": "src/mainnet/MainlandPortal.sol",
+      "line": 77,
+      "detector": "arbitrary",
+      "snippet": "function replayCall(address target, bytes memory data, bool reqSuccess)",
+      "verdict": "fp",
+      "reason": "admin-gated: require(msg.sender==admin) on next line; det_arbitrary missed inline admin gate (fix#24 cand)",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "etherorcs|src/mainnet/Raids.sol|reentrancy|function unstake(uint256 orcId)",
+      "target": "etherorcs",
+      "file": "src/mainnet/Raids.sol",
+      "line": 117,
+      "detector": "reentrancy",
+      "snippet": "function unstake(uint256 orcId)",
+      "verdict": "fp",
+      "reason": "plain ERC721 transfer (no onERC721Received callback); reward zeroed in _claim before mint",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "etherorcs|src/mainnet/Raids.sol|oracle|function _rand() keccak(block.timestamp,basefee,coinbase,tx.origin,entropySauce)",
+      "target": "etherorcs",
+      "file": "src/mainnet/Raids.sol",
+      "line": 322,
+      "detector": "oracle",
+      "snippet": "function _rand() keccak(block.timestamp,basefee,coinbase,tx.origin,entropySauce)",
+      "verdict": "wontfix",
+      "reason": "weak RNG but noCheaters EOA-gate blocks atomic predict-and-revert grind; VRF on Polygon; LOW by-design for 2022 game",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "etherorcs|src/mainnet/Raids.sol|weakrand|_rand() keccak(block.timestamp,basefee,coinbase,entropySauce)",
+      "target": "etherorcs",
+      "file": "src/mainnet/Raids.sol",
+      "line": 325,
+      "detector": "weakrand",
+      "snippet": "_rand() keccak(block.timestamp,basefee,coinbase,entropySauce)",
+      "verdict": "wontfix",
+      "reason": "weak RNG; noCheaters blocks atomic grind; selective-submission residual LOW (coinbase/basefee imperfectly predictable + small reward, 192h lock); VRF on Polygon",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
@@ -153,6 +208,50 @@
       "verdict": "fp",
       "reason": "LTV-bounded over-collateralized mint: public wrapper -> VaultOsToken._mintOsToken reverts LowLtv if position > collateral*ltvPercent; _checkOsTokenPosition re-checks on collateral exit",
       "date": "2026-06-07"
+    },
+    {
+      "sig": "wolfgame|Barn.sol|unchecked|wool.transfer return ignored",
+      "target": "wolfgame",
+      "file": "Barn.sol",
+      "line": 84,
+      "detector": "unchecked",
+      "snippet": "wool.transfer return ignored",
+      "verdict": "fp",
+      "reason": "WOOL is own token (returns true); SafeERC20 hardening note only",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "wolfgame|Barn.sol|reentrancy|function rescue(uint256[] calldata tokenIds)",
+      "target": "wolfgame",
+      "file": "Barn.sol",
+      "line": 222,
+      "detector": "reentrancy",
+      "snippet": "function rescue(uint256[] calldata tokenIds)",
+      "verdict": "fp",
+      "reason": "CEI violation but re-entry reverts (token already left barn); rescueEnabled emergency-only",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "wolfgame|Woolf.sol|oracle|function random() keccak(tx.origin, blockhash(n-1), block.timestamp, seed)",
+      "target": "wolfgame",
+      "file": "Woolf.sol",
+      "line": 277,
+      "detector": "oracle",
+      "snippet": "function random() keccak(tx.origin, blockhash(n-1), block.timestamp, seed)",
+      "verdict": "known",
+      "reason": "predictable same-tx-reveal RNG; publicly documented (Mueller) + patched to VRF; EOA-gate is speed bump not wall",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "wolfgame|Woolf.sol|weakrand|random() keccak(tx.origin, blockhash(n-1), block.timestamp, seed)",
+      "target": "wolfgame",
+      "file": "Woolf.sol",
+      "line": 278,
+      "detector": "weakrand",
+      "snippet": "random() keccak(tx.origin, blockhash(n-1), block.timestamp, seed)",
+      "verdict": "known",
+      "reason": "predictable same-tx-reveal RNG; publicly documented (Mueller) + patched to VRF; EOA-gate is speed bump not wall",
+      "date": "2026-06-09"
     }
   ]
 }
