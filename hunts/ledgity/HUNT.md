@@ -43,10 +43,12 @@ or longer stable periods, and it accumulates across periods. Not an instant drai
 deficit borne by the last unwrappers. (Low if APR is re-checkpointed ~daily; Medium for realistic
 weeks-to-months-stable RWA APR.)
 
-**PoC plan (to nail magnitude / confirm no off-chain top-up):** Foundry -- deploy LToken + WrappedLToken,
-set APR=10%, wrap from two users, `warp` 1 year (no APR change), assert
-`totalSupply*exchangeRate()/RAY > lToken.balanceOf(wrapper)`; user A unwraps fully (over-redeems), user B's
-unwrap reverts / is short. (scaffold.py can seed the harness.)
+**PoC -- DONE ✅ (Foundry, passes):** `invariant-lab/test/WrappedLTokenInsolvencyPoC.t.sol` reimplements both
+formulas verbatim and proves it: at 10% APR / 1y, the wrapper owes 1105.16 (daily-compound) but holds 1100.00
+(linear) -> over-projection 0.47%; in the 2-user bank-run, after A unwraps the pool (1094.84) < B's owed
+(1105.16) -> B's `lToken.transfer` reverts. Magnitude grows with APR / stable-period length / across periods.
+Disclosure report: `hunts/ledgity/DISCLOSURE-wrappedltoken-insolvency.md`.
+**Bounty:** none found (no Immunefi listing; README cites only Slither) -> direct white-hat disclosure (no payout).
 
 **Recommendation:** make the wrapper balance-backed (wstETH pattern): redemption = `wrappedAmount *
 lToken.balanceOf(this) / totalSupply` (an ERC4626 `totalAssets = balanceOf`), so it can never owe more
