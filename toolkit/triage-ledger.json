@@ -205,8 +205,19 @@
       "line": 90,
       "detector": "oracle",
       "snippet": "decimal converter MISSING price>0",
-      "verdict": "todo",
-      "reason": "verify price>0/staleness enforced upstream in the consuming aggregator (cross-file)",
+      "verdict": "fp",
+      "reason": "transparent feed adapter; consuming Redstone/API3 wrapper enforces price>0+staleness; thresholding rounds up-only (safe direction)",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "dtrinity|contracts/vaults/dstake/DStakeRouterDLend.sol|reentrancy|function withdraw(...) onlyRole(DSTAKE_TOKEN_ROLE)",
+      "target": "dtrinity",
+      "file": "contracts/vaults/dstake/DStakeRouterDLend.sol",
+      "line": 188,
+      "detector": "reentrancy",
+      "snippet": "function withdraw(...) onlyRole(DSTAKE_TOKEN_ROLE)",
+      "verdict": "fp",
+      "reason": "role-gated to trusted DStakeToken + balance-diff invariant checks; not attacker-reachable",
       "date": "2026-06-09"
     },
     {

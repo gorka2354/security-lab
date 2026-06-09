@@ -34,3 +34,20 @@ Left as ledger TODOs (not silenced) for a focused follow-up.
 **Lesson:** scout.py closed the discovery gap -- from "hand-search every hunt" to "tool picks the
 top fresh fit and aims the engines." The hunt itself confirms the recurring truth: reviewed code's
 pattern layer is clean; the remaining value is deep cross-file/economic reasoning (L4).
+
+## Thread follow-up (the 3 parked threads) -> all clean, dTRINITY EMPTY
+- **Oracle:** `ThresholdingUtils._applyThreshold` rounds prices ABOVE a lower threshold UP to a fixed
+  peg (USDC 0.998 -> $1, bounded ~0.3% overvaluation, accepted), but a real DOWN-depeg (0.95 < 0.997)
+  passes through unclamped -> does NOT hide a depeg (safe direction). The base Redstone/API3 wrappers
+  enforce price>0 + staleness; `ChainlinkDecimalConverter` is a transparent feed adapter (consumer
+  checks) -> by-design. Clean.
+- **DStakeRouterDLend.withdraw:188:** `onlyRole(DSTAKE_TOKEN_ROLE)` (only the trusted DStakeToken) +
+  balance-diff invariant checks (`mintedShares != reportedShares -> revert`) -> not attacker-reachable,
+  defensive. Clean.
+- **dStake/dLOOP inflation:** OZ-v5 `ERC4626Upgradeable` virtual shares (the `+1`) bound the
+  first-depositor attack; no demonstrable catastrophic theft without a missing-deploy-seed (unconfirmed,
+  low). Left low.
+
+**Verdict: dTRINITY is EMPTY** -- a carefully-built, reviewed hats-contest protocol; every thread
+dissolved on a careful read. No submittable finding. (8 targets this session -> 0 findings, all
+reviewed/audited/contest code; the durable output was the SYSTEM growth.)
