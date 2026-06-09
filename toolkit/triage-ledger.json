@@ -287,6 +287,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "ledgity|src/protocol-v1/LToken.sol|reentrancy|function processBigQueuedRequest(uint256) onlyFund whenNotPaused",
+      "target": "ledgity",
+      "file": "src/protocol-v1/LToken.sol",
+      "line": 1002,
+      "detector": "reentrancy",
+      "snippet": "function processBigQueuedRequest(uint256) onlyFund whenNotPaused",
+      "verdict": "fp",
+      "reason": "fund-gated + request deleted before transfer (CEI, dev-noted); not attacker-reachable",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "ledgity|src/protocol-v1/WrappedLToken.sol|erc4626|exchangeRate() daily-compounds APR vs LToken linear accrual -> undercollateralized wrapper",
+      "target": "ledgity",
+      "file": "src/protocol-v1/WrappedLToken.sol",
+      "line": 114,
+      "detector": "erc4626",
+      "snippet": "exchangeRate() daily-compounds APR vs LToken linear accrual -> undercollateralized wrapper",
+      "verdict": "real",
+      "reason": "MEDIUM: daily-compound exchangeRate > linear LToken balance accrual -> owes>holds -> late-unwrapper insolvency; baseRate locks over-projection (no balance reconcile). scout-v2 find. PoC pending.",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "magicswap|src/Rewards/StakingContractMainnet.sol|ac|function claimRewards(uint256[] calldata incentiveIds)",
       "target": "magicswap",
       "file": "src/Rewards/StakingContractMainnet.sol",
