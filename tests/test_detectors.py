@@ -453,6 +453,14 @@ check(forkdrift.likely_out_of_scope(
          "src/interfaces/external/IMaple.sol", "test/Foo.t.sol", "script/Deploy.s.sol"])
       == ["src/integrations/Maple.sol", "src/periphery/Zap.sol"],
       "forkdrift.likely_out_of_scope: integrations/periphery IMPLs flagged; interfaces/tests/scripts/core excluded")
+# _repo_root_of MUST NOT ascend into a parent monorepo (the over-scan bug: fingerprinting a fetched target in
+# hunts/_volume/ walked up to security-lab's .git and scanned 88 audit PDFs from OTHER clones).
+check(os.path.basename(forkdrift._repo_root_of("hunts/_volume/royco-v2/src")) == "royco-v2",
+      "forkdrift._repo_root_of: a `.../<target>/src` resolves to <target> (parent, to find its audit/ dir)")
+check(os.path.basename(forkdrift._repo_root_of("hunts/_volume/venus-flux")) == "venus-flux",
+      "forkdrift._repo_root_of: a target dir resolves to ITSELF -- never ascends to _volume (88-PDF over-scan regression)")
+check(os.path.basename(forkdrift._repo_root_of("x/hunts/_volume/foo/contracts")) == "foo",
+      "forkdrift._repo_root_of: a `.../<target>/contracts` source subdir resolves to <target>")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

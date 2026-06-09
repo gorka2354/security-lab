@@ -308,29 +308,26 @@ def likely_out_of_scope(sol_files):
     return sorted(out)
 
 
-def _repo_root_near(src_dir):
-    """Walk up from src_dir (incl itself) to the dir that looks like the repo root (has README/.git/audit).
-    Returns that dir (or src_dir if none found). IO."""
-    cur = os.path.abspath(src_dir)
-    for _ in range(4):
-        try:
-            entries = {e.lower() for e in os.listdir(cur)}
-        except Exception:
-            break
-        if {".git", "readme.md", "audit", "audits", "foundry.toml"} & entries:
-            return cur
-        parent = os.path.dirname(cur)
-        if parent == cur:
-            break
-        cur = parent
-    return os.path.abspath(src_dir)
+def _repo_root_of(src_dir):
+    """Resolve the TARGET's own root from src_dir -- WITHOUT walking up into a parent monorepo. The root is
+    src_dir itself, unless src_dir is a conventional source subdir (`src`/`contracts`/...), then it's the
+    immediate parent (so an audit/ dir one level up from src/ is found). NEVER ascends 2+ levels -- a fetched
+    target sits in a shared `hunts/_volume/` next to other clones, and ascending would scan ALL of them
+    (the 88-PDFs-from-other-repos bug). PURE (path-string only)."""
+    src_dir = os.path.abspath(src_dir).replace("\\", "/").rstrip("/")
+    if os.path.basename(src_dir).lower() in ("src", "contracts", "source", "sources", "solidity"):
+        return os.path.dirname(src_dir)
+    return src_dir
 
 
 def _scan_repo_files(root):
-    """List repo-relative file paths (skip lib/node_modules/.git) + read the README. IO."""
+    """List root-relative file paths (skip vendored/sibling-clone trees) + read the README. Bounded to the
+    target's own root. IO."""
     files, readme = [], ""
     for dp, dns, fns in os.walk(root):
-        dns[:] = [d for d in dns if d.lower() not in ("lib", "node_modules", ".git", "out", "cache")]
+        # skip vendored deps AND any nested clone volume (defensive: never wander into sibling targets)
+        dns[:] = [d for d in dns if d.lower() not in
+                  ("lib", "node_modules", ".git", "out", "cache", "_volume", "broadcast")]
         for fn in fns:
             rel = os.path.relpath(os.path.join(dp, fn), root)
             files.append(rel)
@@ -341,7 +338,7 @@ def _scan_repo_files(root):
 
 def _print_audit_route(src_dir, is_fork, ver):
     """Detect audit evidence near src_dir and print the AUDIT verdict + hunt router (or greenfield note)."""
-    root = _repo_root_near(src_dir)
+    root = _repo_root_of(src_dir)
     repo_files, readme = _scan_repo_files(root)
     aud = detect_audit_evidence(repo_files, readme)
     oos = likely_out_of_scope([f for f in repo_files if f.endswith(".sol")])
