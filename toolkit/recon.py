@@ -647,6 +647,52 @@ def det_swap_guard(text, rel):
     return out
 
 
+# ── Detector 20: mapping-default-trust (Nomad class, $190M) ── our first studied hack
+# A security decision reads a mapping whose DEFAULT (unset = 0 / false / bytes32(0)) wrongly
+# satisfies the gate -> an attacker submits an unset key and passes. Nomad: process() did
+# require(acceptableRoot(messages[hash])); an unproven message gives messages[hash]==0, and
+# confirmAt[0] had been mis-set to non-zero -> any unproven message accepted.
+# REASONING-TIER lead (the real root is config/init, not single-line) -> vault heuristic #1.
+SEC_GATE = (r"acceptableRoot|confirmAt|provenRoots?|verifiedRoots?|trustedRoots?|knownRoots?|"
+            r"validRoots?|merkleRoots?|isProven|isVerified|isAcceptable|isKnownRoot|"
+            r"commitments?|nullifiers?")
+SEC_NESTED = SEC_GATE + r"|roots?|messages|processedExits?"
+SEC_GATE_RE = re.compile(r"\b(" + SEC_GATE + r")\b", re.I)
+# guards that explicitly exclude the default value -> the gate is safe
+DEFAULT_REJECT = re.compile(r"!=\s*(0\b|0x0|bytes32\(0\)|address\(0\)|false\b)|"
+                            r">\s*0\b|\.length\b|\bexists?\b|\bisSet\b", re.I)
+
+
+def det_mapping_default(text, rel):
+    """Nomad class ($190M; our first studied hack): a trust gate reads a mapping whose DEFAULT
+    value (unset = 0 / false / bytes32(0)) passes, so an attacker submits an unset key. A
+    REASONING-TIER lead (verify by hand; cf. vault heuristic #1) -- two shapes:
+    (A) [!] a security mapping indexed by ANOTHER mapping's result on one line (value-as-key);
+    (B) [.] a require/if gate over a security mapping with no visible default-rejection (!=0 / >0)."""
+    out, seen = [], set()
+    # Shape A: SEC mapping/fn taking a nested mapping/array read -> value-as-key (rare, sharp)
+    for m in re.finditer(r"\b(" + SEC_NESTED + r")\s*[\[(]\s*\w+\s*\[", text, re.I):
+        ln = lineno(text, m.start())
+        seen.add(ln)
+        out.append((rel, ln, m.group(0)[:48] + "...",
+                    "security check fed by ANOTHER mapping's result -> if the inner read defaults "
+                    "(unset=0), the gate is evaluated at key 0 (Nomad value-as-key); verify the "
+                    "inner can't be the default", 0))
+    # Shape B: require/if gate over a SEC mapping with no explicit default-rejection
+    for m in re.finditer(r"\b(require|assert|if)\s*\(([^;{]{0,200})", text):
+        cond = m.group(2)
+        if not SEC_GATE_RE.search(cond):
+            continue
+        ln = lineno(text, m.start())
+        if ln in seen or DEFAULT_REJECT.search(cond):
+            continue
+        seen.add(ln)
+        out.append((rel, ln, (m.group(1) + "(" + cond)[:64].strip().replace("\n", " "),
+                    "trust gate reads a security mapping with no visible default-rejection "
+                    "(!=0 / >0 / exists) -> can the DEFAULT (unset=0/false) pass it? (Nomad class; verify)", 1))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -684,6 +730,9 @@ DETECTORS = [
     ("SWAP slippage / deadline guard (sandwich / MEV)", det_swap_guard,
      "Basic DeFi: amountOutMin==0 = free sandwich; deadline=block.timestamp = no expiry. "
      "Verify min-out is an oracle/quote, not hardcoded 0."),
+    ("MAPPING-DEFAULT trust (Nomad: unset key passes a gate)", det_mapping_default,
+     "Heuristic 1 / Nomad $190M: a trust gate reads a security mapping whose default (unset=0/"
+     "false) passes -> attacker submits an unset key. Reasoning-tier LEAD; verify by hand."),
     ("DANGEROUS primitives", det_danger,
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
@@ -704,6 +753,7 @@ def det_key(title):
                    ("reward", "reward"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
+                   ("mapping-default", "mapdefault"),
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
         if sub in t:
             return k

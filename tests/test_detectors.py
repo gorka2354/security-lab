@@ -269,6 +269,18 @@ check(any(l[4] == 1 and "no expiry" in l[3] for l in _sd),
 check(not flagged(recon.det_swap_guard, "contract C{function transfer(address to,uint a) external { bal[to]+=a; }}"),
       "non-swap function NOT flagged")
 
+print("== det_mapping_default (Nomad class: unset key passes a gate) ==")
+_nd = recon.det_mapping_default('contract R{function process(bytes32 h) external { require(acceptableRoot(messages[h]), "!proven"); }}', "src/Replica.sol")
+check(bool(_nd), "Nomad-style gate over a security mapping (acceptableRoot/messages) flagged")
+check(not flagged(recon.det_mapping_default, 'contract R{function f(bytes32 r) external { require(confirmAt[r] != 0, "not confirmed"); }}'),
+      "explicit default-rejection (confirmAt[r] != 0) NOT flagged (safe gate)")
+_na = recon.det_mapping_default("contract R{function ok(bytes32 h) external view returns(bool){ return acceptableRoot[messages[h]]; }}", "src/R.sol")
+check(bool(_na) and any(l[4] == 0 for l in _na), "Shape A: security mapping indexed by another mapping's result -> [!] value-as-key")
+check(not flagged(recon.det_mapping_default, "contract C{function claim(uint id) external { require(!used[id]); used[id]=true; }}"),
+      "ordinary nonce/used guard (not a security-root mapping) NOT flagged")
+check(not flagged(recon.det_mapping_default, "contract C{function f(address u) external { require(balances[u] > 0); }}"),
+      "ordinary balances gate NOT flagged (not a security mapping)")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
