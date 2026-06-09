@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "sig": "acre|solidity/contracts/stBTC.sol|supply|function burnReceipt(uint256 amount) -> repayDebt()",
+      "target": "acre",
+      "file": "solidity/contracts/stBTC.sol",
+      "line": 411,
+      "detector": "supply",
+      "snippet": "function burnReceipt(uint256 amount) -> repayDebt()",
+      "verdict": "fp",
+      "reason": "thin proxy to repayDebt() which burns caller's OWN shares (super._burn(msg.sender)); self-scoped, not mint-from-nothing",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "cap|contracts/delegation/Delegation.sol|ac|function distributeRewards(address _agent, address _asset)",
       "target": "cap",
       "file": "contracts/delegation/Delegation.sol",
