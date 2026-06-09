@@ -39,6 +39,18 @@ underlying balance** it holds. The two diverge for any `apr > 0` over a multi-da
   accumulates across periods (each checkpoint bakes the prior over-projection into `baseRate`).
 - Not an instant drain — a slow solvency leak concentrated on the last exiters. Hence Medium.
 
+### Who bears the loss (honest framing)
+This is a **user-side, protocol-neutral** issue. The wrapper holds a FIXED lToken pool (it accrues exactly its
+linear share from `LToken`; the inflated `exchangeRate` is internal and does NOT make the wrapper over-claim
+from the protocol). The over-projection only mis-**distributes** that pool: it is a **zero-sum redistribution
+among wrapped-holders** (early exiters gain, late/last exiters lose / get bricked), plus a liveness tail (the
+last holder is stuck, not destroyed — partial exit / await top-up). Therefore:
+- **LToken supply / RWA backing / protocol treasury: unaffected.** No protocol funds are at risk.
+- **The protocol only pays IF it chooses to backstop** the wrapper (top up lToken to make late users whole) —
+  then it absorbs the ~0.5%/yr; otherwise the cost falls on late wrapped-holders.
+- So this is "**user funds at risk + unfair exit ordering / griefable**", not "protocol drain". Real and worth
+  fixing (user funds), but the team should not dismiss it as "we lose nothing" — *their users* do, by default.
+
 ## PoC (Foundry, deterministic — reimplements both formulas verbatim)
 `invariant-lab/test/WrappedLTokenInsolvencyPoC.t.sol` — `forge test --match-contract WrappedLTokenInsolvencyPoC -vv`:
 ```
