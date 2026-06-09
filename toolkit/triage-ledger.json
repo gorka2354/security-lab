@@ -573,6 +573,28 @@
       "date": "2026-06-07"
     },
     {
+      "sig": "stobox|libraries/LibCCT.sol|supply|",
+      "target": "stobox",
+      "file": "libraries/LibCCT.sol",
+      "line": 57,
+      "detector": "supply",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "CCTFacet mint/burn onlyOperator (operators added by onlyOwner); LibCCT.mint bounds by maxSupply + OZ _mint. Standard Chainlink CCT burn-mint (operator-trust = the CCIP pool), not mint-from-nothing. transferAndCall = CEI-correct ERC677, internal transfer (unchecked-return FP).",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "stobox|src/facets/DefaultValidationFacet.sol|ac|",
+      "target": "stobox",
+      "file": "src/facets/DefaultValidationFacet.sol",
+      "line": 0,
+      "detector": "access",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Reached via scout reachability-fix (github CORE repo, not STBX gov token). Greenfield Diamond RWA security-token, unaudited. CCT layer clean; deep-dive surface = compliance/transfer-validation (restriction bypass? enforced on all paths incl CCT mint-to?). Confirm deployed facets + bounty (LIVE-FIRST).",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "usual-eth0|token/Usual.sol|target|",
       "target": "usual-eth0",
       "file": "token/Usual.sol",
