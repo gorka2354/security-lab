@@ -52,6 +52,12 @@ check(flagged(recon.det_access, "contract C{function setFee(uint x) external { e
 check(not flagged(recon.det_access,
       "contract C{function claimRewards(uint[] ids) external { for(uint i;i<ids.length;i++){ accrue(ids[i]); uint a; uint b; uint c; pay(userStakes[msg.sender][ids[i]].liq); } }}", "claimRewards"),
       "fix#26: self-scope userStakes[msg.sender] DEEP in the body (past 280 chars) NOT flagged (MagicSwap claimRewards)")
+check(not flagged(recon.det_access, "contract C is Auth{function setSnapshotHook(address h) external auth { hook=h; }}"),
+      "fix#27: ward-model `external auth` modifier NOT flagged (MakerDAO/Centrifuge)")
+check(not flagged(recon.det_access, "contract C{function notifyPool(uint id) external payable { _isManager(id); send(id); }}"),
+      "fix#27: inline `_isManager(id)` predicate gate NOT flagged (Centrifuge Hub)")
+check(flagged(recon.det_access, "contract C{function setFee(uint x) external { fee=x; }}", "setFee"),
+      "fix#27 guard: a genuinely ungated setter (no auth/only) is STILL flagged (no over-suppression)")
 check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint x) external { _onlyAdminOrRole(R); allowed[x]=true; }}"),
       "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
 check(not flagged(recon.det_access, "contract C{function slash(address a) external checkAccess(this.slash.selector) { x=a; }}"),
@@ -96,6 +102,11 @@ check(_mr[4] == 1 and "WRAPPER" in _mr[3],
       "fix#25: mint wrapper delegating to a gated sibling -> [.] not [!] (EtherOrcs mintRogues)")
 check(recon.det_mint("contract C{function mint(address t,uint a) external { _mint(t,a); }}", "src/Fix.sol")[0][4] == 0,
       "fix#25: a real ungated mint calling the _mint primitive stays [!] (not a wrapper)")
+_wm = recon.det_mint("contract C{function mint(address to,uint v) public override { super.mint(to,v); _onTransfer(to,v); }}", "src/ShareToken.sol")
+check(bool(_wm) and "GATED" in _wm[0][3],
+      "fix#27: mint override delegating to super.mint (parent gate) recognized as GATED (Centrifuge ShareToken)")
+_am = recon.det_mint("contract C is Auth{function mint(address t,uint a) external auth { _mint(t,a); }}", "src/Fix.sol")
+check(bool(_am) and "GATED" in _am[0][3], "fix#27: ward `external auth` mint recognized as GATED, not PUBLIC")
 
 print("== det_unchecked (silent transfer, super. fix) ==")
 check(flagged(recon.det_unchecked, "x.transferFrom(a, b, c);"), "bare transferFrom flagged")
@@ -258,6 +269,10 @@ check(not flagged(recon.det_arbcall, "contract C{function replayCall(address t, 
       "fix#24: inline require(msg.sender==admin) admin-gate NOT flagged (EtherOrcs MainlandPortal.replayCall)")
 check(not flagged(recon.det_arbcall, "contract C{function exec(address t, bytes d) external onlyOwner { t.call(d); }}"),
       "onlyOwner arbitrary call NOT flagged")
+check(not flagged(recon.det_arbcall, "contract C{function withBatch(bytes data, uint v, address refund) public payable { (bool s,) = msg.sender.call{value:v}(data); require(s); }}"),
+      "fix#28: low-level call to msg.sender (callback-to-caller batching) NOT flagged (Centrifuge Gateway.withBatch)")
+check(flagged(recon.det_arbcall, "contract C{function exec(address t, bytes d) external { (bool s,)=msg.sender.call(''); t.call(d); }}", "exec"),
+      "fix#28 guard: a non-self t.call(d) STILL flagged even alongside a msg.sender.call")
 
 print("== det_weak_random (predictable on-chain RNG in an outcome path) ==")
 _wr = recon.det_weak_random("contract G{function _getReward(uint id) internal view returns(uint){"

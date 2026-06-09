@@ -12,6 +12,39 @@
       "date": "2026-06-08"
     },
     {
+      "sig": "centrifuge|src/core/messaging/Gateway.sol|arbcall|function withBatch(bytes data, uint callbackValue, address refund)",
+      "target": "centrifuge",
+      "file": "src/core/messaging/Gateway.sol",
+      "line": 230,
+      "detector": "arbcall",
+      "snippet": "function withBatch(bytes data, uint callbackValue, address refund)",
+      "verdict": "fp",
+      "reason": "msg.sender.call (callback-to-caller batching), not arbitrary-target; callbackValue<=msg.value -> fix#28",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "centrifuge|src/core/spoke/Spoke.sol|ac|function updateContract(PoolId, ShareClassId, bytes32 target, bytes payload, ...)",
+      "target": "centrifuge",
+      "file": "src/core/spoke/Spoke.sol",
+      "line": 159,
+      "detector": "sibling",
+      "snippet": "function updateContract(PoolId, ShareClassId, bytes32 target, bytes payload, ...)",
+      "verdict": "todo",
+      "reason": "ungated next to auth siblings; multi-line sig + receiving-side auth unread -> deeper pass",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "centrifuge|src/vaults/AsyncVault.sol|supply|function mint(uint shares,address receiver,address controller)",
+      "target": "centrifuge",
+      "file": "src/vaults/AsyncVault.sol",
+      "line": 135,
+      "detector": "supply",
+      "snippet": "function mint(uint shares,address receiver,address controller)",
+      "verdict": "fp",
+      "reason": "ERC-7540: _validateController gate; mints user-requested shares via gated asyncManager",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "darkforest|contracts/facets/DFCoreFacet.sol|ac|function upgradePlanet(...) public notPaused",
       "target": "darkforest",
       "file": "contracts/facets/DFCoreFacet.sol",

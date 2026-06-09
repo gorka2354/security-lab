@@ -55,7 +55,14 @@ INLINE_AUTH = re.compile(
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforce[A-Za-z]\w*\s*\(|"   # fix#18: Diamond/library enforce-auth (enforceIsContractOwner / enforceIsController / LibX.enforce*)
     r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
-    r"_only\w+\s*\(")   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
+    r"_only\w+\s*\(|"   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
+    r"_is(?:Manager|Authoriz\w*|Authed|Ward|Admin|Owner|Operator|HubManager|PoolManager|PoolAdmin)\w*\s*\(")  # fix#27: inline predicate gate (Centrifuge Hub `_isManager(poolId)`)
+
+# fix#27: ward-model (MakerDAO dss / Centrifuge): `modifier auth { require(wards[msg.sender]==1) }`,
+# applied as a trailing modifier `external auth`. Recognize it as a gate (it's not "only*"-named and
+# not a body call, so INLINE_AUTH misses it). Word-boundary keeps it off `authority`/`getAuth`.
+WARD_MOD = re.compile(r"\bauth\b|\bauthOrHook\b|\bauthOrManager\b|\bonlyWards?\b|"
+                      r"\bisManager\b|\bisAuthoriz\w*|\brequiresAuth\b|\bauthenticated\b")
 
 # fix#19: a thin facet/wrapper whose body just delegates to a library call (Lib*.fn(...)) often has
 # its auth INSIDE that library (Chikn _claimEggs, Crypto Unicorns LibStaking.unstake) -> the wrapper
@@ -127,6 +134,7 @@ def det_access(text, rel):
         nxt = text.find("function ", m.end())
         end = nxt if nxt > 0 else m.end() + 1500
         if ("only" in blob.lower() or INLINE_AUTH.search(blob)   # fix#15: auth modifier in signature (checkAccess(...))
+                or WARD_MOD.search(blob)   # fix#27: ward-model `auth` modifier (MakerDAO/Centrifuge)
                 or INLINE_AUTH.search(text[m.end():end])
                 # fix#26 (MagicSwap StakingContract.claimRewards): self-scope by a mapping KEY
                 # anywhere in the body, not just the first 280 chars -- user-claim fns index
@@ -155,6 +163,8 @@ def det_sibling(text, rel):
             continue
         gate = re.search(r"\bonly\w+", blob)
         gname = gate.group(0) if gate else None
+        if not gname and WARD_MOD.search(blob):   # fix#27: ward-model `auth` modifier
+            gname = "auth"
         if not gname and re.search(r"\b(re)?initializer\b", blob):
             gname = "initializer"  # OZ initializer guards one-time init -> gated
         if not gname and INLINE_AUTH.search(blob):   # fix#15: non-only auth modifier in signature (checkAccess(this.fn.selector))
@@ -194,6 +204,8 @@ def det_mint(text, rel):
         body = text[m.end():(m.end() + 280 if nxt < 0 else min(m.end() + 280, nxt))]
         gated = ("only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob)
                  or INLINE_AUTH.search(blob)   # fix#16: auth modifier in signature, e.g. checkAccess(this.mint.selector)
+                 or WARD_MOD.search(blob)   # fix#27: ward-model `auth` / authOrHook modifier
+                 or "super.mint(" in body or "super.burn(" in body   # fix#27: thin override -> parent gate (Centrifuge ShareToken)
                  or INLINE_AUTH.search(body) or "msg.sender" in body)
         is_test = bool(re.search(r"(^|/)(test|tests|mock|mocks)", rel, re.I))
         if gated:
@@ -305,7 +317,12 @@ def det_arbcall(text, rel):
         # is no longer a permissionless-drain FP. (+contractOwner: Diamond owner getter.)
         if INLINE_AUTH.search(body) or "contractOwner" in body:
             continue
-        if ARBCALL.search(body):
+        # fix#28 (Centrifuge Gateway.withBatch): the drain pattern is <attackerAddr>.call(<data>).
+        # A call to msg.sender / address(this) is a callback-to-caller / self batching pattern, not an
+        # arbitrary-target drain. Strip self/caller low-level calls, then require a non-self one remains.
+        non_self = re.sub(r"(?:msg\.sender|_msgSender\(\)|address\s*\(\s*this\s*\)|\bthis)\s*\.\s*"
+                          r"(?:call|delegatecall)", "", body)
+        if ARBCALL.search(non_self):
             out.append((rel, lineno(text, m.start()), f"function {name}(...)",
                         "PERMISSIONLESS (address + bytes) + low-level call -> arbitrary "
                         "external call? route to token.transferFrom = approval drain", 0))
