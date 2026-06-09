@@ -262,6 +262,97 @@ def collect_defillama(done, tvl_min, tvl_max, max_audits, today):
     return cands
 
 
+# ── scout v3: Immunefi bug-bounty scope. Solves BOTH walls at once -- (1) reachability: a program's
+# scope page lists the EXACT in-scope DEPLOYED addresses (not the gov token), and (2) scope/payout:
+# in-scope + a real bounty is guaranteed (white-hat clean). The bounty LIST page embeds 210 program
+# objects as escaped-JSON in the Next.js RSC stream -> parse name/slug/maxBounty/updated/tags. Filter to
+# programType=Smart Contract + an EVM language (Solidity/Vyper) -> guaranteed-EVM contract scope.
+IMMUNEFI_URL = "https://immunefi.com/bug-bounty/"
+EVM_LANGS = {"solidity", "vyper", "yul"}
+
+
+def _get_text(url):
+    """GET raw text (the bounty list page is HTML, not JSON). Graceful on failure."""
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"})
+    try:
+        with urllib.request.urlopen(req, timeout=40) as r:
+            return r.read().decode("utf-8", "replace")
+    except Exception as e:
+        print(f"  [warn] {url}: {e}", file=sys.stderr)
+        return ""
+
+
+def _imm_arr(tags_blob, key):
+    """Extract an escaped-JSON string array (e.g. language/programType) from a program's tags blob. PURE."""
+    m = re.search(r'\\"' + key + r'\\":\[([^\]]*)\]', tags_blob)
+    return [s.lower() for s in re.findall(r'\\"([^"\\]+)\\"', m.group(1))] if m else []
+
+
+def parse_immunefi_programs(html):
+    """Parse the embedded program objects from the Immunefi bounty-list HTML (escaped-JSON in the RSC
+    stream). Each object has exactly one of each field -> extract per field in document order and zip.
+    Returns [{name, slug, maxBounty, updated, language[], programType[], projectType[], productType[]}]. PURE."""
+    names = re.findall(r'\\"project\\":\\"((?:[^"\\]|\\.)*?)\\"', html)
+    slugs = re.findall(r'\\"slug\\":\\"([^"\\]+)\\"', html)
+    bounty = re.findall(r'\\"maxBounty\\":(\d+)', html)
+    updated = re.findall(r'\\"updatedDate\\":\\"([^"\\]+)\\"', html)
+    tags = re.findall(r'\\"tags\\":\{([^}]*)\}', html)
+    launch = re.findall(r'\\"launchDate\\":\\"([^"\\]+)\\"', html)   # optional (freshness = under-hunted)
+    n = min(len(names), len(slugs), len(bounty), len(updated), len(tags))
+    out = []
+    for i in range(n):
+        out.append({
+            "name": names[i], "slug": slugs[i], "maxBounty": int(bounty[i]), "updated": updated[i][:10],
+            "launched": launch[i][:10] if i < len(launch) else "",
+            "language": _imm_arr(tags[i], "language"), "programType": _imm_arr(tags[i], "programType"),
+            "projectType": _imm_arr(tags[i], "projectType"), "productType": _imm_arr(tags[i], "productType"),
+        })
+    return out
+
+
+def imm_is_evm_sc(prog):
+    """Keep only programs we can actually hunt: a Smart-Contract program in an EVM language. PURE."""
+    return ("smart contract" in prog.get("programType", [])
+            and any(l in EVM_LANGS for l in prog.get("language", [])))
+
+
+def collect_immunefi(done, today, min_bounty):
+    """scout v3: Immunefi Smart-Contract bounties (EVM) -> exact in-scope addresses + guaranteed payout."""
+    cands = []
+    for p in parse_immunefi_programs(_get_text(IMMUNEFI_URL)):
+        if not imm_is_evm_sc(p) or p["maxBounty"] < min_bounty:
+            continue
+        key = re.sub(r"[^a-z0-9]+", "-", p["name"].lower()).strip("-")
+        if is_suppressed(key, done):
+            continue
+        zoneblob = (" ".join(p["projectType"] + p["productType"]) + " " + p["name"]).lower()
+        kw = kw_hits(zoneblob)
+        age = age_days(p["updated"], today) if p["updated"] else 9999
+        launch_age = age_days(p["launched"], today) if p["launched"] else 9999
+        lang = next((l for l in p["language"] if l in EVM_LANGS), "solidity")
+        # EV != bounty size: huge bounties = the most-hunted/hardened giants (our wall). Rank by FRESHNESS
+        # (recently launched/updated scope = under-hunted), modest bounty floor, our-zone fit. Big-name
+        # giants (Aave/LayerZero) sink unless their scope was just refreshed.
+        sc = (max(0, 220 - min(age, 220))                       # recently-UPDATED scope (new code in scope)
+              + (120 if launch_age <= 150 else 0)               # NEWLY-LAUNCHED program = least-hunted
+              + min(p["maxBounty"], 1_000_000) / 40_000          # bounty floor only (capped at 25 pts)
+              + 25 * len(kw))
+        fresh = "  [NEW PROGRAM]" if launch_age <= 150 else ""
+        scope = f"https://immunefi.com/bug-bounty/{p['slug']}/scope/"
+        cands.append({
+            "key": key, "name": p["name"], "score": sc, "src": "immunefi",
+            "lines": [
+                f"- **{p['name']}**  (Immunefi, max ${p['maxBounty']/1e6:.2f}M, {lang}, "
+                f"{'/'.join(p['productType'][:2]) or '-'}, launched {p['launched'] or '?'}, updated {p['updated'] or '?'}){fresh}"
+                + (f"  zone:{','.join(kw)}" if kw else "  zone:-"),
+                f"    IN-SCOPE addresses (exact, deployed) + rules at: {scope}",
+                f"    # pull scope -> `fetch_source.py <in-scope addr> --proxy` -> forkdrift -> recon",
+            ],
+        })
+    return cands
+
+
 def collect_contests(orgs, days, done, today):
     """scout v1: fresh public audit-contest repos (reviewed-by-design)."""
     cands = []
@@ -298,8 +389,9 @@ def collect_contests(orgs, days, done, today):
 
 def main():
     ap = argparse.ArgumentParser(description="Discover + rank Stage-0 targets (contests + deployed-but-unaudited)")
-    ap.add_argument("--source", default="defillama", choices=["contests", "defillama", "both"])
+    ap.add_argument("--source", default="defillama", choices=["contests", "defillama", "immunefi", "both", "all"])
     ap.add_argument("--orgs", default="sherlock-audit,hats-finance")
+    ap.add_argument("--min-bounty", type=float, default=50000, help="immunefi: skip programs with maxBounty < N USD")
     ap.add_argument("--days", type=int, default=150, help="contests: only repos created within N days")
     ap.add_argument("--tvl-min", type=float, default=1e6, help="defillama: min TVL (real protocol)")
     ap.add_argument("--tvl-max", type=float, default=1.5e8, help="defillama: max TVL (avoid over-combed giants)")
@@ -316,10 +408,12 @@ def main():
     done = {e["target"].lower() for e in led.values()}
 
     cands = []
-    if a.source in ("contests", "both"):
+    if a.source in ("contests", "both", "all"):
         cands += collect_contests([o.strip() for o in a.orgs.split(",") if o.strip()], a.days, done, today)
-    if a.source in ("defillama", "both"):
+    if a.source in ("defillama", "both", "all"):
         cands += collect_defillama(done, a.tvl_min, a.tvl_max, a.max_audits, today)
+    if a.source in ("immunefi", "all"):
+        cands += collect_immunefi(done, today, a.min_bounty)
     cands.sort(key=lambda c: -c["score"])
 
     # reachability: resolve the CORE-contracts GitHub repo for the top defillama candidates so we clone the
@@ -340,9 +434,11 @@ def main():
 
     head = (f"# Scout queue (source={a.source})\n\nRef {today}. {len(cands)} candidates after "
             f"ledger-suppression ({len(done)} hunted).")
-    if a.source != "contests":
+    if a.source in ("defillama", "both", "all"):
         head += (f" DefiLlama: audits<={a.max_audits}, TVL ${a.tvl_min/1e6:.0f}M-${a.tvl_max/1e6:.0f}M, "
                  f"our-zone categories.")
+    if a.source in ("immunefi", "all"):
+        head += f" Immunefi: Smart-Contract + EVM programs, maxBounty>=${a.min_bounty/1e3:.0f}k (exact in-scope addrs + payout)."
     out = [head, "Ranked by under-reviewed x freshness x our-fit. Pick top -> fetch_source/clone -> recon+hypothesize.\n"]
     if not cands:
         out.append("  (none -- relax --max-audits / TVL band, widen --days, or add a source)")

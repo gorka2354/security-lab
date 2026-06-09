@@ -396,6 +396,21 @@ check(scout.pick_core_repo([{"name": "contracts", "language": "Solidity", "archi
 check((scout.pick_core_repo([{"name": "contracts", "language": "Rust"}, {"name": "cli", "language": "Rust"}], "Templar") or {}).get("name") == "contracts"
       and not scout.lang_is_evm("Rust"),
       "scout: Templar-shape repo still picks `contracts`, but lang_is_evm flags it NON-EVM (skip early)")
+# scout v3 (Immunefi): parse the escaped-JSON program objects from the bounty-list RSC stream
+_imm_html = (r'x,\"launchDate\":\"2026-05-01T00:00:00.000Z\",\"updatedDate\":\"2026-05-28T11:35:58.847Z\",\"kyc\":true,\"maxBounty\":15000000,'
+             r'\"project\":\"LayerZero\",\"slug\":\"layerzero\",\"tags\":{\"language\":[\"Solidity\"],'
+             r'\"ecosystem\":[],\"productType\":[\"Crosschain Liquidity\"],\"programType\":[\"Smart Contract\"],'
+             r'\"projectType\":[\"Defi\"]},y'
+             r'z,\"launchDate\":\"2021-01-10T00:00:00.000Z\",\"updatedDate\":\"2026-04-10T07:00:00.000Z\",\"kyc\":false,\"maxBounty\":500000,'
+             r'\"project\":\"SomeChain\",\"slug\":\"somechain\",\"tags\":{\"language\":[\"Rust\"],'
+             r'\"ecosystem\":[],\"productType\":[\"L1\"],\"programType\":[\"Blockchain/DLT\"],'
+             r'\"projectType\":[\"Infrastructure\"]},w')
+_imm = scout.parse_immunefi_programs(_imm_html)
+check(len(_imm) == 2 and _imm[0]["name"] == "LayerZero" and _imm[0]["slug"] == "layerzero"
+      and _imm[0]["maxBounty"] == 15000000 and _imm[0]["language"] == ["solidity"] and _imm[0]["launched"] == "2026-05-01",
+      "scout.parse_immunefi_programs: extracts name/slug/maxBounty/language/launchDate from the escaped-JSON RSC blob")
+check(scout.imm_is_evm_sc(_imm[0]) and not scout.imm_is_evm_sc(_imm[1]),
+      "scout.imm_is_evm_sc: keeps Solidity Smart-Contract (LayerZero), drops Rust Blockchain/DLT (SomeChain)")
 
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
