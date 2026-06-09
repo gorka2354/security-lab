@@ -58,6 +58,12 @@ check(not flagged(recon.det_access, "contract C{function notifyPool(uint id) ext
       "fix#27: inline `_isManager(id)` predicate gate NOT flagged (Centrifuge Hub)")
 check(flagged(recon.det_access, "contract C{function setFee(uint x) external { fee=x; }}", "setFee"),
       "fix#27 guard: a genuinely ungated setter (no auth/only) is STILL flagged (no over-suppression)")
+check(not flagged(recon.det_access, "contract C{function setConfig(uint x) external restricted { cfg=x; }}"),
+      "fix#32: OZ AccessManager `external restricted` modifier NOT flagged (Royco V2 / OZ v5 AccessManaged)")
+check(not flagged(recon.det_access, "contract C{function seizeShares(address f,address t,uint s) external restricted { _move(f,t,s); }}", "seizeShares"),
+      "fix#32: `restricted`-gated privileged fn (Royco RoycoVaultTranche.seizeShares) NOT flagged")
+check(flagged(recon.det_access, "contract C{function setRestrictedFlag(bool v) external { isRestricted=v; }}", "setRestrictedFlag"),
+      "fix#32 guard: a setter that merely NAMES 'restricted' (no `restricted` modifier) is STILL flagged (word-boundary, no over-suppression)")
 check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint x) external { _onlyAdminOrRole(R); allowed[x]=true; }}"),
       "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
 check(not flagged(recon.det_access, "contract C{function slash(address a) external checkAccess(this.slash.selector) { x=a; }}"),

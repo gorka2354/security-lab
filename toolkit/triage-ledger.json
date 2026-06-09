@@ -408,6 +408,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "royco-v2|src/kernels/base/RoycoKernel.sol|oracle|",
+      "target": "royco-v2",
+      "file": "src/kernels/base/RoycoKernel.sol",
+      "line": 0,
+      "detector": "oracle",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Royco V2 Dawn: novel ST/JT tranche structured-credit, ORIGINAL code (forkdrift: no base). 10 Chainlink-oracle leads + tranche NAV donation/inflation + accountant ST/JT attribution = real surface, but deploy UNCONFIRMED (pre-deploy/active-dev) -> LIVE-FIRST parked. Deep-dive next if deployed+in-scope.",
+      "date": "2026-06-09"
+    },
+    {
+      "sig": "royco-v2|src/tranches/base/RoycoVaultTranche.sol|ac|",
+      "target": "royco-v2",
+      "file": "src/tranches/base/RoycoVaultTranche.sol",
+      "line": 203,
+      "detector": "access",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "burn/burnFrom are 'restricted' (OZ AccessManager AccessManagedUpgradeable) -> gated. recon missed the modifier -> fix#32 (added restricted to WARD_MOD). 47 access FPs -> 0.",
+      "date": "2026-06-09"
+    },
+    {
       "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeTokens(...)",
       "target": "stakelink",
       "file": "contracts/core/base/RewardsPoolController.sol",

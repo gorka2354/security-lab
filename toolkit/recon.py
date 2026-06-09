@@ -62,7 +62,10 @@ INLINE_AUTH = re.compile(
 # fix#27: ward-model (MakerDAO dss / Centrifuge): `modifier auth { require(wards[msg.sender]==1) }`,
 # applied as a trailing modifier `external auth`. Recognize it as a gate (it's not "only*"-named and
 # not a body call, so INLINE_AUTH misses it). Word-boundary keeps it off `authority`/`getAuth`.
-WARD_MOD = re.compile(r"\bauth\b|\bauthOrHook\b|\bauthOrManager\b|\bonlyWards?\b|"
+# fix#32: OZ AccessManager's `restricted` modifier (AccessManagedUpgradeable) is the same shape -- a
+# trailing auth modifier (`external restricted`), not "only*"-named -> recognize it (OZ v5's recommended
+# access-control, increasingly common; Royco V2 used it on ~all privileged fns -> 47 false leads without this).
+WARD_MOD = re.compile(r"\bauth\b|\bauthOrHook\b|\bauthOrManager\b|\bonlyWards?\b|\brestricted\b|"
                       r"\bisManager\b|\bisAuthoriz\w*|\brequiresAuth\b|\bauthenticated\b")
 
 # fix#19: a thin facet/wrapper whose body just delegates to a library call (Lib*.fn(...)) often has
