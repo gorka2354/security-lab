@@ -568,6 +568,14 @@ check(os.path.basename(forkdrift._repo_root_of("hunts/_volume/venus-flux")) == "
 check(os.path.basename(forkdrift._repo_root_of("x/hunts/_volume/foo/contracts")) == "foo",
       "forkdrift._repo_root_of: a `.../<target>/contracts` source subdir resolves to <target>")
 
+print("== forkdrift.parse_github_org (sibling-audits routing; Mezo MUSD lesson) ==")
+check(forkdrift.parse_github_org('[remote "origin"]\n\turl = https://github.com/mezo-org/musd.git\n') == "mezo-org",
+      "parse_github_org: https remote -> org 'mezo-org' (points the audit hunt at github.com/mezo-org/audits)")
+check(forkdrift.parse_github_org("\turl = git@github.com:mezo-org/musd.git\n") == "mezo-org",
+      "parse_github_org: ssh remote (git@github.com:org/repo) -> 'mezo-org'")
+check(forkdrift.parse_github_org("no remote here") is None and forkdrift.parse_github_org("") is None,
+      "parse_github_org: no github remote -> None (graceful, generic <org>/audits hint)")
+
 print("== scaffold (multi-engine harness: foundry / chimera / halmos) ==")
 import scaffold  # noqa: E402
 _SC = ("contract Vault {"

@@ -343,6 +343,41 @@ def _scan_repo_files(root):
     return files, readme
 
 
+# Mezo MUSD lesson: a fork's own audit often lives in a SIBLING repo (mezo-org/audits holds the
+# Cantina mUSD.pdf), so detect_audit_evidence -- which scans only THIS repo -- saw nothing and we
+# nearly mis-routed an audited target as "greenfield". Derive the org from .git/config to point there.
+_RE_GH_ORG = re.compile(r"github\.com[/:]([\w.-]+)/")
+
+
+def parse_github_org(git_config_text):
+    """Extract the GitHub org/owner from a .git/config blob (https or ssh remote). PURE."""
+    m = _RE_GH_ORG.search(git_config_text or "")
+    return m.group(1) if m else None
+
+
+def github_org_of(repo_root):
+    """Ascend from repo_root to the nearest enclosing .git/config and return its GitHub org.
+
+    Source dirs are often nested (solidity/contracts, src), so walk up; STOP at the `_volume`
+    clone boundary so we never read the parent security-lab repo's remote (same over-scan guard
+    as _repo_root_of)."""
+    d = os.path.abspath(repo_root)
+    for _ in range(6):
+        if os.path.basename(d) == "_volume":
+            break
+        cfg = os.path.join(d, ".git", "config")
+        if os.path.exists(cfg):
+            try:
+                return parse_github_org(read(cfg))
+            except Exception:
+                return None
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+    return None
+
+
 def _print_audit_route(src_dir, is_fork, ver):
     """Detect audit evidence near src_dir and print the AUDIT verdict + hunt router (or greenfield note)."""
     root = _repo_root_of(src_dir)
@@ -352,8 +387,18 @@ def _print_audit_route(src_dir, is_fork, ver):
 
     print("\n## AUDIT STATUS")
     if not aud["audited"]:
-        print("  NO audit evidence in the repo (consistent with UNDER-REVIEWED) -- the high-EV case.")
-        print("  -> Greenfield: hunt the WHOLE surface (recon + hypothesize). Confirm DEPLOYED + in-scope bounty first.")
+        org = github_org_of(root)
+        audits_hint = f"github.com/{org}/audits" if org else "<org>/audits (the org's audit repo)"
+        if is_fork:
+            # a fork of an audited base is NOT greenfield: the core is audited-by-lineage.
+            print("  NO LOCAL audit files -- BUT this is a FORK of an audited base: the CORE is audited-by-lineage.")
+            print("  -> Route to the DRIFT (the HUNT PLAN above), NOT the whole surface.")
+            print(f"  -> CHECK {audits_hint} : a fork's OWN audit often lives in a SIBLING repo, not this one")
+            print("     (Mezo MUSD's Cantina mUSD.pdf was in mezo-org/audits, not the musd repo).")
+        else:
+            print("  NO audit evidence in THIS repo (consistent with UNDER-REVIEWED) -- the high-EV case.")
+            print(f"  -> Greenfield: hunt the WHOLE surface (recon + hypothesize). But FIRST check {audits_hint}")
+            print("     (audits often live in a sibling repo) + confirm DEPLOYED + in-scope bounty.")
         return
     tag = "AUDITED (audits != 0 -> NOT under-reviewed" + (", incl. FORMAL VERIFICATION" if aud["formal"] else "") + ")"
     print(f"  {tag}")
