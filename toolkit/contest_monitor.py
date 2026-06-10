@@ -32,8 +32,11 @@ STATE_FILE = "monitor/contests-seen.json"
 # title+desc. NON_EVM markers down-rank a listing (Solana/Move/consensus-client = our Solidity engine can't).
 ZONE = ["lend", "lending", "borrow", "vault", "yield", "stablecoin", "stable", "cdp", "collateral",
         "perp", "derivativ", "oracle", "stak", "restak", "liquid", "amm", "dex", "swap", "rwa",
-        "bridge", "cross-chain", "synthetic", "fixed-rate", "credit", "debt", "options", "lst", "lrt"]
-GAMEFI = ["game", "gaming", "gamefi", "nft", "on-chain game", "p2e", "metaverse", "raffle", "lottery"]
+        "bridge", "cross-chain", "synthetic", "fixed-rate", "credit", "debt", "options", "lst", "lrt",
+        "predict", "prediction", "betting", "wager", "gambl", "lottery", "luck", "payout", "odds"]
+GAMEFI = ["game", "gaming", "gamefi", "nft", "on-chain game", "p2e", "play-to-earn", "metaverse",
+          "raffle", "lottery", "gambl", "betting", "wager", "sportsbook", "casino", "luck", "jackpot",
+          "predict", "prediction", "dice", "roulette", "coinflip", "gacha", "loot"]
 NON_EVM = ["solana", "sealevel", "anchor ", "move ", "aptos", "sui ", "cairo", "starknet", "cosmwasm",
            "cosmos sdk", "substrate", "consensus client", "beacon", "rust client", "stellar", "soroban",
            "ton ", "near ", "fuel ", "tact "]

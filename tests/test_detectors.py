@@ -372,6 +372,14 @@ check(scout.age_days("2025-06-09", "2026-06-09") > 360 and scout.age_days("2026-
       "scout.age_days: ~1yr apart > 360; 8 days apart == 8")
 check(any(k in "lending vault for cross-chain stablecoin".lower() for k in scout.WHEELHOUSE),
       "scout.WHEELHOUSE matches our-zone keywords (vault/lend/stablecoin/cross-chain)")
+# expanded game/gamble/predict sector (egor's edge)
+check(all(any(k in s for k in scout.WHEELHOUSE) for s in
+          ["a luck games coin flip", "sports betting protocol", "prediction market", "weekly raffle lottery", "casino jackpot"]),
+      "scout.WHEELHOUSE: gambling/luck/betting/prediction/lottery sector now matches (det_weak_randomness lens)")
+check(not any(k in "alphabet soup recipe" for k in scout.WHEELHOUSE),
+      "scout.WHEELHOUSE: no bare 'bet' substring -> 'alphabet' is NOT a false zone hit")
+check({"Gambling", "Luck Games", "Yield Lottery", "Betting"} <= scout.DL_CATEGORIES,
+      "scout.DL_CATEGORIES: the game/gamble/lottery DefiLlama categories now pass the hard filter")
 check(scout.audits_int("0") == 0 and scout.audits_int("2") == 2 and scout.audits_int(None) == 9,
       "scout v2: audits_int parses DefiLlama stringy audit count (None -> high so it's filtered)")
 check(scout.is_all_non_evm(["Solana", "Sui"]) and not scout.is_all_non_evm(["Ethereum", "Solana"]),
@@ -439,6 +447,10 @@ check(bool(cm.zone_hits({"title": "Fixed-Rate Lending", "desc": "credit/debt uni
 check(cm.is_gamefi({"title": "Pirate NFT Game", "desc": "on-chain game p2e"})
       and not cm.is_gamefi({"title": "Lending Pool", "desc": "borrow"}),
       "contest_monitor.is_gamefi: GameFi flagged (egor's edge bonus), plain DeFi not")
+check(cm.is_gamefi({"title": "DiceRoll Casino", "desc": "on-chain dice betting wager payout"})
+      and cm.is_gamefi({"title": "Prediction Market", "desc": "sports betting odds"})
+      and cm.is_gamefi({"title": "EtherFlip", "desc": "coinflip luck games jackpot"}),
+      "contest_monitor.is_gamefi: expanded -> gambling/betting/prediction/luck/casino now flagged GameFi")
 check(cm.looks_non_evm({"title": "Solana Program", "desc": "anchor sealevel"})
       and not cm.looks_non_evm({"title": "EVM Vault", "desc": "solidity erc4626"}),
       "contest_monitor.looks_non_evm: Solana/Move/consensus down-ranked; EVM not")

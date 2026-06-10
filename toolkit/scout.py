@@ -36,12 +36,19 @@ WHEELHOUSE = [
     "bridge", "cross-chain", "crosschain", "layerzero", "oft", "stake", "restake", "lrt",
     "lst", "perp", "dex", "amm", "yield", "collateral", "liquidat", "lending", "money-market",
     "game", "nft", "gamefi", "rwa", "savings", "redeem", "deposit", "queue",
+    # game/gamble/predict sector (egor's edge) -- safe-ish substrings (no bare "bet": matches alphabet)
+    "gambl", "betting", "wager", "sportsbook", "casino", "lottery", "raffle", "luck", "jackpot",
+    "predict", "prediction", "dice", "roulette", "coinflip", "coin flip", "gacha", "loot", "p2e",
+    "play-to-earn", "wheel of", "random", "vrf", "payout", "odds",
 ]
 # DefiLlama categories where our detectors/heuristics bite (bug-rich value logic)
 DL_CATEGORIES = {
     "Lending", "CDP", "Yield", "Yield Aggregator", "Derivatives", "Liquid Staking",
     "Liquid Restaking", "RWA", "Algo-Stables", "Reserve Currency", "Gaming",
     "Prediction Market", "Leveraged Farming", "Options", "Insurance", "Synthetics",
+    # game/gamble/predict sector (egor's edge; det_weak_randomness lens) -- RNG outcomes, wager/payout
+    # accounting, lottery winner-selection, prediction-market settlement. Often unaudited + grindable RNG.
+    "Gambling", "Luck Games", "Yield Lottery", "NFT Marketplace", "NFT Lending", "Betting",
 }
 # anti-fit: our regex engines are blind to heavily-assembly / huge codebases
 LARGE_KB = 6000          # contest repo size over this -> flag "LARGE: verify fit (assembly/giant?)"
