@@ -430,6 +430,17 @@
       "date": "2026-06-07"
     },
     {
+      "sig": "revert-lend|src/V3Vault.sol|drift|",
+      "target": "revert-lend",
+      "file": "src/V3Vault.sol",
+      "line": 0,
+      "detector": "drift",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Revert Lend V3Vault (Uni-V3-LP-collateral lending). DEPLOYED == canonical revert-finance/lend repo HEAD VERBATIM (forkdrift diff: 0 substantive drift). Source has C4/Code4rena audit-fix comments -> C4-audited. recon leads (arbitrary-call transform/ERC4626-inflation/reentrancy) all in the audited verbatim code. No drift -> the wall. DefiLlama audits=0 = data error.",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "rocksolid|src/v0.5.0/Vault.sol|drift|",
       "target": "rocksolid",
       "file": "src/v0.5.0/Vault.sol",
@@ -659,6 +670,28 @@
       "verdict": "known",
       "reason": "DefiLlama address = USUAL governance token (audited USD0/DaoCollateral machine), not novel ETH0 product code. Low EV; pivoted.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "vbill|_meta|target|",
+      "target": "vbill",
+      "file": "_meta",
+      "line": 0,
+      "detector": "target",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "wave note (already logged TokenLibrary)",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "vbill|contracts/token/TokenLibrary.sol|supply|",
+      "target": "vbill",
+      "file": "contracts/token/TokenLibrary.sol",
+      "line": 126,
+      "detector": "supply",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "VanEck VBILL = Securitize DS Protocol (audited multi-tenant tokenized-securities platform). recon mint/burn = library-internal (auth in DSToken caller); 'liquidation' leads = compliance forced-seize (not lending). Audited platform deploy, low EV.",
+      "date": "2026-06-10"
     },
     {
       "sig": "wolfgame|Barn.sol|unchecked|wool.transfer return ignored",
