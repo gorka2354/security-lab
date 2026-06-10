@@ -72,6 +72,7 @@ security-lab/
 │   ├─ scope.py · analyze.py          ← карта функций/ролей · L2 Slither + кросс-корреляция
 │   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
 │   ├─ ledger.py · watch.py · pdftext.py  ← память вердиктов · cron-монитор парковок · текст из аудит-PDF
+│   ├─ contest_monitor.py             ← ТАЙМИНГ-ЭДЖ: live audit-contests (Cantina/Sherlock/C4) → [NEW]/[FRESH<48ч] → хант первым
 ├─ research/            ← БИБЛИОТЕКА ПАТТЕРНОВ (T0→T3): паттерн → детектор → инвариант
 │   └─ TEMPLATE.md + patterns/{accounting,pricing,liquidation,signatures}/  (6 паттернов)
 ├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ

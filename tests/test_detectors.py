@@ -412,6 +412,44 @@ check(len(_imm) == 2 and _imm[0]["name"] == "LayerZero" and _imm[0]["slug"] == "
 check(scout.imm_is_evm_sc(_imm[0]) and not scout.imm_is_evm_sc(_imm[1]),
       "scout.imm_is_evm_sc: keeps Solidity Smart-Contract (LayerZero), drops Rust Blockchain/DLT (SomeChain)")
 
+print("== contest_monitor (timing edge: parse Cantina/Sherlock/C4 + fresh/zone classify) ==")
+import contest_monitor as cm  # noqa: E402
+_can = cm.parse_cantina([{"name": "Morpho Midnight", "url": "https://cantina.xyz/x", "id": "abc",
+    "totalRewardPot": "400000", "status": "live", "instructions": "fixed-rate lending markets, credit/debt units",
+    "timeframe": {"start": "2026-05-29T12:00:00Z", "end": "2026-06-12T20:00:00Z"}, "company": {"github": "morpho-org"}}])
+check(len(_can) == 1 and _can[0]["pot"] == 400000 and _can[0]["repo"] == "morpho-org"
+      and _can[0]["start_unix"] == cm._iso_to_unix("2026-05-29T12:00:00Z") and _can[0]["start_unix"] > 0,
+      "contest_monitor.parse_cantina: name/pot/repo/timeframe extracted from the competitions JSON")
+check(cm.parse_sherlock({"items": [{"title": "DRE dreUSD", "id": 1259, "rewards": 60000, "status": "RUNNING",
+      "starts_at": 1780930800, "ends_at": 1781708400, "short_description": "stablecoin vault"}]})[0]["pot"] == 60000,
+      "contest_monitor.parse_sherlock: items[] -> pot/start/end (unix passthrough)")
+check(cm.parse_code4rena({"data": {"audits": [{"title": "Monetrix", "slug": "monetrix", "status": "Live",
+      "formattedAmount": "$100,000", "startTime": "2026-04-24T20:00:00Z", "endTime": "2026-05-04T20:00:00Z",
+      "repo": "code-423n4/2026-04-monetrix", "details": "an AMM"}]}})[0]["pot"] == 100000,
+      "contest_monitor.parse_code4rena: data.audits[] -> '$100,000' formattedAmount parsed to 100000")
+_now = cm._iso_to_unix("2026-06-10T00:00:00Z")
+_liveC = {"start_unix": cm._iso_to_unix("2026-06-09T00:00:00Z"), "end_unix": cm._iso_to_unix("2026-06-20T00:00:00Z"), "status": "live"}
+_pastC = {"start_unix": cm._iso_to_unix("2026-04-01T00:00:00Z"), "end_unix": cm._iso_to_unix("2026-04-10T00:00:00Z"), "status": "completed"}
+check(cm.is_live(_liveC, _now) and not cm.is_live(_pastC, _now),
+      "contest_monitor.is_live: within-window live; past/completed excluded")
+check(cm.hours_since_start(_liveC, _now) < 48 and cm.hours_since_start(_pastC, _now) > 48,
+      "contest_monitor.hours_since_start: the FRESH (<48h) signal -- the first-hours timing edge")
+check(bool(cm.zone_hits({"title": "Fixed-Rate Lending", "desc": "credit/debt units, collateral vault"})),
+      "contest_monitor.zone_hits: our-wheelhouse keywords matched")
+check(cm.is_gamefi({"title": "Pirate NFT Game", "desc": "on-chain game p2e"})
+      and not cm.is_gamefi({"title": "Lending Pool", "desc": "borrow"}),
+      "contest_monitor.is_gamefi: GameFi flagged (egor's edge bonus), plain DeFi not")
+check(cm.looks_non_evm({"title": "Solana Program", "desc": "anchor sealevel"})
+      and not cm.looks_non_evm({"title": "EVM Vault", "desc": "solidity erc4626"}),
+      "contest_monitor.looks_non_evm: Solana/Move/consensus down-ranked; EVM not")
+check(cm._pot_int("$2,500,000") == 2500000 and cm._pot_int(60000) == 60000 and cm._pot_int("100000 USDC") == 100000,
+      "contest_monitor._pot_int: parses $-formatted / numeric / suffixed reward pots")
+# fresher contest outranks a stale one of equal pot/zone (the whole point of the monitor)
+_fresh = {"title": "A Vault", "desc": "lending", "pot": 100000, "start_unix": _now - 3600, "end_unix": _now + 9e5, "status": "live"}
+_stale = {"title": "B Vault", "desc": "lending", "pot": 100000, "start_unix": _now - 40*3600, "end_unix": _now + 9e5, "status": "live"}
+check(cm.score(_fresh, _now, 48) > cm.score(_stale, _now, 48),
+      "contest_monitor.score: a fresher contest outranks a stale one (equal pot/zone) -- timing edge baked in")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
