@@ -55,10 +55,15 @@ echidna suite declares 4 invariants incl `echidna_sum_of_debt`.
   genuinely-ungated setter still flagged (no over-suppression). +3 golden tests (215 total, green). Transfers to
   EVERY Liquity/Threshold fork.
 - **Ledger:** 6 verdicts (5 fp/known + 1 todo).
-- **TODO / fuzzing-residual** (couldn't disprove statically): aggregate `mint-to-PCV` vs SUM(per-trove charged
-  interest) reconciliation across ALL touch paths (redemption/liquidation/redistribution). Their
-  `echidna_sum_of_debt` targets it. -> a `scaffold.py --engine chimera` invariant target (dogfood the new
-  multi-engine harness; needs echidna/medusa on a Linux/CI/WSL lane).
+- **Fuzzing-residual -> CHECKED LIVE (2026-06-10):** aggregate `mint-to-PCV` vs SUM(per-trove charged interest)
+  reconciliation. Ran MUSD's own `echidna_sum_of_debt` (+ troves_order, trove_properties, BTC_balances) under
+  **echidna 2.3.2 in the new WSL lane** -> **all 4 PASSING** at 30k tests (cov 65,727; compiled in 18.5s). A
+  clean shallow run (their config is 500k) is a positive signal, not a proof; it strengthens the no-finding
+  verdict. The WSL lane (toolkit/WSL-LANE.md) makes this re-runnable at full depth.
+- **medusa 1.5.1** is installed + its engine runs (compiles MUSD via crytic-compile), but their `EchidnaTest`
+  harness is **echidna-tuned** -> reverts on medusa's deploy model even with deployer/sender/balance matched.
+  A harness-portability gap (not an engine bug) -- exactly the case `scaffold.py --engine chimera` solves
+  (one portable harness + echidna.yaml + medusa.json for both engines).
 
 ## Lessons (-> engine)
 1. **forkdrift audit-detection is repo-local** -- misses a sibling `<org>/audits` repo (Mezo, and likely others).

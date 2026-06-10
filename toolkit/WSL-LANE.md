@@ -50,21 +50,33 @@ Halmos compiles via `forge build`, so it needs a foundry project (foundry.toml +
 harness imports it). It auto-fetches the right solc.
 
 ## L3 fuzz -- Echidna / Medusa (`scaffold.py --engine chimera`)
+Install the engines (precompiled Linux binaries -> `~/seclab/bin`):
 ```sh
-# generate the chimera harness (Foundry+Echidna+Medusa from one harness):
-python toolkit/scaffold.py <Contract.sol> <Name> --engine chimera --out <proj>/test/recon
-# install the engines in WSL (Go/Rust; heavier than the pip tools):
-#   medusa: https://github.com/crytic/medusa (Go binary)   echidna: https://github.com/crytic/echidna (or docker)
-forge test --mc CryticToFoundry        # the SAME handlers/properties under Foundry
-echidna . --contract CryticTester --config echidna.yaml
-medusa fuzz
+curl -sL https://github.com/crytic/medusa/releases/download/v1.5.1/medusa-linux-x64.tar.gz | tar xz -C ~/seclab/bin
+curl -sL https://github.com/crytic/echidna/releases/download/v2.3.2/echidna-2.3.2-x86_64-linux.tar.gz | tar xz -C ~/seclab/bin
 ```
+For a hardhat/foundry target, crytic-compile builds it (needs deps + a `.env` if the config uses dotenv-safer):
+```sh
+cd <repo>/solidity && cp -n .env.example .env && npx hardhat compile   # warm the solc cache (avoids transient HH502)
+echidna . --config echidna.yaml --contract <TestContract>              # property mode: echidna_* invariants
+medusa fuzz --config medusa.json                                       # second engine
+forge test --mc CryticToFoundry                                        # the SAME props under Foundry (chimera)
+```
+**Harness portability:** an echidna-tuned harness (specific deployer/senders + `balanceContract`) often REVERTS
+on medusa's deploy model. That's the whole point of `scaffold.py --engine chimera`: ONE portable harness +
+matching `echidna.yaml` + `medusa.json`, so both engines run the same `property_*`.
 
 ## Proven (2026-06-10)
-- `slither HalmosDemo.sol` -> analyzed (101 detectors).
-- `python3 analyze.py ~/seclab-demo` -> L1 recon + L2 slither + corroboration section, all in WSL.
-- `halmos --function check_dec` on a planted `unchecked { x -= a; }` underflow -> **Counterexample
-  `a = 2^256-1`** (symbolic lane catches the bug it should).
-- `forge 1.7.1` builds.
+- `slither HalmosDemo.sol` -> analyzed (101 detectors); `analyze.py ~/seclab-demo` -> L1 recon + L2 slither +
+  corroboration section, all in WSL.
+- `halmos --function check_dec` on a planted `unchecked { x -= a; }` underflow -> **Counterexample `a = 2^256-1`**.
+- **Live on a real audited target (Mezo MUSD, cloned to `~/musd`, `pnpm install` + node 20):**
+  - `slither .` on the whole MUSD -> **112 contracts, 96 results, 0 High/Medium** (clean, as expected for
+    Cantina-audited Liquity-fork code). First L2 run on a real target locally.
+  - `echidna . --config echidna.yaml --contract EchidnaTest` -> compiled in 18.5s, fuzzed 30k seqs (cov 65,727),
+    **all 4 invariants PASSING incl `echidna_sum_of_debt`** (the hunt residual -> held at this depth).
+  - medusa 1.5.1 installed + compiles MUSD, but the echidna-tuned harness reverts on its deploy model
+    (use a chimera harness for both).
+- `forge 1.7.1` builds; node 20.20.2 + pnpm 8.13.1 for hardhat targets.
 
 See [windows-dynamic-layer-needs-linux-lane] memory + `ROADMAP.md` (L3 row). ASCII only.
