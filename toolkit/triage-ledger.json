@@ -397,6 +397,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "native-credit|src/CreditVault.sol|liquidation|",
+      "target": "native-credit",
+      "file": "src/CreditVault.sol",
+      "line": 250,
+      "detector": "liquidation",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "liquidate: onlyLiquidator + _verifyLiquidationSignature (off-chain-signed health criteria) = operator-trust, recon 4-check mostly N/A on-chain. PARKED deeper surface for a real hunt: signature scheme (replay/nonce/expiry/chainid in _verifyLiquidationSignature), round-trips (addCollateral<->removeCollateral, deposit<->withdrawReserve rounding), rebalance-cap accounting. Greenfield (1M, unaudited).",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "native-credit|src/CreditVault.sol|ac|",
+      "target": "native-credit",
+      "file": "src/CreditVault.sol",
+      "line": 311,
+      "detector": "sibling",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "addCollateral explicitly PERMISSIONLESS (NatSpec: anyone adds collateral for any trader; nonReentrant; pulls from msg.sender; traders[]/supportedMarkets[] checks). By-design deposit, not an ungated-privileged sibling. VERIFY gate C + FP-pattern #10.",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "nerona|lib/protocol/src/MToken.sol|target|",
       "target": "nerona",
       "file": "lib/protocol/src/MToken.sol",
