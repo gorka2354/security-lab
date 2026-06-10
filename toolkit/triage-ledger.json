@@ -419,6 +419,17 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "native-credit|src/CreditVault.sol|signature|",
+      "target": "native-credit",
+      "file": "src/CreditVault.sol",
+      "line": 590,
+      "detector": "signature",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Deep L4: signature scheme (settle/removeCollateral/liquidate) is textbook -- EIP-712 (_hashTypedDataV4 -> chainid), per-type DISTINCT type-hash (no cross-type replay despite shared nonces[]), nonce replay-guard + deadline expiry, OZ ECDSA.recover, all economic fields + recipient in the hash. NativeLPToken share-vault: bookkept totalUnderlying (no donation), distributeYield gated onlyCreditVault (no attacker first-depositor inflation), protocol-safe rounding (down), minDeposit. No finding -- competently built; residual = operator-trust (single signer drives all economic state, gate E).",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "nerona|lib/protocol/src/MToken.sol|target|",
       "target": "nerona",
       "file": "lib/protocol/src/MToken.sol",
