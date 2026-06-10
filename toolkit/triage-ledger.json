@@ -617,6 +617,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "syntropia|src/v0.5.0/Vault.sol|drift|",
+      "target": "syntropia",
+      "file": "src/v0.5.0/Vault.sol",
+      "line": 0,
+      "detector": "drift",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Verbatim Lagoon v0.5.0 fork (3rd one; forkdrift fingerprint+diff). No custom yield-aggregator drift. Missing v0.5.1 whitelist patch is MOOT: all 3 vaults isActivated=false (permissionless on-chain). CLEAN. Reachability via DefiLlama-Adapters core addrs.",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "usual-eth0|token/Usual.sol|target|",
       "target": "usual-eth0",
       "file": "token/Usual.sol",
