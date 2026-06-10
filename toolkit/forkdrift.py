@@ -40,6 +40,13 @@ BASES = [
                  "hopper.storage.feemanager", "hopperlabs.xyz"],
     },
     {
+        "name": "M^0 MExtension (M token wrapper / yield-extension framework)",
+        "repo": "https://github.com/m0-foundation/m-extensions",
+        "min": 1,  # erc7201:M0.storage is the M^0 framework's impl-internal namespace
+        "sigs": ["erc7201:m0.storage", "m0.storage.myieldtoone", "m0.storage.freezable",
+                 "imtokenlike", "swapfacility"],
+    },
+    {
         "name": "Compound v2 / Venus (cToken money market)",
         "repo": "https://github.com/compound-finance/compound-protocol (or VenusProtocol/venus-protocol)",
         "min": 2,

@@ -408,6 +408,17 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "nerona|src/MExtension.sol|ac|",
+      "target": "nerona",
+      "file": "src/MExtension.sol",
+      "line": 82,
+      "detector": "sibling",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Nerona/USDnr = M^0 MExtension framework fork (forkdrift now IDs it: erc7201:M0.storage). enableEarning/disableEarning ungated = by-design (permissionless earning toggle for the extension; wrap/unwrap are onlySwapFacility). Audited M^0 base; custom = thin JMIExtension. Reached via Etherscan key (was Sourcify-blocked).",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",

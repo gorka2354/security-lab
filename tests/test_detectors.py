@@ -424,6 +424,8 @@ _lag = forkdrift.detect_base("bytes32 c = 0x..; /// @custom:storage-location erc
 check(bool(_lag) and "Lagoon" in _lag[0][1], "forkdrift.detect_base flags the hopper.storage namespace as Lagoon")
 check(forkdrift.detect_base("contract MyToken is ERC20 { uint x; }") == [],
       "forkdrift.detect_base: original code (no base sig) -> no false fork match")
+check(forkdrift.detect_base("/// @custom:storage-location erc7201:M0.storage.MYieldToOne\ncontract X{}")[0][1].startswith("M^0"),
+      "forkdrift.detect_base: M^0 MExtension framework (erc7201:M0.storage namespace) matches (Nerona/USDnr)")
 check(forkdrift.detect_base("library SupplyLogic{function executeSupply()internal{} } contract P{function borrowLogic()external{}}")[0][1].startswith("Aave"),
       "forkdrift.detect_base: Aave v3 IMPL-INTERNAL fingerprint (SupplyLogic+executeSupply+borrowLogic) matches")
 # anti-FP (the Ledgity case): a protocol that INTEGRATES Aave (calls IPool.getReserveData / reads
