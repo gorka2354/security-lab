@@ -1,0 +1,74 @@
+---
+name: hunt
+description: >
+  White-hat smart-contract bug hunt — the full security-lab pipeline in one command. Use when egor says
+  "hunt <target>", "/hunt", "найди баги в <repo/address/protocol>", or "насёрчи свежий таргет". Sources a
+  target (or takes one), reaches its live code, triages (fork? audited? novel?), runs the detectors +
+  hypothesizer, does the L4 multi-mindset read, kill-gates every candidate, and only then proposes a finding.
+  Orchestrates toolkit/ + the L4-READ / VERIFY methodology. White-hat only; egor discloses, never me.
+---
+
+# /hunt — one-command bug hunt (MVP)
+
+A thin orchestrator over the security-lab engine. Run the phases in order; STOP early when a phase says clean.
+Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Etherscan: `export ETHERSCAN_API_KEY=…`
+(egor's free key) so `fetch_source` reaches Etherscan-verified source beyond Sourcify. ASCII output only.
+
+## Hard rules (never break)
+- **White-hat:** only in-scope authorised bounties/contests; responsible disclosure; never touch others' funds.
+- **Known/fixed ≠ finding.** **egor discloses, never me.** **FPs are worse than misses** (see VERIFY).
+- **LIVE-FIRST:** a bug matters only in DEPLOYED + active + in-scope code (verify deploy in Phase 1).
+
+## Phase 0 — SOURCE a target (skip if egor gave one)
+- Fresh live contest (best EV — guaranteed-unaudited + paid): `python toolkit/contest_monitor.py` -> pick a
+  [FRESH] our-zone contest (hunt it first-hours). It's cron'd to alert on launches.
+- Deployed-but-unaudited: `python toolkit/scout.py --source defillama --resolve-top 12` (CORE-repo resolve);
+  for closed-source, get core addrs from the DefiLlama adapter (`projects/<module>/index.js`).
+- In-scope + paid: `python toolkit/scout.py --source immunefi`.
+- GameFi/gamble (egor's edge): scout covers Gambling/Luck Games/Lottery/Betting now; or a fresh game launch he names.
+- Ledger suppresses already-hunted; pick the top un-suppressed, our-zone, reachable candidate.
+
+## Phase 1 — REACH the live code + LIVE-FIRST
+- By address: `python toolkit/fetch_source.py <addr> --chain <id> --proxy` (verified on-chain impl). The
+  DefiLlama `address` is often the GOV TOKEN -> use the adapter's CORE addr, or the protocol's GitHub repo.
+- By repo: `git clone --depth 1 <repo> hunts/_volume/<key>`.
+- **Confirm DEPLOYED + in-scope + a real bounty** before prioritising. Not deployed -> fix-but-don't-prioritise.
+
+## Phase 2 — TRIAGE (fork? audited? novel?) -> route
+`python toolkit/forkdrift.py fingerprint <src>`:
+- **FORK of a known base** -> `forkdrift.py diff <src> <canon>/src`. Hunt only the DRIFT (custom mods) + any
+  version-lag patch that APPLIES to the live config (check on-chain, e.g. whitelist activated?). Verbatim + moot = clean.
+- **AUDITED** (audit/ dir, firms, or C4 comments in source) -> do NOT re-review the covered core. Route to
+  (1) post-audit drift, (2) out-of-scope/integration code, (3) economic invariants. (Solodit-known -> kill, gate H.)
+- **NO base + no audit** -> greenfield, high-EV: hunt the WHOLE surface.
+
+## Phase 3 — DETECT (cheap pre-filter; this AIMS, it doesn't FIND)
+- `python toolkit/recon.py <src>` (22 detectors) — read `[!]` first; ledger already suppresses known/FP.
+- `python toolkit/hypothesize.py <src>` — shared-state EMERGENT seeds + ROUND-TRIP pairs + the invariant MENU
+  (CORE/ECONOMIC/GAMEFI) to prove.
+- (optional depth) `analyze.py` (Slither) / `scope.py` (function-role map) / `scaffold.py` (invariant harness).
+
+## Phase 4 — L4 READ (this FINDS; never conclude "clean" from a quiet recon)
+Run **`toolkit/L4-READ.md`** on each Tier-1 file / lead: 4 mindsets (Attacker/Accountant/Spec-Auditor/Edge-Case)
+× 4 lenses + Feynman 7-cat interrogation + the 7-check "what's-missing" sweep + coupled-state + masking-code flag.
+Output per lead: a concrete **WHO / WHAT / HOW MUCH** (else it's gate-D speculative).
+(Shadow-benchmark lesson: recon points at the file; the L4 Accountant/coupled-state read finds the economic bug.)
+
+## Phase 5 — VERIFY (FPs are worse than misses)
+Run **`toolkit/VERIFY.md`** on every candidate: 8 kill-gates (generic/theoretical/intentional/speculative/
+admin/dust/out-of-context/publicly-known) + 10 FP-patterns -> verdict TP / LT / DOWNGRADE / FP / IE. Only TP/LT
+proceed. Calibrate severity HONESTLY.
+
+## Phase 6 — PROVE
+Foundry PoC on a fork/local, OR a verbatim-formula reimplementation (the Ledgity method) — NEVER "by reading".
+Numbers before/after; a runnable WHO/WHAT/HOW-MUCH scenario.
+
+## Phase 7 — RECORD
+- EVERY verdict -> `python toolkit/ledger.py add --target … --detector … --verdict fp|known|wontfix|real|todo --reason "…"`.
+  FP-by-pattern -> also a recon precision fix (the self-improvement loop).
+- Hunt log -> `hunts/<target>/HUNT.md`. New transferable pattern -> `research/patterns/<class>/`.
+- TP/LT -> disclosure draft (`hunts/<target>/DISCLOSURE-*.md`); confirm scope + bounty; **egor sends it.**
+
+## Knowledge & memory
+After each hunt, update the Obsidian vault (pattern + heuristic) per the project CLAUDE.md, and the project
+memory if the diagnosis/strategy shifted. The engine compounds: every bug studied -> a detector; every FP -> precision.

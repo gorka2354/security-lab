@@ -63,6 +63,7 @@
 ```
 security-lab/
 ├─ README.md / CLAUDE.md / ROADMAP.md / PLAYBOOK.md  ← вход · контекст · роадмап · цепочка охоты
+├─ .claude/skills/hunt/SKILL.md       ← `/hunt` — весь пайплайн в одной команде (source→reach→triage→detect→L4-read→verify→prove→record)
 ├─ toolkit/
 │   ├─ scout.py                       ← STAGE-0 ОПТИМИЗАТОР: contests (GH) + DefiLlama (deployed-unaudited, +CORE-repo резолв) + Immunefi (in-scope addrs+payout) → ledger-supp + ранг
 │   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
