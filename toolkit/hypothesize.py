@@ -381,13 +381,32 @@ def main():
         out.append("  (no invariant harness found - point at the repo ROOT to scan test/; "
                    "or they don't fuzz -> even more room)")
 
-    out.append("\n## 4. Suggested STRONGER invariants (template)")
+    # menu of STRONGER invariants to assert in the L4 read (mined from Krait economic-design + gamefi primer,
+    # MIT, + our own hunts: Ledgity first/last-mover, RockSolid withdrawal-queue rate, Morpho bad-debt, Monetrix
+    # M-01 backing). Pick the group matching the target; each is a thing to PROVE (fuzz/PoC), not read.
+    out.append("\n## 4. Suggested STRONGER invariants (menu -- pick by sector, prove don't read)")
+    out.append("  CORE:")
     for s in ["solvency: SUM(user claims) <= protocol assets, ALL times, ALL markets",
               "conservation: total debt issued == total credit owed (no value minted in matching)",
               "round-trip: do(x) then undo() leaves caller <= start (never richer)",
               "cross-component: an op in A never breaks B's invariant via shared state",
               "no-free-value: no op sequence leaves caller richer with protocol unchanged"]:
-        out.append(f"- {s}")
+        out.append(f"  - {s}")
+    out.append("  ECONOMIC (DeFi):")
+    for s in ["backing-conservation: SUM(ALL liabilities incl borrow/PM) <= backing, across EVERY settle path (Monetrix M-01)",
+              "accrual-before-param-change: setRate/setFee/setRewardRate calls accrue()/sync() FIRST (else retroactive over/under-distribution)",
+              "withdrawal-queue rate lock: rate at request-time == rate at fulfillment-time (else arb; Lagoon/RockSolid)",
+              "liquidation: liquidator_profit>0 at the threshold (else silent bad debt); bad-debt socialized BEFORE the liquidator bonus is paid (ordering)",
+              "first/last-mover: first depositor can't inflate share price (virtual shares); last exiter not bricked by rounding (Ledgity)",
+              "price-source consistency: liquidation and settlement use the SAME price (no mark-vs-index split); fee-path parity (no cheaper bypass)"]:
+        out.append(f"  - {s}")
+    out.append("  GAMEFI / NFT (egor's edge):")
+    for s in ["mint-supply-cap holds on ALL paths incl admin; uncapped-emission inflation bounded",
+              "reward requires real gameplay state-change (no no-op claim) + anti-Sybil/flash-loan multiplication",
+              "outcome integrity: on-chain RNG outcome (rarity/loot/battle/raffle) not predictable AND not revert-to-reroll-able AND VRF-callback not retry-gameable",
+              "asset-locking: a locked/staked NFT can't transfer/sell externally (cross-contract state synced on _update/transfer)",
+              "callback safety: ERC721/1155 receiver hook during claim/mint/transfer can't reenter (the #1 NFT root cause, 35%+)"]:
+        out.append(f"  - {s}")
 
     # bridge: recon pattern flags per function (analyzer -> hypothesizer), then auto-propose
     rflags = {}
