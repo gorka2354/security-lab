@@ -36,8 +36,24 @@
   фильтруй дрейф/гипотезы по этому — копай ЖИВОЙ код первым. Не-деплоенную находку фиксируй, но не приоритезируй.
 
 ## Текущий прогресс
-Построен полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH**
-(recon 12-детекторов → Slither → scaffold+fuzz → L4=я). Память вердиктов (ledger) гасит
-шум. Прогнан на ~7 живых таргетах — все high-signal лиды свелись к FP/known/by-design
-(норма для аудированного кода). Первый живой лид на доверификации: оракул-адаптер stakelink
-(`hunts/stakelink/HUNT.md`). Дальше: свежие in-scope таргеты пачками + доверка лида.
+**Движок собран end-to-end И упакован в скилл `/hunt`** (`.claude/skills/hunt/SKILL.md`) — одна команда
+проходит весь конвейер:
+- **SOURCE:** `scout.py` — contests (GH) + **v2 DefiLlama** (deployed-unaudited, +CORE-repo резолв) +
+  **v3 Immunefi** (точные in-scope адреса+выплата); `contest_monitor.py` (**тайминг-эдж**: cron алертит на
+  свежий контест → хантим первыми). Сектор расширен на GameFi/гэмблинг/лотереи/предикшн.
+- **REACH:** `fetch_source.py` (verified-source по адресу; **Etherscan-ключ** в env → покрытие шире Sourcify)
+  + **DefiLlama-Adapters** как источник CORE-адресов (не gov-токен).
+- **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф
+  дрейфа + audited-ли? → роутер (drift / out-of-scope / economic / greenfield). LIVE-FIRST.
+- **DETECT:** `recon.py` (**22 детектора**) + `hypothesize.py` (shared-state seeds + инвариант-меню
+  CORE/ECONOMIC/GAMEFI). Память `ledger.py` гасит шум.
+- **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + what's-missing + coupled-state) →
+  `toolkit/VERIFY.md` (8 kill-gates + 10 FP-паттернов; «FP хуже miss'а»). Методология заимствована у Krait (MIT).
+- **193 golden-теста** (CI-гейт). Цикл самоулучшения: баг → детектор; FP → точность.
+
+**Находки:** 1 подтверждённая — **Ledgity (Medium, PoC)**; остальные (RockSolid/Royco/Stobox/Alchemix/Syntropia/
+Monetrix-bench…) свелись к clean/audited/forks. **Урок сессии:** достижимое hunting-пространство доминируют
+аудированные/платформенные деплои → finding-density упирается в **свежесть+достижимость** цели, не в тулинг.
+Поэтому: contest_monitor ловит свежие контесты, reachability-стек достаёт CORE-код, EV-ставка — live-контесты
+(гарантированно недо-ревьюнуты) + GameFi-ниша (твой эдж). Бэклог: Solodit-кросс-реф, `shadow.py`-бенчмарк-харнесс.
+Точка продолжения — в memory (`next-scout-v2-underreviewed-targets.md`).

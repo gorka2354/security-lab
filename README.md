@@ -38,7 +38,7 @@
   +----------------------------------------------------------+
 ```
 
-**Цикл самосовершенствования:** изучили реальный баг → добавили в картотеку + детектор → ловим класс на любом репо. Ложная тревога → подтачиваем (за разработку — **23 фикса точности**, свежие — из живого таргета Morpho Midnight). Каждый вердикт пишется в **ledger**, поэтому уже разобранные лиды больше не всплывают — **шум падает с каждым прогоном**. Чем больше примеров — тем умнее система.
+**Цикл самосовершенствования:** изучили реальный баг → добавили в картотеку + детектор → ловим класс на любом репо. Ложная тревога → подтачиваем (за разработку — **32 фикса точности**, свежие — из живых охот (Morpho Midnight, Mellow, Royco-V2 OZ-AccessManager)). Каждый вердикт пишется в **ledger**, поэтому уже разобранные лиды больше не всплывают — **шум падает с каждым прогоном**. Чем больше примеров — тем умнее система.
 
 **Пайплайн «паттерн → детектор → инвариант»** (`research/` → `recon.py` → `invariant-lab/`): каждый класс багов изучаем в [`research/patterns/`](research/) (T0→T3 + примеры), статически-ловимое куём в детектор recon, а reasoning-слой (T2/T3) — в **самопроверяющийся invariant-шаблон**. Прогнан на живом коде обоими плечами: детекторное (Morpho Midnight) + инвариантное (реальный OZ ERC4626).
 
@@ -74,8 +74,9 @@ security-lab/
 │   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
 │   ├─ ledger.py · watch.py · pdftext.py  ← память вердиктов · cron-монитор парковок · текст из аудит-PDF
 │   ├─ contest_monitor.py             ← ТАЙМИНГ-ЭДЖ: live audit-contests (Cantina/Sherlock/C4) → [NEW]/[FRESH<48ч] → хант первым
-├─ research/            ← БИБЛИОТЕКА ПАТТЕРНОВ (T0→T3): паттерн → детектор → инвариант
-│   └─ TEMPLATE.md + patterns/{accounting,pricing,liquidation,signatures}/  (6 паттернов)
+├─ research/            ← БИБЛИОТЕКА ПАТТЕРНОВ (T0→T3) + разборы: паттерн → детектор → инвариант
+│   ├─ patterns/{accounting,pricing,liquidation,signatures,gamefi}/  (паттерны + GameFi-сектор)
+│   └─ krait-study.md · shadow-benchmark-monetrix.md   ← разбор Krait (заимствования) · бенчмарк пайплайна
 ├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ
 ├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
 ├─ monitor/watchlist.json  ← припаркованные находки → watch.py следит, [FIRED] при деплое
@@ -92,8 +93,8 @@ reentrancy (CEI) · arbitrary-call (approval-drain) · **signature/ecrecover** (
 **swap-slippage/deadline** (sandwich/MEV) · **mapping-default-trust** (Nomad) · **strict-balance-equality** (force-feed DoS) ·
 dangerous primitives · **L2/AA-footguns** (zkSync) · **NFT-receiver-hook-reentrancy** (safeMint/safeTransfer callback, #1 GameFi class).
 Access-control (sibling+access) объединены в группу — один вердикт гасит оба. Каждый детектор — **lead, не verdict**.
-5 новых детекторов + 2 уточнения выкованы из библиотеки паттернов (`research/`) и живых охот; закалён **fix#14–#25**
-(последние fix#24/#25 + `det_weak_randomness` — из GameFi-прогона EtherOrcs/Wolf Game).
+Новые детекторы + уточнения выкованы из библиотеки паттернов (`research/`), живых охот и разбора Krait; закалён **fix#1–#32**
+(последние: #31 Mellow bare-mint-делегатор, **#32 OZ AccessManager `restricted`**; `det_nft_callback` + direct-modulo RNG — GameFi).
 
 ## База знаний — отдельно (Obsidian)
 `...\Obsidian Vault\Крипто безопасность\` — паттерны, разборы, findings, шаблоны.
@@ -101,9 +102,15 @@ Access-control (sibling+access) объединены в группу — оди�
 
 ## Быстрый старт
 ```bash
-export PATH="$HOME/.foundry/bin:$PATH"
+# /hunt — весь конвейер в одной команде (см. .claude/skills/hunt/SKILL.md): source→reach→triage→detect→L4→verify
+export PATH="$HOME/.foundry/bin:$PATH"; export ETHERSCAN_API_KEY="<key>"   # ключ → fetch_source шире Sourcify
+python toolkit/contest_monitor.py                  # ТАЙМИНГ: свежие live-контесты ([NEW]/[FRESH]); cron'абельно
+python toolkit/scout.py --source defillama --resolve-top 12   # SOURCE: deployed-unaudited + CORE-repo резолв
+python toolkit/scout.py --source immunefi          # SOURCE: in-scope адреса + выплата
+python toolkit/fetch_source.py <addr> --chain 1 --proxy --out hunts/_volume/<x>   # REACH: verified-source
+python toolkit/forkdrift.py fingerprint <src>      # TRIAGE: форк? audited? → роутер
 python toolkit/orchestrate.py                      # ОБЛАВА: скан targets.txt → очередь (с ledger-подавлением)
-python toolkit/recon.py <repo>                     # L1 скан одного репо
+python toolkit/recon.py <repo>                     # L1 скан одного репо (22 детектора)
 python toolkit/diffscan.py <repo> --since-days 120 # СВЕЖЕСТЬ: только изменённое за 120 дней
 python toolkit/ledger.py add --target X --file F --detector sibling --snippet "function f(...)" --verdict fp --reason "..."
 python toolkit/ledger.py stats                     # сколько вердиктов / что гасится
@@ -115,7 +122,7 @@ forge test --root invariant-lab -vvv               # прогнать фаззи
 
 ## Статус
 - ✅ Полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH** (recon → Slither → scaffold+fuzz → L4)
-- ✅ 7 классов багов + 7 эвристик в картотеке; **22 детектора**; закалён **31 фиксом** (fix#14–#31; #27/#28 Centrifuge, #29/#30 dreUSD-контест, #31 bare-mint-делегатор из живого Mellow-контеста)
+- ✅ 7 классов багов + 7 эвристик в картотеке; **22 детектора**; закалён **32 фиксами** (fix#1–#32; #27/#28 Centrifuge, #29/#30 dreUSD, #31 Mellow bare-mint, #32 OZ AccessManager `restricted`)
 - ✅ **research/** — библиотека из 6 баг-паттернов (T0→T3) + TEMPLATE; пайплайн паттерн → детектор → инвариант
 - ✅ **invariant-lab/** — 6 самопроверяющихся invariant-шаблонов + wire к реальному OZ ERC4626 (25 тестов, fmt-чисто)
 - ✅ **Регресс-тесты** (`tests/test_detectors.py`, **193** golden-fixture проверок) — жёсткий гейт: фикс не сломает другой детектор молча
