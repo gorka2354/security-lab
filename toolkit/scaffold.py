@@ -394,6 +394,7 @@ contract CryticToFoundry is Test, TargetFunctions {{
 
     echidna_yaml = f'''# Echidna config for the {cname} chimera harness (toolkit/scaffold.py).
 testMode: property
+prefix: "property_"   # our invariants are property_* (not echidna's default echidna_ prefix)
 testLimit: 50000
 seqLen: 100
 corpusDir: "echidna-corpus"

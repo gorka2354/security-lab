@@ -619,6 +619,8 @@ check("assertTrue(property_solvency())" in _c["CryticToFoundry.sol"] and "invari
       "scaffold chimera: CryticToFoundry wraps each property_* in a Foundry invariant_*")
 check(all(a in _c["echidna.yaml"] for a in scaffold.ACTORS),
       "scaffold chimera: echidna.yaml sender list = the shared ACTORS (msg.sender is always an actor)")
+check('prefix: "property_"' in _c["echidna.yaml"],
+      "scaffold chimera: echidna.yaml sets prefix=property_ (else echidna ignores our property_* and tests nothing -- dogfood fix)")
 check('"propertyTesting"' in _c["medusa.json"] and scaffold.ACTORS[0] in _c["medusa.json"],
       "scaffold chimera: medusa.json enables propertyTesting + lists the sender addresses")
 

@@ -55,12 +55,21 @@ Install the engines (precompiled Linux binaries -> `~/seclab/bin`):
 curl -sL https://github.com/crytic/medusa/releases/download/v1.5.1/medusa-linux-x64.tar.gz | tar xz -C ~/seclab/bin
 curl -sL https://github.com/crytic/echidna/releases/download/v2.3.2/echidna-2.3.2-x86_64-linux.tar.gz | tar xz -C ~/seclab/bin
 ```
-For a hardhat/foundry target, crytic-compile builds it (needs deps + a `.env` if the config uses dotenv-safer):
+Running a `scaffold.py --engine chimera` harness (props are `property_*`, the harness lives in `test/recon/`):
+```sh
+forge test --mc CryticToFoundry                                              # Foundry: the invariants + repro test
+echidna . --contract CryticTester --config test/recon/echidna.yaml \
+         --crytic-args "--foundry-compile-all"                               # --foundry-compile-all = include test/
+medusa fuzz --config test/recon/medusa.json                                  # second engine
+```
+Two gotchas the generated configs now handle (found by dogfooding): echidna needs `prefix: "property_"` (else it
+looks for `echidna_*` and tests nothing), and `--foundry-compile-all` so crytic-compile sees the test/ contracts.
+
+For a hardhat/foundry target with its OWN echidna harness (e.g. MUSD's `EchidnaTest`, `echidna_*` prefix),
+crytic-compile builds it (needs deps + a `.env` if the config uses dotenv-safer):
 ```sh
 cd <repo>/solidity && cp -n .env.example .env && npx hardhat compile   # warm the solc cache (avoids transient HH502)
-echidna . --config echidna.yaml --contract <TestContract>              # property mode: echidna_* invariants
-medusa fuzz --config medusa.json                                       # second engine
-forge test --mc CryticToFoundry                                        # the SAME props under Foundry (chimera)
+echidna . --config echidna.yaml --contract <TestContract>              # their property mode: echidna_* invariants
 ```
 **Harness portability:** an echidna-tuned harness (specific deployer/senders + `balanceContract`) often REVERTS
 on medusa's deploy model. That's the whole point of `scaffold.py --engine chimera`: ONE portable harness +
@@ -77,6 +86,11 @@ matching `echidna.yaml` + `medusa.json`, so both engines run the same `property_
     **all 4 invariants PASSING incl `echidna_sum_of_debt`** (the hunt residual -> held at this depth).
   - medusa 1.5.1 installed + compiles MUSD, but the echidna-tuned harness reverts on its deploy model
     (use a chimera harness for both).
+- **Chimera portability proven end-to-end (`scaffold.py --engine chimera` on StakingRewards):** ONE generated
+  harness ran under **Foundry + Echidna + Medusa**. FIXED -> all green (Foundry 6/6, echidna 5/5, medusa 9/9);
+  flip `BUGGY=true` -> **all three catch the planted insolvency** (`property_solvency` fails on echidna+medusa
+  after a ~7-day time warp; Foundry's deterministic `test_solvency_after_duration` confirms it). Dogfooding this
+  fixed the generated echidna.yaml (`prefix: "property_"`) and documented `--foundry-compile-all`.
 - `forge 1.7.1` builds; node 20.20.2 + pnpm 8.13.1 for hardhat targets.
 
 See [windows-dynamic-layer-needs-linux-lane] memory + `ROADMAP.md` (L3 row). ASCII only.
