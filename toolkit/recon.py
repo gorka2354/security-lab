@@ -55,6 +55,7 @@ INLINE_AUTH = re.compile(
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforce[A-Za-z]\w*\s*\(|"   # fix#18: Diamond/library enforce-auth (enforceIsContractOwner / enforceIsController / LibX.enforce*)
     r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
+    r"_?require\w*Caller\w*\s*\(|"   # fix#33: Liquity/Threshold inline caller-auth (_requireCallerIsBorrowerOperations / _requireCallerIsStabilityPool / _requireCallerIsBOorTroveM) -- the #1 fork-CDP FP source
     r"_only\w+\s*\(|"   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
     r"_is(?:Manager|Authoriz\w*|Authed|Ward|Admin|Owner|Operator|HubManager|PoolManager|PoolAdmin)\w*\s*\(|"  # fix#27: inline predicate gate (Centrifuge Hub `_isManager(poolId)`)
     r"_authorize\s*\(|_validate(?:Controller|Caller|Sender|Owner|Operator|Signature|Sig)\w*\s*\(")  # fix#30: caller-auth helpers (DRE `_authorize` EIP-712 sig, MagicSwap `_validateController`) -- NOT input validators (_validateAmount/_validateAddress sanctions)

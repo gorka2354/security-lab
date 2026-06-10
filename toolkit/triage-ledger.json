@@ -397,6 +397,72 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "mezo-musd|solidity/contracts/BorrowerOperations.sol|ac|function addColl(...)",
+      "target": "mezo-musd",
+      "file": "solidity/contracts/BorrowerOperations.sol",
+      "line": 189,
+      "detector": "access",
+      "snippet": "function addColl(...)",
+      "verdict": "fp",
+      "reason": "self-scoped user op: _adjustTrove(msg.sender,msg.sender,...) operates on caller's OWN trove (not privileged).",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "mezo-musd|solidity/contracts/BorrowerOperationsSignatures.sol|signature|function _verifySignature(...)",
+      "target": "mezo-musd",
+      "file": "solidity/contracts/BorrowerOperationsSignatures.sol",
+      "line": 604,
+      "detector": "signature",
+      "snippet": "function _verifySignature(...)",
+      "verdict": "known",
+      "reason": "EIP-712 delegation well-built: deadline enforced, nonce consumed, signer==borrower, per-action typehash (no cross-action replay), OZ EIP712Upgradeable (chainid-safe), recipient bound in signature + properRecipient guard. Cantina-audited 2025-04.",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "mezo-musd|solidity/contracts/InterestRateManager.sol|supply|function updateSystemInterest() external",
+      "target": "mezo-musd",
+      "file": "solidity/contracts/InterestRateManager.sol",
+      "line": 163,
+      "detector": "supply",
+      "snippet": "function updateSystemInterest() external",
+      "verdict": "fp",
+      "reason": "permissionless-by-design simple-interest accrual; mints exactly owed interest to PCV; over-frequent calls only round DOWN (protocol loses dust, attacker gains nothing). accrue-before-change ordering respected at all principal-change sites (updateSystemAndTroveInterest called first).",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "mezo-musd|solidity/contracts/InterestRateManager.sol|supply|aggregate interestNumerator vs per-trove interestOwed reconciliation",
+      "target": "mezo-musd",
+      "file": "solidity/contracts/InterestRateManager.sol",
+      "line": 173,
+      "detector": "supply",
+      "snippet": "aggregate interestNumerator vs per-trove interestOwed reconciliation",
+      "verdict": "todo",
+      "reason": "RESIDUAL (needs dynamic proof): aggregate mint-to-PCV = elapsed*SUM(principal*rate)/D must equal SUM(per-trove charged interest) across ALL touch paths (redemption/liquidation/redistribution). Their echidna_sum_of_debt targets it; couldn't disprove statically. -> scaffold.py --engine chimera invariant target.",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "mezo-musd|solidity/contracts/PCV.sol|ac|function distributeMUSD() external nonReentrant",
+      "target": "mezo-musd",
+      "file": "solidity/contracts/PCV.sol",
+      "line": 270,
+      "detector": "access",
+      "snippet": "function distributeMUSD() external nonReentrant",
+      "verdict": "fp",
+      "reason": "permissionless-by-design fee distribution; splits fixed by governance params, no attacker-controlled destination (Liquity-class).",
+      "date": "2026-06-10"
+    },
+    {
+      "sig": "mezo-musd|solidity/contracts/TroveManager.sol|ac|external fns gated by _requireCallerIsBorrowerOperations()",
+      "target": "mezo-musd",
+      "file": "solidity/contracts/TroveManager.sol",
+      "line": 450,
+      "detector": "access",
+      "snippet": "external fns gated by _requireCallerIsBorrowerOperations()",
+      "verdict": "fp",
+      "reason": "Liquity/Threshold inline caller-auth (_requireCallerIs*); recon missed it -> fix#33 added. ~13 FPs.",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "native-credit|src/CreditVault.sol|liquidation|",
       "target": "native-credit",
       "file": "src/CreditVault.sol",

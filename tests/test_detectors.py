@@ -64,6 +64,12 @@ check(not flagged(recon.det_access, "contract C{function seizeShares(address f,a
       "fix#32: `restricted`-gated privileged fn (Royco RoycoVaultTranche.seizeShares) NOT flagged")
 check(flagged(recon.det_access, "contract C{function setRestrictedFlag(bool v) external { isRestricted=v; }}", "setRestrictedFlag"),
       "fix#32 guard: a setter that merely NAMES 'restricted' (no `restricted` modifier) is STILL flagged (word-boundary, no over-suppression)")
+check(not flagged(recon.det_access, "contract C{function decreaseTroveColl(address b,uint c) external { _requireCallerIsBorrowerOperations(); coll[b]=c; }}"),
+      "fix#33: Liquity/Threshold inline `_requireCallerIsBorrowerOperations()` caller-auth NOT flagged (Mezo MUSD fork; killed ~13 TroveManager FPs)")
+check(bool(recon.INLINE_AUTH.search("_requireCallerIsStabilityPool();")) and bool(recon.INLINE_AUTH.search("_requireCallerIsBOorTroveMorSP();")),
+      "fix#33: INLINE_AUTH matches the _requireCallerIs<X>() helper family")
+check(flagged(recon.det_access, "contract C{function setFee(uint x) external { fee=x; }}", "setFee"),
+      "fix#33 guard: a genuinely ungated setter (no _requireCaller*/only) is STILL flagged (no over-suppression)")
 check(not flagged(recon.det_access, "contract C{function updateAllowedChain(uint x) external { _onlyAdminOrRole(R); allowed[x]=true; }}"),
       "fix#14: inline _onlyAdminOrRole() auth-helper call NOT flagged")
 check(not flagged(recon.det_access, "contract C{function slash(address a) external checkAccess(this.slash.selector) { x=a; }}"),
