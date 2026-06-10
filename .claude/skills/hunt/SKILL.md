@@ -51,7 +51,8 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
 - `python toolkit/recon.py <src>` (22 detectors) — read `[!]` first; ledger already suppresses known/FP.
 - `python toolkit/hypothesize.py <src>` — shared-state EMERGENT seeds + ROUND-TRIP pairs + the invariant MENU
   (CORE/ECONOMIC/GAMEFI) to prove.
-- (optional depth) `analyze.py` (Slither) / `scope.py` (function-role map) / `scaffold.py` (invariant harness).
+- (optional depth) `analyze.py` (Slither) / `scope.py` (function-role map) / `scaffold.py` (invariant harness:
+  `--engine chimera` = Foundry+Echidna+Medusa from one harness; `--engine halmos` = symbolic `check_*`; Linux/CI/WSL).
 
 ## Phase 4 — L4 READ (this FINDS; never conclude "clean" from a quiet recon)
 Run **`toolkit/L4-READ.md`** on each Tier-1 file / lead: 4 mindsets (Attacker/Accountant/Spec-Auditor/Edge-Case)

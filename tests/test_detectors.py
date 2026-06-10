@@ -562,5 +562,68 @@ check(os.path.basename(forkdrift._repo_root_of("hunts/_volume/venus-flux")) == "
 check(os.path.basename(forkdrift._repo_root_of("x/hunts/_volume/foo/contracts")) == "foo",
       "forkdrift._repo_root_of: a `.../<target>/contracts` source subdir resolves to <target>")
 
+print("== scaffold (multi-engine harness: foundry / chimera / halmos) ==")
+import scaffold  # noqa: E402
+_SC = ("contract Vault {"
+       " function deposit(uint256 amt, address to) external { bal[to]+=amt; }"
+       " function flag(bool b, uint8 n) external { f=b; m=n; }"
+       " function pay() external payable { got+=msg.value; }"
+       " function peek() external view returns (uint256) { return bal[msg.sender]; } }")
+_cn, _body = scaffold.find_contract_body(_SC, "Vault")
+_fns = list(scaffold.parse_functions(_body))
+check(_cn == "Vault" and [n for n, _, _ in _fns] == ["deposit", "flag", "pay"],
+      "scaffold.parse_functions: external/public state-changing fns only (view peek() skipped)")
+
+# foundry engine: single-file, backward-compatible shape
+_fd = scaffold.emit_foundry("Vault", "Vault.sol", _fns)
+check(list(_fd) == ["VaultInvariants.t.sol"], "scaffold foundry: one .t.sol named <Contract>Invariants")
+_ftxt = _fd["VaultInvariants.t.sol"]
+check("VaultHandler" in _ftxt and "targetSelector" in _ftxt and "h_deposit" in _ftxt and "invariant_solvency" in _ftxt,
+      "scaffold foundry: Handler + targetSelector wiring + h_* handlers + universal invariant stubs")
+
+# chimera engine: ONE harness, three engines (Recon-Fuzz pattern)
+_c = scaffold.emit_chimera("Vault", "Vault.sol", _fns)
+check(set(_c) == {"Setup.sol", "Properties.sol", "TargetFunctions.sol", "CryticTester.sol",
+                  "CryticToFoundry.sol", "echidna.yaml", "medusa.json"},
+      "scaffold chimera: emits the 5 .sol parts + echidna.yaml + medusa.json")
+_tf = _c["TargetFunctions.sol"]
+check("vm." not in _tf and "bound(" not in _tf,
+      "scaffold chimera PORTABILITY: handlers use NO forge-std vm/bound (compile under Echidna/Medusa too)")
+check("a1 = a1 % 1e30;" in _tf,
+      "scaffold chimera: a full-width uint256 arg is clamped with % 1e30")
+check("n = n % 1e30" not in _tf,
+      "scaffold chimera COMPILE-SAFETY: a uint8 arg is NOT clamped by % 1e30 (the literal would not fit the type)")
+check("function h_pay() public payable {" in _tf and "target.pay{value: msg.value}()" in _tf,
+      "scaffold chimera: a payable fn -> payable handler forwarding msg.value")
+check("_actors[_actorSeed % _actors.length]" in _tf,
+      "scaffold chimera: an address param resolves to a configured fuzzer actor")
+check("function property_solvency() public view returns (bool)" in _c["Properties.sol"],
+      "scaffold chimera: universal invariants emitted as bool-returning property_* (Echidna/Medusa mode)")
+check("setup();" in _c["CryticTester.sol"],
+      "scaffold chimera: CryticTester ctor calls setup() (Echidna/Medusa entrypoint)")
+check("assertTrue(property_solvency())" in _c["CryticToFoundry.sol"] and "invariant_solvency()" in _c["CryticToFoundry.sol"],
+      "scaffold chimera: CryticToFoundry wraps each property_* in a Foundry invariant_*")
+check(all(a in _c["echidna.yaml"] for a in scaffold.ACTORS),
+      "scaffold chimera: echidna.yaml sender list = the shared ACTORS (msg.sender is always an actor)")
+check('"propertyTesting"' in _c["medusa.json"] and scaffold.ACTORS[0] in _c["medusa.json"],
+      "scaffold chimera: medusa.json enables propertyTesting + lists the sender addresses")
+
+# halmos engine: symbolic check_* suite
+_h = scaffold.emit_halmos("Vault", "Vault.sol", _fns)
+check(list(_h) == ["VaultSymbolic.t.sol"], "scaffold halmos: one <Contract>Symbolic.t.sol")
+_htxt = _h["VaultSymbolic.t.sol"]
+check("function check_deposit(uint256 a1, address a2) public" in _htxt,
+      "scaffold halmos: a check_<fn> per fn with symbolic typed args (uint256 + address)")
+check("--function check_" in _htxt and "function check_pay() public" in _htxt,
+      "scaffold halmos: run hint emitted + a no-arg check_ for the payable fn")
+
+# build('all') merges chimera + halmos; _clampable guards literal-type errors
+_all = scaffold.build("all", "Vault", "Vault.sol", _fns)
+check(len(_all) == 8 and "VaultSymbolic.t.sol" in _all and "CryticTester.sol" in _all,
+      "scaffold build('all'): chimera (7) + halmos (1) = 8 files")
+check(scaffold._clampable("uint256") and scaffold._clampable("int") and not scaffold._clampable("uint8")
+      and not scaffold._clampable("bytes32"),
+      "scaffold._clampable: only full-width int clamps with % 1e30 (uint8/bytes32 left raw -> no compile error)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

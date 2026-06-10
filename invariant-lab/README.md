@@ -14,6 +14,26 @@ test/templates/<class>/<Name>.t.sol             the per-class template library (
 reasoning** — the actual invariant + the adversarial action that breaks it. Use both: scaffold the handler, drop in
 the matching template's invariant.
 
+### Multi-engine scaffold (`scaffold.py --engine`)
+The scaffolder emits more than a Foundry harness now (Recon-Fuzz pattern — one harness, many engines):
+
+| `--engine` | Output | Runs under |
+|---|---|---|
+| `foundry` (default) | one `<C>Invariants.t.sol` (Handler + targetSelector + 5 invariant stubs) | Foundry |
+| `chimera` | `Setup/Properties/TargetFunctions/CryticTester/CryticToFoundry.sol` + `echidna.yaml` + `medusa.json` | **Foundry + Echidna + Medusa** |
+| `halmos` | `<C>Symbolic.t.sol` — symbolic `check_*` (prove an invariant on ALL inputs, not samples) | Halmos |
+| `all` | chimera + halmos | all |
+
+```sh
+python ../toolkit/scaffold.py src/Staking.sol StakingRewards --engine chimera --out test/recon
+```
+The `chimera` handlers are **engine-portable** (no forge-std `vm`/`bound`; `msg.sender` is one of the fuzzer-configured
+actors), so the *same* `property_*` invariants run under all three engines — Echidna shrinks counterexamples best,
+Medusa is fastest on big codebases, Foundry debugs the repro (`CryticToFoundry` wraps each `property_*` in an
+`invariant_*`). Generated Solidity is `forge build`-clean (verified). **Engine availability:** `forge` is local;
+`echidna`/`medusa`/`halmos` need Linux/CI/WSL (on this Windows box halmos can't build `safe-pysha3` without MSVC — same
+"canonical home is Linux/CI" caveat as Slither). The scaffold *generation* is engine-independent — author here, run on CI.
+
 ## Template convention (green-by-default, self-validating)
 Every template is **one file** with three parts:
 1. **A minimal mock with a `buggy` toggle** — `buggy=true` is the anti-pattern, `buggy=false` is the mitigation.
