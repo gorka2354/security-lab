@@ -27,6 +27,11 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
 - In-scope + paid: `python toolkit/scout.py --source immunefi`.
 - GameFi/gamble (egor's edge): scout covers Gambling/Luck Games/Lottery/Betting now; or a fresh game launch he names.
 - Ledger suppresses already-hunted; pick the top un-suppressed, our-zone, reachable candidate.
+- **REACHABILITY FIRST (dogfood lesson):** Phase 1 stalls on closed-source/obscure-chain protocols (Ample =
+  no DefiLlama addr, no public repo, JS site, Base/Monad/Katana). Before committing to a candidate, confirm
+  the CORE is reachable: a public GitHub repo, OR verified source on a fetch_source chain (eth/base/arb/bsc/
+  op/polygon/linea via the Etherscan key), OR a CORE addr in its DefiLlama adapter. If the only "address" is a
+  gov token / the chain is exotic / no verified source -> SKIP to the next candidate; don't burn time digging.
 
 ## Phase 1 — REACH the live code + LIVE-FIRST
 - By address: `python toolkit/fetch_source.py <addr> --chain <id> --proxy` (verified on-chain impl). The
