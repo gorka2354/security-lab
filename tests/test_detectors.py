@@ -320,6 +320,21 @@ check(not flagged(recon.det_weak_random, "contract C{ bytes32 d = keccak256(abi.
       "EIP-712 domain separator (block.chainid) NOT flagged as RNG")
 check(not flagged(recon.det_weak_random, "contract C{function id(uint x) internal view returns(bytes32){ return keccak256(abi.encodePacked(x, address(this))); }}"),
       "keccak with NO block entropy NOT flagged as RNG")
+# NEW: direct modulo of block entropy (no keccak) in an outcome ctx -> flagged
+check(flagged(recon.det_weak_random, "contract C{function spin() external { uint winner = block.prevrandao % players; payout(winner); }}"),
+      "det_weak_random: DIRECT modulo of block entropy (block.prevrandao % players, no keccak) flagged in an outcome ctx")
+check(not flagged(recon.det_weak_random, "contract C{function epoch() public view returns(uint){ return block.number % epochLength; }}"),
+      "det_weak_random guard: block.number % epochLength (no RNG-outcome word) NOT flagged (no time-bucket FP)")
+
+print("== det_nft_callback (ERC721/1155 receiver-hook reentrancy -- #1 NFT bug) ==")
+check(flagged(recon.det_nft_callback, "contract G is ERC721{function claim() external { _safeMint(msg.sender, nextId); totalMinted++; }}", "claim"),
+      "det_nft_callback: _safeMint THEN state write (totalMinted++), no nonReentrant -> receiver-hook reentrancy")
+check(not flagged(recon.det_nft_callback, "contract G is ERC721{function claim() external nonReentrant { _safeMint(msg.sender, nextId); totalMinted++; }}"),
+      "det_nft_callback guard: nonReentrant -> NOT flagged")
+check(not flagged(recon.det_nft_callback, "contract G is ERC721{function claim() external { totalMinted++; _safeMint(msg.sender, nextId); }}"),
+      "det_nft_callback guard: state write BEFORE _safeMint (CEI-correct) -> NOT flagged")
+check(not flagged(recon.det_nft_callback, "contract V{using SafeERC20 for IERC20; function pull(address t,uint a) external { IERC20(t).safeTransferFrom(msg.sender, address(this), a); deposited[msg.sender]+=a; }}"),
+      "det_nft_callback guard: SafeERC20 safeTransferFrom in a NON-NFT file (no hook) -> NOT flagged (no FP)")
 
 print("== det_swap_guard (slippage / deadline; sandwich/MEV) ==")
 check(flagged(recon.det_swap_guard, "contract C{function zap(uint a) external { router.swapExactTokensForTokens(a, 0, path, to, block.timestamp); }}"),

@@ -603,6 +603,10 @@ RNG_OUTCOME = re.compile(r"random|\brand\b|\b_rand\b|\bseed\b|\broll\b|spin|raff
                          r"dice|shuffle|chance|odds", re.I)
 RNG_EOA = re.compile(r"tx\.origin\s*==\s*(msg\.sender|_msgSender)|"
                      r"(msg\.sender|_msgSender\(\))\s*==\s*tx\.origin|extcodesize|noCheaters", re.I)
+# stricter outcome words for the DIRECT-modulo path (no keccak) -> drops the common/ambiguous ones
+# (mint/reward/draw/loot/breed) that would FP on `block.number % epoch`; keeps the unambiguous-RNG words.
+RNG_OUTCOME_STRICT = re.compile(r"random|\brand\b|\bseed\b|\broll\b|spin|raffle|lottery|jackpot|"
+                                r"winner|rarity|gacha|dice|shuffle|\bodds\b|wager", re.I)
 
 
 def det_weak_random(text, rel):
@@ -644,6 +648,70 @@ def det_weak_random(text, rel):
         if has_vrf:
             note += " | file ALSO references VRF -> verify which path actually drives the outcome"
         out.append((rel, ln, "keccak256(... block entropy ...)", note, 1 if has_vrf else 0))
+    # DIRECT modulo of block entropy (NO keccak) feeding an outcome -> e.g. `block.prevrandao % numPlayers`,
+    # `blockhash(n) % 100`. Same grind (predict-and-revert / revert-to-reroll). Stricter outcome guard to
+    # avoid `block.number % epoch` FPs; skip statements already counted by the keccak loop.
+    for m in RNG_ENTROPY.finditer(text):
+        semib = text.rfind(";", max(0, m.start() - 200), m.start())
+        s0 = semib + 1 if semib > 0 else max(0, m.start() - 200)
+        semia = text.find(";", m.end())
+        s1 = semia if 0 < semia < m.end() + 120 else m.end() + 120
+        stmt = text[s0:s1]
+        if "keccak256" in stmt or "chainid" in stmt.lower() or "%" not in stmt:
+            continue
+        if not RNG_OUTCOME_STRICT.search(text[max(0, m.start() - 300):s1]):
+            continue
+        ln = lineno(text, m.start())
+        if ln in seen:
+            continue
+        seen.add(ln)
+        note = ("DIRECT modulo of block entropy (no keccak) drives an outcome -> predictable RNG; "
+                "grindable (predict-and-revert / revert-to-reroll). Use commit-reveal or Chainlink VRF")
+        if eoa:
+            note += " | EOA-gate = speed bump only (simulate+selective-submit)"
+        out.append((rel, ln, "block.<entropy> % n (direct)", note, 0))
+    return out
+
+
+# ── Detector 18b: ERC721/1155 receiver-hook reentrancy (the #1 on-chain-game/NFT bug class) ──
+NFT_SAFE = re.compile(r"\b_?safeMint\s*\(|\bsafeBatchTransferFrom\s*\(|\b_?safeTransferFrom\s*\(|\b_safeTransfer\s*\(")
+NFT_MINT_HOOK = re.compile(r"\b_?safeMint\s*\(")   # unambiguous: ERC721/1155 mint -> always a receiver hook
+NFT_CTX = re.compile(r"\btokenId\b|ERC721|ERC1155|onERC721Received|onERC1155Received|_safeMint|"
+                     r"IERC721|IERC1155|\bNFT\b|tokenURI|_mintBatch", re.I)
+
+
+def det_nft_callback(text, rel):
+    """ERC721/1155 `safeMint`/`safeTransferFrom` calls the RECIPIENT's `onERCxxxReceived` hook -- an
+    attacker-controlled callback -- and if a state write (supply counter, claimed flag, reward) follows it
+    (CEI violation) with no nonReentrant, the recipient reenters mid-mint/claim: re-mint past a supply cap,
+    double-claim a reward, or skip a per-address limit. This is the #1 NFT-game root cause (~35% of NFT
+    audit findings); det_reentrancy MISSES it because safeMint isn't a low-level `.call`/`.transfer`.
+    Scoped to NFT-context files to avoid SafeERC20 `safeTransferFrom` (which has no hook)."""
+    out = []
+    if not NFT_CTX.search(text):          # not an NFT file -> a bare safeTransferFrom is SafeERC20, skip
+        return out
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        if GUARD.search(blob):            # nonReentrant -> protected
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        sm = NFT_SAFE.search(body)
+        if not sm:
+            continue
+        # _safeMint is always an NFT hook; a safeTransfer needs LOCAL NFT context (else maybe SafeERC20)
+        if not NFT_MINT_HOOK.search(body) and not NFT_CTX.search(body):
+            continue
+        after = body[sm.end():]
+        # state write AFTER the hook-triggering call = CEI violation (incl. `counter++` supply bumps,
+        # which the shared WRITE regex doesn't catch)
+        if WRITE.search(after) or re.search(r"\b\w+\s*(\+\+|--)", after):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "ERC721/1155 safeMint/safeTransfer triggers the recipient's onERCxxxReceived hook "
+                        "THEN a state write follows (CEI), no nonReentrant -> receiver-hook reentrancy "
+                        "(re-mint past supply cap / double-claim / skip per-addr limit). #1 NFT-game bug.", 0))
     return out
 
 
@@ -779,8 +847,11 @@ DETECTORS = [
     ("LIQUIDATION math (self-liq, rounding, bad-debt)", det_liquidation,
      "Pattern 05: liquidation entrypoint 4-check; [!] if no self-liq guard or rounds-up seize."),
     ("WEAK randomness (predictable on-chain RNG in an outcome path)", det_weak_random,
-     "GameFi class: keccak of block.timestamp/blockhash/difficulty driving a reward/mint/raffle "
-     "outcome -> grindable; an EOA-gate is only a speed bump. Use commit-reveal / Chainlink VRF."),
+     "GameFi class: keccak OR direct-modulo of block.timestamp/blockhash/difficulty driving a reward/"
+     "mint/raffle outcome -> grindable; an EOA-gate is only a speed bump. Use commit-reveal / Chainlink VRF."),
+    ("NFT receiver-hook reentrancy (safeMint/safeTransfer callback)", det_nft_callback,
+     "GameFi/NFT #1 class (~35%): ERC721/1155 safeMint/safeTransfer fires the recipient's onERCxxxReceived "
+     "hook, then a state write follows (CEI), no nonReentrant -> reenter to re-mint/double-claim. det_reentrancy misses it."),
     ("SWAP slippage / deadline guard (sandwich / MEV)", det_swap_guard,
      "Basic DeFi: amountOutMin==0 = free sandwich; deadline=block.timestamp = no expiry. "
      "Verify min-out is an oracle/quote, not hardcoded 0."),
@@ -803,7 +874,7 @@ def det_key(title):
     sibling title contains both)."""
     t = title.lower()
     for sub, k in (("sibling", "sibling"), ("access control leads", "access"),
-                   ("supply", "supply"), ("reentrancy", "reentrancy"),
+                   ("supply", "supply"), ("receiver-hook", "nftcallback"), ("reentrancy", "reentrancy"),
                    ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
