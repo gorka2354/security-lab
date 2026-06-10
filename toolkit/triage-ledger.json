@@ -397,6 +397,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "nerona|lib/protocol/src/MToken.sol|target|",
+      "target": "nerona",
+      "file": "lib/protocol/src/MToken.sol",
+      "line": 0,
+      "detector": "target",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "DefiLlama-adapter addr 0x866A2BF4 = M^0 protocol MToken (audited dependency, ContinuousIndexing), not Nerona's own USDnr code. Nerona core (0xD48e5655 -> impl 0x1028a0e) not on Sourcify (no Etherscan key). Dead end.",
+      "date": "2026-06-10"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
