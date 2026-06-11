@@ -544,6 +544,8 @@ check(not flagged(recon.det_owner_drain, "contract C{function rescue(address t) 
       "det_owner_drain guard: an UNGATED drain (no owner gate) NOT flagged here (det_access's job)")
 check(not flagged(recon.det_owner_drain, "contract C{function setConfig(uint x) external onlyOwner { cfg = x; }}"),
       "det_owner_drain guard: a non-drain owner fn NOT flagged")
+check(flagged(recon.det_owner_drain, "contract C{function withdrawEth() external { if (msg.sender == owner) { payable(owner).transfer(address(this).balance); } }}"),
+      "det_owner_drain: an INLINE if(msg.sender==owner)-gated drain flagged (hidden-owner backdoor, not onlyOwner)")
 check(flagged(recon.det_fee_backdoor, "contract C{function setFee(uint256 f) external onlyOwner { fee = f; }}"),
       "det_fee_backdoor: setFee with NO upper bound flagged")
 check(not flagged(recon.det_fee_backdoor, "contract C{function setFee(uint256 f) external onlyOwner { require(f <= MAX_FEE); fee = f; }}"),

@@ -1027,7 +1027,7 @@ def _fn_body(text, start):
 
 
 OWNER_GATE = re.compile(r"onlyOwner|onlyAdmin|onlyGov\w*|onlyRole|onlyOperator|onlyTreasury|onlyDev|"
-                        r"require\s*\([^;{]*\bowner\b", re.IGNORECASE)
+                        r"require\s*\([^;{]*\bowner\b|if\s*\([^;{)]*\b(?:owner|admin)\b", re.IGNORECASE)
 RUG_DRAIN = re.compile(r"function\s+(\w*(?:sweep|rescue|recover|salvage|emergencyWithdraw|drain|skim|"
                        r"withdrawAll|withdrawToken|withdrawStuck|withdrawEth|claimTokens|retrieve)\w*)\s*\(",
                        re.IGNORECASE)
