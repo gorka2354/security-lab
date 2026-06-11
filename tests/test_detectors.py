@@ -692,5 +692,25 @@ check(any(l[2].startswith("LIQUIDATION") and l[5] == "differential" for l in _le
       "deepdive.collect_leads: routes a real liquidate() to differential + an ungated setter to invariant")
 _sh.rmtree(_dd, ignore_errors=True)
 
+print("== activity (LIVE-FIRST Phase-0/1 gate: classify verdicts) ==")
+import activity  # noqa: E402
+check(activity.classify(0, 5, 100)[0] == "NO-CODE" and activity.classify(0, 5, 100)[1] == "SKIP",
+      "activity.classify: no bytecode -> NO-CODE / SKIP")
+check(activity.classify(2000, -1, 0)[0] == "UNKNOWN",
+      "activity.classify: events query failed (-1) -> UNKNOWN (do NOT call a query-fail 'dormant')")
+check(activity.classify(2000, 7, 0)[0] == "ACTIVE" and activity.classify(2000, 7, 0)[1] == "DIG",
+      "activity.classify: recent events -> ACTIVE / DIG")
+check(activity.classify(2000, 0, 10**18)[0] == "QUIET-VALUE"
+      and activity.classify(2000, 0, 0, token_bal=5)[0] == "QUIET-VALUE",
+      "activity.classify: no events but holds ETH or token value -> QUIET-VALUE / DIG-CAREFUL")
+check(activity.classify(2000, 0, 0)[0] == "DORMANT" and activity.classify(2000, 0, 0)[1] == "PARK/SKIP",
+      "activity.classify: deployed, no events, 0 value -> DORMANT / PARK-SKIP (the heavy-helms case)")
+check(activity.resolve_chain("base") == "8453" and activity.resolve_chain("8453") == "8453"
+      and activity.resolve_chain("eth") == "1",
+      "activity.resolve_chain: chain names + ids both resolve to the id string")
+check(activity._selector("0xdeadbeef") == "0xdeadbeef"
+      and activity._selector("nextGauntletId()").startswith("0x") and len(activity._selector("nextGauntletId()")) == 10,
+      "activity._selector: passes a 0x selector through; hashes a 'sig()' to a 4-byte selector")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

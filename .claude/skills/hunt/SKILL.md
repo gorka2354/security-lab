@@ -38,6 +38,11 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
   DefiLlama `address` is often the GOV TOKEN -> use the adapter's CORE addr, or the protocol's GitHub repo.
 - By repo: `git clone --depth 1 <repo> hunts/_volume/<key>`.
 - **Confirm DEPLOYED + in-scope + a real bounty** before prioritising. Not deployed -> fix-but-don't-prioritise.
+- **ACTIVITY GATE (do this BEFORE the deep read, not after — heavy-helms lesson):**
+  `python toolkit/activity.py <core-addr>[,...] --chain <id|name> [--counter "theBugPathCounter()"]`.
+  DORMANT (no recent events + 0 value, or a path-counter still == 0) -> **PARK (watch.py) or SKIP**, don't
+  deep-read. A bug in deployed-but-unused code with no value at stake is EV ~0 (Heavy Helms gauntlet:
+  nextGauntletId==0, free entry, NFT-only rewards -> a real flaw that can't currently damage anything).
 
 ## Phase 2 — TRIAGE (fork? audited? novel?) -> route
 `python toolkit/forkdrift.py fingerprint <src>`:

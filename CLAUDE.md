@@ -20,7 +20,8 @@
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
   `recon.py` (L1, 22 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
-  глубокого копания: differential-модель / bespoke-инвариант / state-machine). Динамический слой локально —
+  глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
+  Phase-0/1 гейт: active+value? иначе park/skip — ДО глубокого чтения). Динамический слой локально —
   WSL-лейн (`toolkit/WSL-LANE.md`).
 - **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
