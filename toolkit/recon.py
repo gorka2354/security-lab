@@ -817,6 +817,149 @@ def det_strict_balance(text, rel):
     return out
 
 
+# ---- vault gap-analysis detectors (DeFiVulnLabs 48-types vs our coverage) ----
+DOWNCAST = re.compile(r"\b(u?int(\d{1,3}))\s*\(")
+
+
+def _balanced_arg(s, start):
+    """The substring inside the parens opened just before `start` (single line); None if unbalanced."""
+    depth, buf = 1, []
+    for ch in s[start:]:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return "".join(buf)
+        buf.append(ch)
+    return None
+
+
+def det_downcast(text, rel):
+    """Casting a COMPUTED value to a smaller int -- uint128(a + b), uint64(x * rate) -- silently TRUNCATES
+    in all 0.8.x: a result exceeding the smaller type wraps (lost funds / broken accounting). High-signal
+    only: we flag casts whose arg does ARITHMETIC (a bare uint8(stat) / uint16(field) is intentional
+    packing -> skipped, else games drown the report). Also skips uint160 (address idiom) + literals."""
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        for m in DOWNCAST.finditer(s):
+            full, bits = m.group(1), int(m.group(2))
+            if bits == 0 or bits >= 256 or bits == 160 or bits % 8 != 0:
+                continue  # int256 = no truncation; uint160 = address idiom; non-/8 = not a real type
+            arg = _balanced_arg(s, m.end())
+            if not arg:
+                continue
+            a = arg.strip()
+            if a[:1].isdigit() or a.startswith(("0x", "block.timestamp", "block.number")):
+                continue  # literal / block-time source can't overflow -> safe
+            if not re.search(r"[+\-*/]|<<", a):
+                continue  # a bare var/field cast is usually intentional packing -> skip (precision > recall)
+            out.append((rel, i, s[:90],
+                        f"downcast {full}(<arithmetic>) -> SILENT truncation if the result exceeds "
+                        f"type({full}).max -> bound it", 1))
+            break
+    return out
+
+
+DIV_BEFORE_MUL = re.compile(r"/\s*[\w.()\[\]]+\s*\*")
+
+
+def det_precision(text, rel):
+    """`a / b * c` (or `(a/b)*c`) divides BEFORE multiplying -> the division truncates first and the
+    multiply can't recover the lost precision (rounding favors someone). Reorder to multiply first: a*c/b."""
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        code = s.split("//")[0]
+        if "*/" in code or "/*" in code:  # block-comment fragment -> the */ would false-match
+            continue
+        if DIV_BEFORE_MUL.search(code):
+            out.append((rel, i, s[:90],
+                        "divide-before-multiply -> precision loss (the divide truncates first); "
+                        "reorder to multiply first", 1))
+    return out
+
+
+ENCODE_PACKED = re.compile(r"abi\.encodePacked\s*\(")
+
+
+def det_encodepacked(text, rel):
+    """keccak256(abi.encodePacked(a, b, ...)) with 2+ args can HASH-COLLIDE when two ADJACENT args are
+    dynamic: encodePacked("a","bc") == encodePacked("ab","c"). All-fixed-size args (uint/address/bytes32)
+    are safe -- so this is a 'verify the types' lead. Use abi.encode (or a separator) for dynamic args."""
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        m = ENCODE_PACKED.search(s)
+        if not m or not ("keccak256" in s or "sha256" in s):
+            continue
+        depth, commas = 1, 0
+        for ch in s[m.end():]:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            elif ch == "," and depth == 1:
+                commas += 1
+        if commas >= 1:  # 2+ args
+            out.append((rel, i, s[:90],
+                        "abi.encodePacked(2+ args) in a hash -> verify no two ADJACENT dynamic "
+                        "(string/bytes/array) args (hash collision); use abi.encode if so", 1))
+    return out
+
+
+PULL_IN = re.compile(r"\b(?:safeTransferFrom|transferFrom)\s*\(")
+BAL_MEASURE = re.compile(r"balanceOf\s*\(\s*address\s*\(\s*this\s*\)|balanceBefore|balanceAfter|amountReceived|_received\b")
+
+
+def det_feeontransfer(text, rel):
+    """Pulling tokens IN via transferFrom and crediting the REQUESTED amount (not the measured balance
+    delta) over-credits on a fee-on-transfer / deflationary token. Flagged only when the file pulls to
+    address(this) and NEVER measures a balanceOf(this) delta (the standard mitigation)."""
+    if not PULL_IN.search(text) or BAL_MEASURE.search(text):
+        return []
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        if PULL_IN.search(s) and "address(this)" in s.replace(" ", ""):
+            out.append((rel, i, s[:90],
+                        "transferFrom pulls to address(this) but the file never measures a balanceOf(this) "
+                        "delta -> a fee-on-transfer token over-credits; credit the MEASURED received amount", 1))
+    return out
+
+
+STRUCT_WITH_MAP = re.compile(r"struct\s+\w+\s*\{[^}]*\bmapping\s*\(", re.S)
+DELETE_STMT = re.compile(r"\bdelete\s+[\w.\[\]]+")
+
+
+def det_delete_mapping(text, rel):
+    """`delete x` of a struct that CONTAINS a mapping does NOT clear the mapping (Solidity can't) -> stale
+    entries survive (replay / bad accounting). Flagged when the file defines a struct-with-mapping AND deletes."""
+    if not STRUCT_WITH_MAP.search(text) or not DELETE_STMT.search(text):
+        return []
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        if DELETE_STMT.search(s):
+            out.append((rel, i, s[:90],
+                        "delete of a struct that may contain a mapping leaves the mapping UNCLEARED "
+                        "(stale state) -> verify this delete's type has no nested mapping", 1))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -867,6 +1010,16 @@ DETECTORS = [
      "delegatecall / tx.origin / selfdestruct / call / open initialize."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
      "zkSync native AA: 'EOA == no code' is false -> isContract/extcodesize-gated auth+signatures bypassable."),
+    ("DOWNCAST truncation (uintN(x) silent overflow)", det_downcast,
+     "DeFiVulnLabs: downcasting a value past type(uintN).max wraps silently (all 0.8.x). Frequent High."),
+    ("DIVIDE-BEFORE-MULTIPLY precision loss", det_precision,
+     "DeFiVulnLabs: (a/b)*c truncates before the multiply -> rounding favors someone; multiply first."),
+    ("abi.encodePacked HASH-COLLISION (dynamic args)", det_encodepacked,
+     "DeFiVulnLabs: encodePacked of 2+ adjacent dynamic args collides ('a'+'bc'=='ab'+'c'); use abi.encode."),
+    ("FEE-ON-TRANSFER over-credit (no balance-delta)", det_feeontransfer,
+     "DeFiVulnLabs: crediting the requested amount (not the measured delta) over-credits on deflationary tokens."),
+    ("DELETE struct-with-mapping (stale state)", det_delete_mapping,
+     "DeFiVulnLabs: delete of a struct containing a mapping can't clear the mapping -> leftover entries."),
 ]
 
 
@@ -884,7 +1037,10 @@ def det_key(title):
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),
-                   ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled")):
+                   ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled"),
+                   ("downcast", "downcast"), ("divide-before", "precision"),
+                   ("encodepacked", "encodepacked"), ("fee-on-transfer", "feeontransfer"),
+                   ("delete struct", "delmap")):
         if sub in t:
             return k
     return "other"

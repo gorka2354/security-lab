@@ -483,6 +483,46 @@ _stale = {"title": "B Vault", "desc": "lending", "pot": 100000, "start_unix": _n
 check(cm.score(_fresh, _now, 48) > cm.score(_stale, _now, 48),
       "contest_monitor.score: a fresher contest outranks a stale one (equal pot/zone) -- timing edge baked in")
 
+print("== vault-gap detectors (downcast / precision / encodePacked / fee-on-transfer / delete-mapping) ==")
+check(flagged(recon.det_downcast, "contract C{function f(uint256 a,uint256 b) external { y = uint128(a + b); }}"),
+      "det_downcast: uint128(a + b) (a COMPUTED value) flagged (silent truncation)")
+check(not flagged(recon.det_downcast, "contract C{function f(uint256 x) external { y = uint128(x); }}"),
+      "det_downcast guard: uint128(x) bare var (intentional packing) NOT flagged (precision > recall)")
+check(not flagged(recon.det_downcast, "contract C{function f() external { y = uint128(0); z = uint64(1e18); }}"),
+      "det_downcast guard: casts of literals (uint128(0)/uint64(1e18)) NOT flagged (compiler-checked)")
+check(not flagged(recon.det_downcast, "contract C{function f(address a) external { uint160 u = uint160(a); }}"),
+      "det_downcast guard: uint160(addr) (address<->uint idiom) NOT flagged")
+check(not flagged(recon.det_downcast, "contract C{function f(uint256 x) external { y = uint256(x); }}"),
+      "det_downcast guard: uint256(x) (no truncation) NOT flagged")
+check(not flagged(recon.det_downcast, "contract C{function f() external { t = uint64(block.timestamp); }}"),
+      "det_downcast guard: uint64(block.timestamp) NOT flagged (can't overflow)")
+check(flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c) external { y = a / b * c; }}"),
+      "det_precision: a / b * c (divide-before-multiply) flagged")
+check(flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c) external { y = (a / b) * c; }}"),
+      "det_precision: (a/b)*c flagged")
+check(not flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c) external { y = a * c / b; }}"),
+      "det_precision guard: a * c / b (multiply-first, safe) NOT flagged")
+check(not flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c,uint d) external { y = a / b + c * d; }}"),
+      "det_precision guard: a/b + c*d (independent terms) NOT flagged")
+check(flagged(recon.det_encodepacked, "contract C{function f(string a,string b) external { h = keccak256(abi.encodePacked(a, b)); }}"),
+      "det_encodepacked: keccak256(abi.encodePacked(a,b)) (2+ args) flagged")
+check(not flagged(recon.det_encodepacked, "contract C{function f(string a) external { h = keccak256(abi.encodePacked(a)); }}"),
+      "det_encodepacked guard: single-arg encodePacked NOT flagged (no collision)")
+check(not flagged(recon.det_encodepacked, "contract C{function f(string a,string b) external { x = abi.encodePacked(a, b); }}"),
+      "det_encodepacked guard: encodePacked NOT in a hash context NOT flagged")
+check(flagged(recon.det_feeontransfer, "contract C{function deposit(uint a) external { token.transferFrom(msg.sender, address(this), a); bal[msg.sender]+=a; }}"),
+      "det_feeontransfer: transferFrom to address(this) + no balance-delta flagged")
+check(not flagged(recon.det_feeontransfer, "contract C{function deposit(uint a) external { uint b0=token.balanceOf(address(this)); token.transferFrom(msg.sender,address(this),a); uint d=token.balanceOf(address(this))-b0; bal[msg.sender]+=d; }}"),
+      "det_feeontransfer guard: file measures balanceOf(this) delta -> NOT flagged (handled)")
+check(not flagged(recon.det_feeontransfer, "contract C{function f(address t,address u,uint a) external { IERC20(t).transferFrom(u, msg.sender, a); }}"),
+      "det_feeontransfer guard: transferFrom NOT to address(this) NOT flagged")
+check(flagged(recon.det_delete_mapping, "contract C{struct S{ uint x; mapping(address=>uint) bal; } mapping(uint=>S) m; function f(uint id) external { delete m[id]; }}"),
+      "det_delete_mapping: delete of a struct-with-mapping flagged (mapping not cleared)")
+check(not flagged(recon.det_delete_mapping, "contract C{struct S{ uint x; uint y; } mapping(uint=>S) m; function f(uint id) external { delete m[id]; }}"),
+      "det_delete_mapping guard: struct with NO mapping -> delete NOT flagged")
+check(not flagged(recon.det_delete_mapping, "contract C{struct S{ uint x; mapping(address=>uint) bal; } function f() external { x = 1; }}"),
+      "det_delete_mapping guard: struct-with-mapping but NO delete -> NOT flagged")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
