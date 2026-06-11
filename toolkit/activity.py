@@ -30,6 +30,16 @@ BAL_OF = "0x70a08231"  # balanceOf(address)
 ERC20_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"  # Transfer(addr,addr,uint)
 
 
+def parse_logs(res):
+    """(events, transfer_events) from an eth_getLogs result. CRITICAL: a `None` result means the RPC
+    REFUSED the query (range too big / unsupported) -> return (-1, 0) = UNKNOWN, NEVER 0. Treating a
+    null response as '0 events' is a false-DORMANT bug (caught re-verifying Mantle Index). PURE."""
+    if res is None:
+        return (-1, 0)
+    xfer = sum(1 for L in res if (L.get("topics") or [""])[0].lower() == ERC20_TRANSFER)
+    return (len(res), xfer)
+
+
 def token_hint(events, xfer):
     """If recent activity is ~all ERC20 Transfers, it's likely a TOKEN -- and DefiLlama routinely lists a
     protocol's GOV TOKEN, not its core. Resolve the real contract before digging (the venus-flux/XVS trap). PURE."""
@@ -54,7 +64,9 @@ def classify(code_len, events, balance_wei, token_bal=None):
         return ("ACTIVE", "DIG", f"{events} event(s) in window" + (" + holds value" if has_value else ""))
     if has_value:
         return ("QUIET-VALUE", "DIG-CAREFUL", "no recent events BUT holds value -> widen window / see who funds it")
-    return ("DORMANT", "PARK/SKIP", "no recent events + 0 ETH/token -> likely unused (EV ~0)")
+    return ("DORMANT", "PARK/SKIP",
+            "no events in window + 0 ETH/token -> likely unused (widen --blocks for a low-frequency contract,"
+            " and confirm getLogs isn't being range-refused, before trusting a DORMANT)")
 
 
 def _to_int(h):
@@ -90,13 +102,15 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
         if span < 1:
             continue
         try:
-            logs = fs._rpc(rpc, "eth_getLogs",
-                           [{"address": addr, "fromBlock": hex(max(0, latest - span)), "toBlock": "latest"}]) or []
-            events = len(logs)
-            xfer = sum(1 for L in logs if (L.get("topics") or [""])[0].lower() == ERC20_TRANSFER)
-            break
+            res = fs._rpc(rpc, "eth_getLogs",
+                          [{"address": addr, "fromBlock": hex(max(0, latest - span)), "toBlock": "latest"}])
         except Exception:
             continue
+        ev, xf = parse_logs(res)
+        if ev < 0:           # null = RPC refused this range -> try a SMALLER window, don't call it 0
+            continue
+        events, xfer = ev, xf
+        break
 
     tok = None
     if token:

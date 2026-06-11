@@ -713,6 +713,11 @@ check(activity._selector("0xdeadbeef") == "0xdeadbeef"
       "activity._selector: passes a 0x selector through; hashes a 'sig()' to a 4-byte selector")
 check(bool(activity.token_hint(100, 90)) and not activity.token_hint(100, 50) and not activity.token_hint(0, 0),
       "activity.token_hint: >=80% Transfer events -> flags a gov TOKEN (the DefiLlama/XVS trap); mixed activity -> not")
+check(activity.parse_logs(None) == (-1, 0),
+      "activity.parse_logs: a null getLogs result (RPC range-refused) -> (-1,0) UNKNOWN, NOT 0 (false-DORMANT bug)")
+check(activity.parse_logs([]) == (0, 0)
+      and activity.parse_logs([{"topics": [activity.ERC20_TRANSFER]}, {"topics": ["0xabc"]}, {}]) == (3, 1),
+      "activity.parse_logs: real [] -> 0 genuine events; counts Transfer-topic logs for the token heuristic")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
