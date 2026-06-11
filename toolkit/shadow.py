@@ -85,16 +85,16 @@ BENCH = [
     ("erc4626", {"erc4626"}),
     ("inflation", {"erc4626"}),
     ("uninitialized", {"upgrade", "danger"}),
-    ("phantom", None),                       # phantom function (fallback permit)
-    ("flashloan", None),                     # missing initiator/lender check
-    ("erc777", None),                        # extend nft-callback to tokensReceived
+    ("phantom", None),                       # phantom function (fallback permit) - still uncovered
+    ("flashloan", {"flashloan"}),            # det_flashloan (initiator/sender check)
+    ("erc777", None),                        # extend nft-callback to tokensReceived - still uncovered
     ("self-transfer", None),
-    ("transient", None),                     # EIP-1153 misuse
-    ("dos", None),                           # generic DoS
-    ("overflow", None),                      # pre-0.8 / unchecked block math
-    ("underflow", None),
-    ("bypasscontract", None),                # bypass isContract (we have l2-footgun, but different framing)
-    ("bypass-contract", None),
+    ("transient", None),                     # EIP-1153 misuse - still uncovered
+    ("dos", None),                           # generic DoS - still uncovered
+    ("overflow", {"overflow"}),              # det_overflow (pre-0.8 pragma / unchecked block)
+    ("underflow", {"overflow"}),
+    ("bypasscontract", {"l2"}),              # det_l2_footgun (extcodesize isContract) -- was mis-mapped
+    ("bypass-contract", {"l2"}),
 ]
 
 

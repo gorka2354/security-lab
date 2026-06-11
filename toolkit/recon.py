@@ -960,6 +960,55 @@ def det_delete_mapping(text, rel):
     return out
 
 
+PRE08_PRAGMA = re.compile(r"pragma\s+solidity\s+[\^>=~]*\s*0\.[0-7]\b")
+UNCHECKED_BLOCK = re.compile(r"\bunchecked\s*\{")
+
+
+def det_overflow(text, rel):
+    """Arithmetic overflow/underflow: a PRE-0.8 pragma has NO built-in checks (the classic counterfeiting
+    bug), and an `unchecked { }` block in 0.8+ opts OUT of them. 0.8.x outside unchecked reverts on overflow,
+    so a modern target's risk lives in its unchecked blocks -> verify the math there can't wrap."""
+    out = []
+    pre08 = False
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not pre08 and PRE08_PRAGMA.search(s):
+            pre08 = True
+            out.append((rel, i, s[:90],
+                        "pre-0.8 pragma -> arithmetic has NO overflow/underflow protection (use 0.8.x or SafeMath)", 0))
+        if s.startswith(("//", "*", "/*")):
+            continue
+        if UNCHECKED_BLOCK.search(s):
+            out.append((rel, i, s[:90],
+                        "unchecked{} opts OUT of 0.8 overflow checks -> verify the arithmetic inside can't wrap", 1))
+    return out
+
+
+FLASHLOAN_CB = re.compile(
+    r"function\s+(onFlashLoan|executeOperation|receiveFlashLoan|onMorphoFlashLoan|"
+    r"uniswapV2Call|uniswapV3SwapCallback|pancakeCall|DPPFlashLoanCall)\s*\(")
+
+
+def det_flashloan(text, rel):
+    """A flash-loan / swap CALLBACK (onFlashLoan/executeOperation/uniswapV2Call/...) that doesn't verify the
+    INITIATOR was itself AND that msg.sender is the real lender/pool lets anyone invoke it with crafted
+    params -> drains the contract's approvals / spoofs a loan. Flag callbacks whose body lacks that check."""
+    out = []
+    for m in FLASHLOAN_CB.finditer(text):
+        name = m.group(1)
+        window = text[m.end():m.end() + 800]
+        nxt = window.find("function ")  # don't bleed into the next function
+        if nxt != -1:
+            window = window[:nxt]
+        if not re.search(r"initiator\s*==|==\s*initiator|msg\.sender\s*==|==\s*msg\.sender|"
+                         r"require\s*\([^;)]*sender|onlyPool|onlyLender|onlyVault", window):
+            ln = text[:m.start()].count("\n") + 1
+            out.append((rel, ln, m.group(0).strip()[:90],
+                        f"flash/swap callback {name}() with NO initiator/sender check -> anyone calls it with "
+                        "crafted params (approval drain / spoofed loan); require initiator==self + msg.sender==pool", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1020,6 +1069,10 @@ DETECTORS = [
      "DeFiVulnLabs: crediting the requested amount (not the measured delta) over-credits on deflationary tokens."),
     ("DELETE struct-with-mapping (stale state)", det_delete_mapping,
      "DeFiVulnLabs: delete of a struct containing a mapping can't clear the mapping -> leftover entries."),
+    ("OVERFLOW / underflow (pre-0.8 pragma or opt-out math block)", det_overflow,
+     "Shadow-backlog: pre-0.8 has no overflow checks; an opt-out math block bypasses them in 0.8+."),
+    ("FLASHLOAN/swap callback no initiator check", det_flashloan,
+     "Shadow-backlog: onFlashLoan/executeOperation/uniswapV2Call without an initiator+sender check = drain."),
 ]
 
 
@@ -1040,7 +1093,7 @@ def det_key(title):
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled"),
                    ("downcast", "downcast"), ("divide-before", "precision"),
                    ("encodepacked", "encodepacked"), ("fee-on-transfer", "feeontransfer"),
-                   ("delete struct", "delmap")):
+                   ("delete struct", "delmap"), ("overflow", "overflow"), ("flashloan", "flashloan")):
         if sub in t:
             return k
     return "other"

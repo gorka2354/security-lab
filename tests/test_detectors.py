@@ -522,6 +522,18 @@ check(not flagged(recon.det_delete_mapping, "contract C{struct S{ uint x; uint y
       "det_delete_mapping guard: struct with NO mapping -> delete NOT flagged")
 check(not flagged(recon.det_delete_mapping, "contract C{struct S{ uint x; mapping(address=>uint) bal; } function f() external { x = 1; }}"),
       "det_delete_mapping guard: struct-with-mapping but NO delete -> NOT flagged")
+check(recon.det_overflow("pragma solidity ^0.7.6;\ncontract C{}", "src/C.sol")[0][4] == 0,
+      "det_overflow: pre-0.8 pragma flagged [!] (no built-in overflow protection)")
+check(flagged(recon.det_overflow, "contract C{function f(uint x,uint y) external { unchecked { z = x + y; } }}"),
+      "det_overflow: unchecked{} block flagged (opts out of 0.8 checks)")
+check(not flagged(recon.det_overflow, "pragma solidity ^0.8.20;\ncontract C{function f(uint x,uint y) external { z = x + y; }}"),
+      "det_overflow guard: 0.8.x with no unchecked block NOT flagged (protected)")
+check(flagged(recon.det_flashloan, "contract C{function executeOperation(address a,uint x,uint f,address initiator,bytes d) external returns(bool){ token.approve(spender, x); return true; }}"),
+      "det_flashloan: executeOperation with NO initiator/sender check flagged [!]")
+check(not flagged(recon.det_flashloan, "contract C{function executeOperation(address a,uint x) external returns(bool){ require(msg.sender == pool); return true; }}"),
+      "det_flashloan guard: msg.sender==pool check -> NOT flagged")
+check(not flagged(recon.det_flashloan, "contract C{function onFlashLoan(address initiator,address t,uint a,uint fee,bytes d) external returns(bytes32){ require(initiator == address(this)); return keccak256('ok'); }}"),
+      "det_flashloan guard: initiator==address(this) check -> NOT flagged")
 
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]

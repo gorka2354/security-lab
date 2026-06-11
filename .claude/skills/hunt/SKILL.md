@@ -53,7 +53,7 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
 - **NO base + no audit** -> greenfield, high-EV: hunt the WHOLE surface.
 
 ## Phase 3 — DETECT (cheap pre-filter; this AIMS, it doesn't FIND)
-- `python toolkit/recon.py <src>` (27 detectors) — read `[!]` first; ledger already suppresses known/FP.
+- `python toolkit/recon.py <src>` (29 detectors) — read `[!]` first; ledger already suppresses known/FP.
 - `python toolkit/hypothesize.py <src>` — shared-state EMERGENT seeds + ROUND-TRIP pairs + the invariant MENU
   (CORE/ECONOMIC/GAMEFI) to prove.
 - (optional depth) `analyze.py` (Slither) / `scope.py` (function-role map) / `scaffold.py` (invariant harness:
