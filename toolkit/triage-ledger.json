@@ -551,6 +551,28 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "posi-vaults|contracts/POSIAutoCompoundVault.sol|other|balanceOf(address user) returns userInfo[msg.sender].amount",
+      "target": "posi-vaults",
+      "file": "contracts/POSIAutoCompoundVault.sol",
+      "line": 56,
+      "detector": "other",
+      "snippet": "balanceOf(address user) returns userInfo[msg.sender].amount",
+      "verdict": "real",
+      "reason": "balanceOf(user) IGNORES the param, returns userInfo[msg.sender].amount -> external balanceOf(other)/earned(other) return the CALLER's balance. Masked in state-changing paths (always msg.sender). Low (view correctness).",
+      "date": "2026-06-11"
+    },
+    {
+      "sig": "posi-vaults|contracts/POSIAutoCompoundVault.sol|reward|earned = balanceOf(account).mul(perTokenDelta.add(rewards))",
+      "target": "posi-vaults",
+      "file": "contracts/POSIAutoCompoundVault.sol",
+      "line": 86,
+      "detector": "reward",
+      "snippet": "earned = balanceOf(account).mul(perTokenDelta.add(rewards))",
+      "verdict": "todo",
+      "reason": "REWARD FORMULA: .add(userInfo.rewards) is INSIDE .mul(balanceOf) -> stored rewards multiplied by balance (Synthetix adds it OUTSIDE) -> earned ~ balance^2*delta after the 2nd 8h update -> reward inflation -> drain/insolvency. Strong lead, NEEDS a Foundry PoC + confirm vault is DEPLOYED+used (likely deprecated since it'd be obviously broken if live). LIVE-FIRST gate before disclosure.",
+      "date": "2026-06-11"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
