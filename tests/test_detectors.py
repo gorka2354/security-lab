@@ -547,6 +547,11 @@ check(not forkdrift.detect_audit_evidence(["src/Vault.sol", "README.md"], "We pl
 # 'Security audit reports' was a folder label) -> must resolve to NOT audited (it's our real Medium target).
 check(not forkdrift.detect_audit_evidence(["audit/slither-report.md", "src/WrappedLToken.sol"], "")["audited"],
       "forkdrift: a slither-report.md (automated TOOL output) is NOT a professional audit (Ledgity guard)")
+check(not forkdrift.detect_audit_evidence([".claude/rules/hh-audit-context.md", "src/game/modes/TournamentGame.sol"], "")["audited"]
+      and not forkdrift.detect_audit_evidence([".cursor/audit-notes.md", "src/X.sol"], "")["audited"],
+      "forkdrift: a `.claude/` AI-assistant audit-context note is NOT a professional audit (heavy-helms guard)")
+check(forkdrift.detect_audit_evidence(["audits/2026-Spearbit-audit.pdf", ".claude/rules/audit-context.md"], "")["audited"],
+      "forkdrift guard: a REAL firm report still counts even when a .claude/ context file sits beside it")
 check(not forkdrift.detect_audit_evidence(["src/X.sol"], '<img src="https://img.shields.io/badge/Linea?logo=consensys" />')["audited"],
       "forkdrift: a `logo=consensys` shield BADGE is not an audit-firm claim (README-noise stripped; Ledgity guard)")
 check(not forkdrift.detect_audit_evidence(["src/X.sol"], "Repo layout:\n  audit/   Security audit reports")["audited"],

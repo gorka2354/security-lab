@@ -320,6 +320,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "heavy-helms|src/game/modes/TournamentGame.sol|weakrand|function _getEnhancedRandomness(uint256 futureBlock)",
+      "target": "heavy-helms",
+      "file": "src/game/modes/TournamentGame.sol",
+      "line": 1338,
+      "detector": "weakrand",
+      "snippet": "function _getEnhancedRandomness(uint256 futureBlock)",
+      "verdict": "real",
+      "reason": "RNG outcome grinding: commit-reveal seed mixes reveal-tx entropy (block.timestamp/number/gasleft/tx.origin) on top of blockhash(futureBlock); reveal via permissionless tryStartTournament/tryStartGauntlet -> participant grinds outcome off-chain, biases selection+bracket+winners. Same in GauntletGame:1560. Medium. GPL no-bounty -> responsible disclosure, egor sends.",
+      "date": "2026-06-11"
+    },
+    {
       "sig": "ledgity|src/protocol-v1/LToken.sol|reentrancy|function processBigQueuedRequest(uint256) onlyFund whenNotPaused",
       "target": "ledgity",
       "file": "src/protocol-v1/LToken.sol",

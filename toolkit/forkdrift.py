@@ -267,13 +267,21 @@ def _clean_readme(text):
     return "\n".join(l for l in (text or "").splitlines() if not _RE_README_NOISE.search(l))
 
 
+# an AI-assistant / DIY "audit context" note is NOT a professional report (heavy-helms shipped
+# `.claude/rules/hh-audit-context.md`, a Claude-Code context file -> forkdrift false-flagged it AUDITED).
+# Same class as the slither-dump guard: a file with "audit" in its path that no firm produced.
+_RE_AI_AUDIT_CTX = re.compile(r"\.claude/|\.cursor/|audit[-_]?(context|notes?|rules?|checklist|guide|prep|todo)",
+                              re.IGNORECASE)
+
+
 def detect_audit_evidence(file_list, readme_text=""):
     """Did this repo get a PROFESSIONAL audit? PURE (file_list = repo-relative paths; readme_text = README).
     Returns {audited, reports:[...], firms:[...], formal:bool, evidence:[...]}. Excludes automated-tool dumps
-    (slither/mythril/...) from reports; strips README badges before firm matching; a real audit needs a
-    report FILE, a named FIRM, or a STRONG claim ('audited by ...'/'formal verification') -- not a folder label."""
+    (slither/mythril/...) AND AI-assistant audit-context notes (.claude/) from reports; strips README badges
+    before firm matching; a real audit needs a report FILE, a named FIRM, or a STRONG claim -- not a folder label."""
     low_files = [f.replace("\\", "/") for f in (file_list or [])]
-    reports = [f for f in low_files if _RE_AUDIT_FILE.search(f) and not _RE_TOOL_REPORT.search(f)]
+    reports = [f for f in low_files if _RE_AUDIT_FILE.search(f)
+               and not _RE_TOOL_REPORT.search(f) and not _RE_AI_AUDIT_CTX.search(f)]
     clean = _clean_readme(readme_text)
     hay = (" ".join(low_files) + "\n" + clean).lower()
     firms, formal = [], False
