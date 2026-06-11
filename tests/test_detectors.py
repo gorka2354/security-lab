@@ -779,5 +779,20 @@ check(activity.parse_logs([]) == (0, 0)
       and activity.parse_logs([{"topics": [activity.ERC20_TRANSFER]}, {"topics": ["0xabc"]}, {}]) == (3, 1),
       "activity.parse_logs: real [] -> 0 genuine events; counts Transfer-topic logs for the token heuristic")
 
+print("== shadow (recon recall benchmark: name->class mapping + HIT/MISS/UNCOVERED/UNMAPPED) ==")
+import shadow  # noqa: E402
+check(shadow.normalize_name("src/test/Unsafe-downcast.sol") == "unsafe-downcast"
+      and shadow.normalize_name("Divmultiply.sol") == "divmultiply",
+      "shadow.normalize_name: a test path -> lowercase slug (drop dir/ext, separators -> '-')")
+check(shadow.expected_keys("unsafe-downcast")[1] == {"downcast"}
+      and shadow.expected_keys("readonlyreentrancy") == ("readonlyreentrancy", None)
+      and shadow.expected_keys("totally-novel-thing") == (None, None),
+      "shadow.expected_keys: covered class -> det_keys; uncovered -> (kw,None); no match -> (None,None)")
+check(shadow.classify(("downcast", {"downcast"}), {"downcast", "access"}) == "HIT"
+      and shadow.classify(("downcast", {"downcast"}), {"access"}) == "MISS"
+      and shadow.classify(("readonly", None), set()) == "UNCOVERED"
+      and shadow.classify((None, None), set()) == "UNMAPPED",
+      "shadow.classify: HIT (expected fired) / MISS (expected exists, didn't fire) / UNCOVERED / UNMAPPED")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
