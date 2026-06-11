@@ -201,9 +201,15 @@ def main():
     now = int(time.time())
 
     contests = []
-    contests += parse_cantina(_get(CANTINA) or [])
-    contests += parse_sherlock(_get(SHERLOCK) or {})
-    contests += parse_code4rena(_get(CODE4RENA) or {})
+    # a NULL fetch (platform down / API changed) must NOT silently become "0 contests" -> we'd miss a
+    # fresh contest (the timing edge). Warn loudly so degraded coverage is visible, don't fail silent.
+    _cant, _sher, _c4 = _get(CANTINA), _get(SHERLOCK), _get(CODE4RENA)
+    for _name, _raw in (("Cantina", _cant), ("Sherlock", _sher), ("Code4rena", _c4)):
+        if _raw is None:
+            print(f"[WARN] {_name} fetch FAILED -> its contests are MISSING this run (coverage degraded, NOT 'none live')")
+    contests += parse_cantina(_cant or [])
+    contests += parse_sherlock(_sher or {})
+    contests += parse_code4rena(_c4 or {})
 
     live = [c for c in contests if is_live(c, now) and c.get("pot", 0) >= a.min_pot]
     live.sort(key=lambda c: -score(c, now, a.fresh_hours))

@@ -85,10 +85,16 @@ def upgrade_history(proxy, chain, from_block, rpc=None, window=50000):
     while start <= top:
         end = min(start + window - 1, top)
         try:
-            logs = fs._rpc(rpc, "eth_getLogs", [{"address": proxy, "topics": [UPGRADED_TOPIC],
-                                                 "fromBlock": hex(start), "toBlock": hex(end)}]) or []
+            res = fs._rpc(rpc, "eth_getLogs", [{"address": proxy, "topics": [UPGRADED_TOPIC],
+                                                "fromBlock": hex(start), "toBlock": hex(end)}])
         except Exception:
+            res = None
+        if res is None:  # null/error != "no upgrades"; a silent [] here = false "not upgraded" = missed drift
+            sys.stderr.write(f"[livecheck] WARN: getLogs failed for {hex(start)}-{hex(end)} -> "
+                             "upgrade history may be INCOMPLETE (do not trust a 'no upgrades' result)\n")
             logs = []
+        else:
+            logs = res
         for lg in logs:
             topics = lg.get("topics", [])
             impl = _addr_from_topic(topics[1]) if len(topics) > 1 else _addr_from_topic(lg.get("data", ""))

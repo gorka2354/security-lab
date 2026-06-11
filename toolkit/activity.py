@@ -55,6 +55,8 @@ def resolve_chain(c):
 
 def classify(code_len, events, balance_wei, token_bal=None):
     """PURE: map probe results -> (verdict, recommendation, note). events<0 = query failed."""
+    if code_len < 0:
+        return ("UNKNOWN", "RETRY", "eth_getCode returned null (RPC issue) -> retry / check the RPC, NOT 'no code'")
     if code_len == 0:
         return ("NO-CODE", "SKIP", "no bytecode (not deployed / EOA / wrong chain)")
     if events < 0:
@@ -92,11 +94,16 @@ def _selector(sig):
 def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
     """Returns (code_len, events, balance_wei, token_bal, counter_val). I/O. events<0 on log-range failure."""
     rpc = rpc or fs.DEFAULT_RPC.get(str(chain))
-    code = fs._rpc(rpc, "eth_getCode", [addr, "latest"]) or "0x"
-    code_len = max(0, len(code) // 2 - 1)
-    bal = _to_int(fs._rpc(rpc, "eth_getBalance", [addr, "latest"]) or "0x0")
+    # None = RPC returned null (error/unsupported) -> UNKNOWN; "0x" = a real EOA -> 0. Don't conflate them.
+    code = fs._rpc(rpc, "eth_getCode", [addr, "latest"])
+    code_len = -1 if code is None else max(0, len(code) // 2 - 1)
+    braw = fs._rpc(rpc, "eth_getBalance", [addr, "latest"])
+    bal = _to_int(braw) if braw is not None else 0
 
-    latest = _to_int(fs._rpc(rpc, "eth_blockNumber", []) or "0x0")
+    bn = fs._rpc(rpc, "eth_blockNumber", [])
+    if bn is None:
+        raise RuntimeError("eth_blockNumber returned null (RPC down/unsupported) -- cannot gate this address")
+    latest = _to_int(bn)
     events, xfer = -1, 0
     for span in (blocks, blocks // 5, blocks // 25):  # shrink-retry around RPC log-range caps
         if span < 1:
@@ -115,12 +122,14 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
     tok = None
     if token:
         data = BAL_OF + addr.lower().replace("0x", "").rjust(64, "0")
-        tok = _to_int(fs._rpc(rpc, "eth_call", [{"to": token, "data": data}, "latest"]) or "0x0")
+        traw = fs._rpc(rpc, "eth_call", [{"to": token, "data": data}, "latest"])
+        tok = _to_int(traw) if traw is not None else None  # None -> unknown, NOT 0
 
     cval = None
     if counter:
         try:
-            cval = _to_int(fs._rpc(rpc, "eth_call", [{"to": addr, "data": _selector(counter)}, "latest"]) or "0x0")
+            craw = fs._rpc(rpc, "eth_call", [{"to": addr, "data": _selector(counter)}, "latest"])
+            cval = _to_int(craw) if craw is not None else None  # None -> unknown, NOT a false "==0 / never run"
         except SystemExit:
             raise
         except Exception:

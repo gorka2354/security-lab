@@ -695,7 +695,9 @@ _sh.rmtree(_dd, ignore_errors=True)
 print("== activity (LIVE-FIRST Phase-0/1 gate: classify verdicts) ==")
 import activity  # noqa: E402
 check(activity.classify(0, 5, 100)[0] == "NO-CODE" and activity.classify(0, 5, 100)[1] == "SKIP",
-      "activity.classify: no bytecode -> NO-CODE / SKIP")
+      "activity.classify: a real '0x' (0-len bytecode = EOA) -> NO-CODE / SKIP")
+check(activity.classify(-1, 5, 100)[0] == "UNKNOWN",
+      "activity.classify: eth_getCode null (code_len<0) -> UNKNOWN, NOT a false NO-CODE (the QA-pass fix)")
 check(activity.classify(2000, -1, 0)[0] == "UNKNOWN",
       "activity.classify: events query failed (-1) -> UNKNOWN (do NOT call a query-fail 'dormant')")
 check(activity.classify(2000, 7, 0)[0] == "ACTIVE" and activity.classify(2000, 7, 0)[1] == "DIG",
