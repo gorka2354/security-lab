@@ -353,6 +353,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "loreum-chamber|contracts/src/Chamber.sol|supply|delegate/transfer voting-weight double-count",
+      "target": "loreum-chamber",
+      "file": "contracts/src/Chamber.sol",
+      "line": 116,
+      "detector": "supply",
+      "snippet": "delegate/transfer voting-weight double-count",
+      "verdict": "fp",
+      "reason": "Hypothesis: delegate N -> transfer shares -> re-delegate = K*N weight (governance capture). MITIGATED: _update (OZ v5 chokepoint, line 703) reverts if balanceOf(from)-value < totalHolderDelegations[from] -> can't move delegation-committed shares. Their 'Fix Finding 4'. ERC4626 inflation also mitigated (Finding 6, _decimalsOffset=3). Clean.",
+      "date": "2026-06-11"
+    },
+    {
+      "sig": "loreum-chamber|contracts/src/Chamber.sol|ac|updateSeats / revokeConfirmation isDirector(tokenId)",
+      "target": "loreum-chamber",
+      "file": "contracts/src/Chamber.sol",
+      "line": 321,
+      "detector": "access",
+      "snippet": "updateSeats / revokeConfirmation isDirector(tokenId)",
+      "verdict": "fp",
+      "reason": "isDirector(tokenId) custom auth modifier in the signature -> gated. recon missed it (not only*/INLINE_AUTH). Precision-fix candidate: recognize is<Role>(id) modifier-position gates (carefully, no over-suppression).",
+      "date": "2026-06-11"
+    },
+    {
       "sig": "magicswap|src/Rewards/StakingContractMainnet.sol|ac|function claimRewards(uint256[] calldata incentiveIds)",
       "target": "magicswap",
       "file": "src/Rewards/StakingContractMainnet.sol",
