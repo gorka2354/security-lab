@@ -711,6 +711,8 @@ check(activity.resolve_chain("base") == "8453" and activity.resolve_chain("8453"
 check(activity._selector("0xdeadbeef") == "0xdeadbeef"
       and activity._selector("nextGauntletId()").startswith("0x") and len(activity._selector("nextGauntletId()")) == 10,
       "activity._selector: passes a 0x selector through; hashes a 'sig()' to a 4-byte selector")
+check(bool(activity.token_hint(100, 90)) and not activity.token_hint(100, 50) and not activity.token_hint(0, 0),
+      "activity.token_hint: >=80% Transfer events -> flags a gov TOKEN (the DefiLlama/XVS trap); mixed activity -> not")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

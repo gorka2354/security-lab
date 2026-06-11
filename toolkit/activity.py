@@ -27,6 +27,15 @@ CHAIN_ALIAS = {"eth": "1", "ethereum": "1", "mainnet": "1", "base": "8453", "arb
                "polygon": "137", "matic": "137", "bsc": "56"}
 
 BAL_OF = "0x70a08231"  # balanceOf(address)
+ERC20_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"  # Transfer(addr,addr,uint)
+
+
+def token_hint(events, xfer):
+    """If recent activity is ~all ERC20 Transfers, it's likely a TOKEN -- and DefiLlama routinely lists a
+    protocol's GOV TOKEN, not its core. Resolve the real contract before digging (the venus-flux/XVS trap). PURE."""
+    if events > 0 and xfer >= 0.8 * events:
+        return "looks like an ERC20 TOKEN (>=80% Transfer events) -- DefiLlama often lists the gov token, not the core -> resolve the real contract"
+    return ""
 
 
 def resolve_chain(c):
@@ -76,14 +85,15 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
     bal = _to_int(fs._rpc(rpc, "eth_getBalance", [addr, "latest"]) or "0x0")
 
     latest = _to_int(fs._rpc(rpc, "eth_blockNumber", []) or "0x0")
-    events = -1
+    events, xfer = -1, 0
     for span in (blocks, blocks // 5, blocks // 25):  # shrink-retry around RPC log-range caps
         if span < 1:
             continue
         try:
             logs = fs._rpc(rpc, "eth_getLogs",
-                           [{"address": addr, "fromBlock": hex(max(0, latest - span)), "toBlock": "latest"}])
-            events = len(logs or [])
+                           [{"address": addr, "fromBlock": hex(max(0, latest - span)), "toBlock": "latest"}]) or []
+            events = len(logs)
+            xfer = sum(1 for L in logs if (L.get("topics") or [""])[0].lower() == ERC20_TRANSFER)
             break
         except Exception:
             continue
@@ -101,7 +111,7 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
             raise
         except Exception:
             cval = None
-    return code_len, events, bal, tok, cval
+    return code_len, events, xfer, bal, tok, cval
 
 
 def main():
@@ -125,14 +135,15 @@ def main():
     digs = 0
     for addr in addrs:
         try:
-            code_len, events, bal, tok, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
+            code_len, events, xfer, bal, tok, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
         except SystemExit:
             raise
         except Exception as e:
             print(f"[ERROR     ] {addr}  -- {str(e)[:60]}")
             continue
         verdict, rec, note = classify(code_len, events, bal, tok)
-        if rec in ("DIG", "DIG-CAREFUL"):
+        thint = token_hint(events, xfer)
+        if rec in ("DIG", "DIG-CAREFUL") and not thint:
             digs += 1
         ev = "?" if events < 0 else events
         extra = ""
@@ -140,9 +151,9 @@ def main():
             extra += f" token={tok / 1e18:.4f}"
         if cval is not None:
             extra += f" counter={cval}" + ("  <- path NEVER run (==0)" if cval == 0 else "")
-        print(f"[{verdict:11}] {addr}  ({rec})")
+        print(f"[{verdict:11}] {addr}  ({'RESOLVE-CORE' if thint else rec})")
         print(f"             code={code_len}B  events(last {args.blocks})={ev}  eth={bal / 1e18:.4f}{extra}")
-        print(f"             {note}")
+        print(f"             {thint or note}")
     print(f"\n-> {digs}/{len(addrs)} worth a deep dive. DORMANT/NO-CODE -> park (watch.py) or skip, don't deep-read.")
     print("   NOTE: ETH-only value is a weak proxy (most TVL is ERC20 -> pass --token); events = contract-level,")
     print("   not your exact bug-path (use --counter for that, e.g. nextGauntletId()==0 => path never executed).")
