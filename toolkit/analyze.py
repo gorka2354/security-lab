@@ -8,9 +8,11 @@ and the target compiles. The headline feature: CROSS-CORROBORATION - leads
 flagged by BOTH our heuristics (L1) and Slither's dataflow (L2) at the same
 spot are high-confidence and listed first.
 
-Slither needs a working solc toolchain (fiddly on Windows) -> canonical home is
-Linux/CI (see .github/workflows/analyze.yml). Without Slither it degrades to
-recon-only. ASCII output.
+Slither can't install on Windows (no MSVC) -> on Windows this AUTO-BRIDGES Slither to the
+WSL lane (toolkit/WSL-LANE.md): recon runs locally, Slither runs in WSL, and the L1n L2
+corroboration is merged -- so L2/AST is first-class in the normal flow, not WSL-only. On
+Linux/CI it uses the local slither. Without either it degrades to recon-only. The target
+must COMPILE (deps + a matching solc) for Slither to produce results. ASCII output.
 """
 
 import argparse
@@ -38,21 +40,57 @@ def run_recon(repo):
     return files, res
 
 
+WSL_DISTRO = "Ubuntu"
+
+
+def _drive_to_mnt(ap):
+    """An ABSOLUTE windows path -> /mnt/<drive>/...; a posix path -> itself. PURE (no abspath, OS-independent)."""
+    if len(ap) > 2 and ap[1] == ":":
+        return "/mnt/" + ap[0].lower() + ap[2:].replace("\\", "/")
+    return ap.replace("\\", "/")
+
+
+def _win_to_wsl(p):
+    """Windows path -> WSL /mnt/<drive>/... (abspath first, then translate)."""
+    return _drive_to_mnt(os.path.abspath(p))
+
+
+def _slither_raw(repo):
+    """(raw_json_stdout, source). Local slither if on PATH (Linux/CI); else BRIDGE to the WSL venv on Windows
+    (slither can't install on Windows -> toolkit/WSL-LANE.md). (None, None) if neither is available."""
+    if shutil.which("slither"):
+        p = subprocess.run(["slither", repo, "--json", "-"], capture_output=True, text=True,
+                           errors="replace", timeout=900)
+        return p.stdout, "local"
+    if os.name == "nt" and shutil.which("wsl"):
+        # single-line -lc command (no multi-line heredoc -> no CRLF corruption); explicit HOME (often empty in -lc)
+        cmd = ('export HOME="/home/$(whoami)"; export PATH="$HOME/seclab/bin:$HOME/.foundry/bin:$PATH"; '
+               f'slither "{_win_to_wsl(repo)}" --json - 2>/dev/null')
+        print("  [analyze] slither not on Windows -> dispatching to the WSL lane...")
+        p = subprocess.run(["wsl", "-d", WSL_DISTRO, "--", "bash", "-lc", cmd],
+                           capture_output=True, text=True, errors="replace", timeout=900)
+        return p.stdout, "WSL"
+    return None, None
+
+
 def run_slither(repo):
     """Returns (findings, error). findings = list of (impact, check, fname, line, desc)."""
-    if not shutil.which("slither"):
-        return None, "slither not on PATH (pip install slither-analyzer; needs solc)"
     try:
-        p = subprocess.run(["slither", repo, "--json", "-"],
-                           capture_output=True, text=True, timeout=900)
+        raw, src = _slither_raw(repo)
     except Exception as e:
         return None, f"slither failed to run: {e}"
+    if raw is None:
+        return None, "slither unavailable (pip install slither-analyzer on Linux/CI, or set up the WSL lane: toolkit/WSL-LANE.md)"
     try:
-        data = json.loads(p.stdout)
+        data = json.loads(raw)
     except Exception:
-        return None, "could not parse slither JSON (did the target compile?)"
+        i = raw.find("{")  # slither may emit a banner before the JSON
+        try:
+            data = json.loads(raw[i:]) if i >= 0 else {}
+        except Exception:
+            return None, f"could not parse slither JSON (via {src}) -- did the target compile? (deps / solc version)"
     if not data.get("results"):
-        return None, "slither produced no results (compile/deps issue?)"
+        return None, f"slither (via {src}) produced no results (compile/deps issue?)"
     out = []
     for d in data["results"].get("detectors", []):
         impact = d.get("impact", "?")

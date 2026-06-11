@@ -832,5 +832,13 @@ check(shadow.classify(("downcast", {"downcast"}), {"downcast", "access"}) == "HI
       and shadow.classify((None, None), set()) == "UNMAPPED",
       "shadow.classify: HIT (expected fired) / MISS (expected exists, didn't fire) / UNCOVERED / UNMAPPED")
 
+print("== analyze L2 bridge (Windows->WSL Slither path translation) ==")
+import analyze  # noqa: E402
+check(analyze._drive_to_mnt("C:\\Users\\pesto\\repo\\src") == "/mnt/c/Users/pesto/repo/src"
+      and analyze._drive_to_mnt("D:\\x\\y") == "/mnt/d/x/y",
+      "analyze._drive_to_mnt: absolute Windows path -> /mnt/<lowerdrive>/.. (forward slashes) for the WSL bridge")
+check(analyze._drive_to_mnt("/home/x/y") == "/home/x/y",
+      "analyze._drive_to_mnt: a posix path passes through (Linux/CI local-slither case)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
