@@ -641,5 +641,51 @@ check(scaffold._clampable("uint256") and scaffold._clampable("int") and not scaf
       and not scaffold._clampable("bytes32"),
       "scaffold._clampable: only full-width int clamps with % 1e30 (uint8/bytes32 left raw -> no compile error)")
 
+print("== deepdive (per-target bespoke-tooling workspace) ==")
+import deepdive  # noqa: E402
+check(deepdive.lead_form("LIQUIDATION math (self-liq, rounding, bad-debt)") == "differential"
+      and deepdive.lead_form("ORACLE usage vs 3-guard checklist") == "differential"
+      and deepdive.lead_form("INTEREST-INDEX inflation (Aave-fork)") == "differential",
+      "deepdive.lead_form: numeric-formula detectors route to the DIFFERENTIAL model")
+check(deepdive.lead_form("ACCESS CONTROL leads (privileged fn)") == "invariant"
+      and deepdive.lead_form("SIGNATURE / ecrecover (replay)") == "invariant"
+      and deepdive.lead_form("SUPPLY INTEGRITY (mint/burn entry points)") == "invariant",
+      "deepdive.lead_form: auth/replay/state detectors route to the BESPOKE INVARIANT")
+_dl = [("A.sol", 10, "LIQUIDATION math", "n", 0, "differential"),
+       ("A.sol", 20, "ACCESS CONTROL leads", "n", 0, "invariant"),
+       ("B.sol", 5, "ORACLE usage", "n", 0, "differential"),
+       ("C.sol", 7, "SUPPLY INTEGRITY", "n", 1, "invariant")]  # prio 1 -> excluded from top_files
+_tf = deepdive.top_files(_dl)
+check(_tf[0] == ("A.sol", 2) and all(f != "C.sol" for f, _ in _tf) and any(f == "B.sol" for f, _ in _tf),
+      "deepdive.top_files: ranks files by [!] (prio-0) lead count; [.] leads don't count")
+_notes = deepdive.gen_notes("foo", "src/foo", _dl)
+check("## Tier-1 files" in _notes and "DIFFERENTIAL MODEL" in _notes and "BESPOKE INVARIANT" in _notes
+      and "conservation:" in _notes and "## Worklog" in _notes,
+      "deepdive.gen_notes: Tier-1 + both routes + bespoke-invariant menu + worklog")
+check("LIQUIDATION math" in _notes.split("DIFFERENTIAL MODEL")[1].split("BESPOKE INVARIANT")[0]
+      and "ACCESS CONTROL leads" in _notes.split("BESPOKE INVARIANT")[1],
+      "deepdive.gen_notes: a math lead lands under Route A, an auth lead under Route B")
+check("def reference" in deepdive.gen_model_py("Foo") and "Ledgity" in deepdive.gen_model_py("Foo"),
+      "deepdive.gen_model_py: Python differential skeleton (reference() + the Ledgity method)")
+_sol = deepdive.gen_differential_sol("Foo")
+check("library FooReference" in _sol and "contract FooDifferential" in _sol and "testFuzz_diff" in _sol and "assertEq" in _sol,
+      "deepdive.gen_differential_sol: Foundry differential skeleton (reference lib + fuzz-diff)")
+# end-to-end on a temp dir: recon integration + test-skip + routing
+_dd = os.path.join(tempfile.gettempdir(), "dd-fixture")
+import shutil as _sh
+_sh.rmtree(_dd, ignore_errors=True)
+os.makedirs(os.path.join(_dd, "test"), exist_ok=True)
+open(os.path.join(_dd, "Vault.sol"), "w").write(
+    "contract V{function setFee(uint x) external { fee=x; } function liquidate(address u) external { seizeCollateral(u); }}")
+open(os.path.join(_dd, "test", "VaultTest.sol"), "w").write("contract T{function setFee(uint x) external { fee=x; }}")
+_leads = deepdive.collect_leads(_dd)
+_rels = {l[0] for l in _leads}
+check("Vault.sol" in _rels and all("test" not in r for r in _rels),
+      "deepdive.collect_leads: runs recon on the target, SKIPS the test/ dir")
+check(any(l[2].startswith("LIQUIDATION") and l[5] == "differential" for l in _leads)
+      and any("ACCESS" in l[2] and l[5] == "invariant" for l in _leads),
+      "deepdive.collect_leads: routes a real liquidate() to differential + an ungated setter to invariant")
+_sh.rmtree(_dd, ignore_errors=True)
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

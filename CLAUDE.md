@@ -19,7 +19,9 @@
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
   `recon.py` (L1, 22 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
-  Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2).
+  Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
+  глубокого копания: differential-модель / bespoke-инвариант / state-machine). Динамический слой локально —
+  WSL-лейн (`toolkit/WSL-LANE.md`).
 - **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
 ## Правила
