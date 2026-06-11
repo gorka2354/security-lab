@@ -535,6 +535,30 @@ check(not flagged(recon.det_flashloan, "contract C{function executeOperation(add
 check(not flagged(recon.det_flashloan, "contract C{function onFlashLoan(address initiator,address t,uint a,uint fee,bytes d) external returns(bytes32){ require(initiator == address(this)); return keccak256('ok'); }}"),
       "det_flashloan guard: initiator==address(this) check -> NOT flagged")
 
+print("== operator-power / RUG class (owner-drain / fee-backdoor / honeypot levers) ==")
+check(flagged(recon.det_owner_drain, "contract C{function emergencyWithdraw() external onlyOwner { payable(owner()).transfer(address(this).balance); }}"),
+      "det_owner_drain: owner-gated emergencyWithdraw of contract balance flagged")
+check(flagged(recon.det_owner_drain, "contract C{function sweep(address t) external onlyOwner { IERC20(t).transfer(owner(), 1); }}"),
+      "det_owner_drain: owner-gated sweep(token) flagged")
+check(not flagged(recon.det_owner_drain, "contract C{function rescue(address t) external { IERC20(t).transfer(msg.sender, 1); }}"),
+      "det_owner_drain guard: an UNGATED drain (no owner gate) NOT flagged here (det_access's job)")
+check(not flagged(recon.det_owner_drain, "contract C{function setConfig(uint x) external onlyOwner { cfg = x; }}"),
+      "det_owner_drain guard: a non-drain owner fn NOT flagged")
+check(flagged(recon.det_fee_backdoor, "contract C{function setFee(uint256 f) external onlyOwner { fee = f; }}"),
+      "det_fee_backdoor: setFee with NO upper bound flagged")
+check(not flagged(recon.det_fee_backdoor, "contract C{function setFee(uint256 f) external onlyOwner { require(f <= MAX_FEE); fee = f; }}"),
+      "det_fee_backdoor guard: setFee with require(f <= MAX) bound NOT flagged")
+check(not flagged(recon.det_fee_backdoor, "contract C{function setOwner(address o) external onlyOwner { owner = o; }}"),
+      "det_fee_backdoor guard: a non-fee setter NOT flagged")
+check(flagged(recon.det_honeypot_lever, "contract C{function blacklist(address a) external onlyOwner { _bl[a] = true; }}"),
+      "det_honeypot_lever: owner-gated blacklist flagged")
+check(flagged(recon.det_honeypot_lever, "contract C{function enableTrading() external onlyOwner { tradingEnabled = true; }}"),
+      "det_honeypot_lever: owner-gated enableTrading flagged (can disable sells)")
+check(not flagged(recon.det_honeypot_lever, "contract C{function setBlacklist(address a) external { _bl[a] = true; }}"),
+      "det_honeypot_lever guard: ungated lever (no owner gate) NOT flagged")
+check(not flagged(recon.det_honeypot_lever, "contract C{function setFee(uint x) external onlyOwner { fee = x; }}"),
+      "det_honeypot_lever guard: a non-lever owner fn NOT flagged")
+
 print("== det_key (new detectors get distinct ledger groups, never 'other') ==")
 _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")

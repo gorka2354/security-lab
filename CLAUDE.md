@@ -18,7 +18,7 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 29 детекторов), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
+  `recon.py` (L1, 32 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
   Phase-0/1 гейт: active+value? иначе park/skip — ДО глубокого чтения). Динамический слой локально —
@@ -49,7 +49,7 @@
   + **DefiLlama-Adapters** как источник CORE-адресов (не gov-токен).
 - **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф
   дрейфа + audited-ли? → роутер (drift / out-of-scope / economic / greenfield). LIVE-FIRST.
-- **DETECT:** `recon.py` (**29 детекторов**) + `hypothesize.py` (shared-state seeds + инвариант-меню
+- **DETECT:** `recon.py` (**32 детектора**) + `hypothesize.py` (shared-state seeds + инвариант-меню
   CORE/ECONOMIC/GAMEFI). Память `ledger.py` гасит шум.
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + what's-missing + coupled-state) →
   `toolkit/VERIFY.md` (8 kill-gates + 10 FP-паттернов; «FP хуже miss'а»). Методология заимствована у Krait (MIT).

@@ -1009,6 +1009,83 @@ def det_flashloan(text, rel):
     return out
 
 
+# ---- operator-power / RUG class (scam-game + meme-token backdoors; defensive: "who can steal/trap you") ----
+def _fn_body(text, start):
+    """The {...} body of the function whose ')' is near `start` (first '{' after start, brace-balanced)."""
+    i = text.find("{", start)
+    if i < 0:
+        return None
+    depth = 0
+    for j in range(i, min(len(text), i + 4000)):
+        if text[j] == "{":
+            depth += 1
+        elif text[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[i:j + 1]
+    return text[i:i + 4000]
+
+
+OWNER_GATE = re.compile(r"onlyOwner|onlyAdmin|onlyGov\w*|onlyRole|onlyOperator|onlyTreasury|onlyDev|"
+                        r"require\s*\([^;{]*\bowner\b", re.IGNORECASE)
+RUG_DRAIN = re.compile(r"function\s+(\w*(?:sweep|rescue|recover|salvage|emergencyWithdraw|drain|skim|"
+                       r"withdrawAll|withdrawToken|withdrawStuck|withdrawEth|claimTokens|retrieve)\w*)\s*\(",
+                       re.IGNORECASE)
+
+
+def det_owner_drain(text, rel):
+    """An OWNER-gated sweep/rescue/emergencyWithdraw/withdrawToken that moves the contract's balance out is the
+    canonical RUG lever (and a centralization risk in 'legit' code). Verify it can only take STRAY tokens, not
+    user deposits / the core asset."""
+    out = []
+    for m in RUG_DRAIN.finditer(text):
+        if OWNER_GATE.search(text[m.start():m.start() + 400]):
+            ln = text[:m.start()].count("\n") + 1
+            out.append((rel, ln, m.group(1)[:60],
+                        f"owner-gated drain `{m.group(1)}` -> operator can pull contract funds; verify it can't "
+                        "take user deposits / the core asset (rug / centralization)", 1))
+    return out
+
+
+FEE_SETTER = re.compile(r"function\s+((?:set|update|change)\w*(?:Fee|Fees|Tax|Taxes|Rate|Bps|Percent)\w*)\s*\(",
+                        re.IGNORECASE)
+FEE_BOUND = re.compile(r"require\s*\([^;{]*[<>]=?|[<>]=?\s*\w*(?:MAX|LIMIT|CAP|DENOM|PRECISION)|\brevert\b|assert\s*\(",
+                       re.IGNORECASE)
+
+
+def det_fee_backdoor(text, rel):
+    """A fee/tax setter with NO upper bound lets the operator set 100% -> a honeypot/rug (you deposit, the tax
+    eats it). Flag set*Fee/set*Tax/... whose body has no bounding require -> verify a hard cap."""
+    out = []
+    for m in FEE_SETTER.finditer(text):
+        body = _fn_body(text, m.end())
+        if body is not None and not FEE_BOUND.search(body):
+            ln = text[:m.start()].count("\n") + 1
+            out.append((rel, ln, m.group(1)[:60],
+                        f"fee/tax setter `{m.group(1)}` with NO upper bound -> operator can set 100% "
+                        "(honeypot/rug); verify a hard cap (require(fee <= MAX))", 1))
+    return out
+
+
+HONEYPOT_LEVER = re.compile(r"function\s+(\w*(?:blacklist|blocklist|setBots?|addBots?|banAddr\w*|"
+                            r"enableTrading|setTrading\w*|setMaxTx\w*|setMaxWallet\w*|setMaxSell\w*|"
+                            r"setSwapEnabled|setCooldown|setTradingStatus)\w*)\s*\(", re.IGNORECASE)
+
+
+def det_honeypot_lever(text, rel):
+    """Owner levers that FREEZE users or block sells (blacklist/setBots/enableTrading/setMaxTx) are the
+    honeypot / exit-scam toolkit -- and a real centralization risk in 'normal' tokens too (USDC has a blacklist).
+    Flag owner-gated levers -> know who can trap holders."""
+    out = []
+    for m in HONEYPOT_LEVER.finditer(text):
+        if OWNER_GATE.search(text[m.start():m.start() + 300]):
+            ln = text[:m.start()].count("\n") + 1
+            out.append((rel, ln, m.group(1)[:60],
+                        f"owner lever `{m.group(1)}` can freeze/block exits (honeypot / exit-scam / "
+                        "centralization -- know who can trap holders)", 1))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1073,6 +1150,12 @@ DETECTORS = [
      "Shadow-backlog: pre-0.8 has no overflow checks; an opt-out math block bypasses them in 0.8+."),
     ("FLASHLOAN/swap callback no initiator check", det_flashloan,
      "Shadow-backlog: onFlashLoan/executeOperation/uniswapV2Call without an initiator+sender check = drain."),
+    ("RUG: owner-drain (sweep/rescue/emergencyWithdraw)", det_owner_drain,
+     "Operator-power class: owner-gated drain of contract funds -> verify it can't take user deposits."),
+    ("RUG: fee/tax setter with no cap", det_fee_backdoor,
+     "Operator-power class: set*Fee/set*Tax with no upper bound -> operator can set 100% (honeypot)."),
+    ("RUG: honeypot levers (blacklist/trading-toggle/maxTx)", det_honeypot_lever,
+     "Operator-power class: owner can freeze/block exits -> exit-scam toolkit / centralization risk."),
 ]
 
 
@@ -1093,7 +1176,9 @@ def det_key(title):
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled"),
                    ("downcast", "downcast"), ("divide-before", "precision"),
                    ("encodepacked", "encodepacked"), ("fee-on-transfer", "feeontransfer"),
-                   ("delete struct", "delmap"), ("overflow", "overflow"), ("flashloan", "flashloan")):
+                   ("delete struct", "delmap"), ("overflow", "overflow"), ("flashloan", "flashloan"),
+                   ("owner-drain", "ownerdrain"), ("fee/tax setter", "feebackdoor"),
+                   ("honeypot levers", "honeypot")):
         if sub in t:
             return k
     return "other"
