@@ -67,6 +67,29 @@ not participant-grindable.
 **Status:** GPL repo, NO formal bounty program visible -> responsible disclosure direct to warlock-forge; egor
 confirms the deployed mainnet version matches HEAD + sends. White-hat: read-only, no funds touched.
 
+## CURRENT CRITICALITY (on-chain, Base mainnet, checked 2026-06-11) -- LOW / DORMANT
+The vulnerable code is LIVE but the LIVE-FIRST test re-calibrates the impact HARD:
+- **The vulnerable path has NEVER executed.** All 3 deployed GauntletGame brackets read `nextGauntletId == 0`
+  (L1-4 `0x005744..`, L5-9 `0x4D31cA..`, L10 `0x2Ff94A..`) -> not a single gauntlet has ever completed on
+  mainnet. `isGameEnabled == true`, but only **6 players queued** total (one bracket), below the start
+  threshold. So nothing has been (or can yet be) grinded.
+- **No funds at stake.** `queueForGauntlet` is FREE (not payable, no entry fee, no prize pool). The "prize" is
+  utility PlayerTickets NFTs (ATTRIBUTE_SWAP / NAME_CHANGE / PLAYER_SLOT / DUEL_TICKET ... -- game consumables),
+  not money. The bug cannot STEAL anything; at most it lets a player win utility tickets unfairly + bias bracket
+  / season standings. Grinding is rate-limited (`dailyGauntletLimit = 10`/player).
+- **TournamentGame is NOT deployed on mainnet v2** (absent from the README deploy table) -> that half is moot.
+- The traction that exists ("54k fights, 450 players") was the EARLIER Heavy Helms Origins on Shape Network
+  (GameEngine v28, different code) -- not this Base-v2 deployment.
+
+**Verdict on "can it damage anything right now?": essentially NO.** It is a REAL latent fairness flaw, but
+current real-world impact is negligible -- deployed + enabled != active + valuable. It only starts to matter
+IF/WHEN gauntlets run at real volume with rewards that carry value (or season standings get tied to money /
+airdrops). Honest severity: abstract Medium (integrity); **current live impact Low.**
+
+**Disclosure framing:** low-priority, pre-traction heads-up. The team is at the BEST moment to fix (no live
+exploitation possible yet, trivial fix: drop the reveal-tx entropy from the seed or use their existing Chainlink
+VRF). Not urgent, not a fund-loss bug. egor decides whether it's worth the contact.
+
 ## Verify trail (kill-gates passed)
 - grindable: yes (4/5 entropy sources caller-controlled; keccak avalanche -> any change = new seed).
 - benefit: yes (seed drives selection + bracket + per-fight winners; attacker is a participant).
