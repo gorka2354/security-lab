@@ -47,8 +47,8 @@ def collect_leads(src_dir, max_prio=1):
             text = open(path, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        for title, fn, _ in recon.DETECTORS:
-            for lead in fn(text, rel):
+        for title, leads in recon.detect_all(text, rel).items():
+            for lead in leads:
                 rel_, line, _snip, note, prio = lead
                 if prio <= max_prio:
                     out.append((rel_, line, title, note, prio, lead_form(title)))

@@ -18,6 +18,7 @@ Output is ASCII for Windows consoles. Findings carry a priority (0=high).
 import argparse
 import os
 import re
+import sys
 
 SKIP_DIRS = {"lib", "node_modules", "out", "artifacts", "cache", ".git",
              "forge-std", "openzeppelin", "docs"}
@@ -889,6 +890,20 @@ def det_key(title):
     return "other"
 
 
+def detect_all(text, rel):
+    """Run EVERY detector on one (text, rel) with a per-detector guard, so a single detector that throws
+    on a malformed file can't abort the whole scan (a silent partial/false-clean risk). Returns
+    {title: [leads]}; a crashing detector yields [] + a stderr WARN. Shared by recon/analyze/deepdive."""
+    out = {}
+    for title, fn, _why in DETECTORS:
+        try:
+            out[title] = list(fn(text, rel))
+        except Exception as e:  # noqa: BLE001 - one bad file must not kill the scan
+            sys.stderr.write(f"[recon] WARN: detector '{title}' crashed on {rel}: {e} (skipped that file)\n")
+            out[title] = []
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="Solidity lead-surfacer (vault heuristics)")
     ap.add_argument("repo", help="path to a cloned Solidity repo")
@@ -904,8 +919,8 @@ def main():
             text = open(path, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        for title, fn, _ in DETECTORS:
-            results[title].extend(fn(text, rel))
+        for title, leads in detect_all(text, rel).items():
+            results[title].extend(leads)
 
     out = [f"# Recon report: {os.path.basename(os.path.abspath(args.repo))}",
            f"\nScanned {len(files)} .sol files. Triage only - verify every lead by hand.",

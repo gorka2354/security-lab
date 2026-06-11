@@ -488,6 +488,24 @@ _keys = [recon.det_key(t) for t, _, _ in recon.DETECTORS]
 check("other" not in _keys, "every detector title maps to a real det_key (none fall through to 'other')")
 check(len(set(_keys)) == len(_keys), "each detector has a UNIQUE det_key (no silent ledger-group collisions)")
 
+print("== recon.detect_all (one crashing detector can't abort the whole scan) ==")
+_orig_dets = recon.DETECTORS
+try:
+    import io as _io
+    import contextlib as _cl
+
+    def _boom(_t, _r):
+        raise ValueError("boom")
+    recon.DETECTORS = [("CRASHER", _boom, "x")] + list(_orig_dets)
+    _errbuf = _io.StringIO()
+    with _cl.redirect_stderr(_errbuf):
+        _da = recon.detect_all("contract C{function setFee(uint x) external { fee=x; }}", "src/C.sol")
+    check(_da.get("CRASHER") == [] and "CRASHER" in _errbuf.getvalue()
+          and any("setFee" in (l[2] or "") for v in _da.values() for l in v),
+          "recon.detect_all: a crashing detector is isolated ([] + stderr WARN); real detectors still fire")
+finally:
+    recon.DETECTORS = _orig_dets
+
 print("== forkdrift (fork-of-audited-base detection + substantive drift diff) ==")
 import forkdrift  # noqa: E402
 # detect_base: the Lagoon/Hopper storage-namespace fingerprint (RockSolid was a verbatim Lagoon fork)

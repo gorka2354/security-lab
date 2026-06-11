@@ -33,8 +33,8 @@ def run_recon(repo):
             text = open(path, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
-        for title, fn, _ in recon.DETECTORS:
-            res[title].extend(fn(text, rel))
+        for title, leads in recon.detect_all(text, rel).items():
+            res[title].extend(leads)
     return files, res
 
 
