@@ -66,3 +66,21 @@ than it holds. Drop the parallel APR-compound `exchangeRate` entirely.
 yielded a real, verification-surviving Medium. Confirms the session diagnosis: **target quality (under-
 reviewed code) is the bottleneck, not tooling.** Ledger -> `real` (the project's first). Next: build the
 Foundry PoC + (user) check Ledgity's disclosure/bounty channel.
+
+## VERIFY before disclosure (2026-06-13) -> NOT LIVE; downgraded real -> wontfix
+
+Pre-disclosure deployment check (the LIVE-FIRST gate, run on the live `dev` branch + on-chain):
+- The CODE bug is real + unfixed (exchangeRate still daily-compounds; `_unwrap` has no balance cap;
+  file unchanged since 2025-08-27; no SECURITY.md / issue / audit). PoC still passes.
+- **But the buggy contract is not deployed in any used form:** generic `WrappedLToken` is **absent from
+  `data/deployments.json`** (Base/Arbitrum/Linea deploy only the LToken LUSDC, no wrapper). The ONLY deployed
+  wrapper is `WrappedLTokenSonic` (Sonic `0xeD758d19DC4086775Fe23c2EcC18F66Fb7F68262`) -- it inherits the bug
+  but on-chain is **EMPTY**: `totalSupply()==0`, `exchangeRate()==0`, `totalAssets()` reverts.
+- The HUNT/disclosure "deployed multi-chain ~$3M TVL" was the **protocol-level** (LToken) TVL, NOT the wrapper
+  -- an unverified extrapolation. The wrapper holds nothing -> no funds at risk today.
+
+**Lesson (feeds the feedback-loop / calibrate.py):** our flagged "first surviving finding" failed the
+deployment gate when VERIFY was actually run before disclosure. Disclosing it as "Medium, user funds at risk"
+would have been a reputational FP (the team would see an empty wrapper). This is the feedback loop working as
+intended -- catching a not-live finding BEFORE it ships. Severity -> Latent/Informational (fix-before-funded
+courtesy). calibrate finding ledgity-1 -> withdrawn; ledger -> wontfix. Re-evaluate IF the wrapper is funded.

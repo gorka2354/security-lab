@@ -348,9 +348,9 @@
       "line": 114,
       "detector": "erc4626",
       "snippet": "exchangeRate() daily-compounds APR vs LToken linear accrual -> undercollateralized wrapper",
-      "verdict": "real",
-      "reason": "MEDIUM: daily-compound exchangeRate > linear LToken balance accrual -> owes>holds -> late-unwrapper insolvency; baseRate locks over-projection (no balance reconcile). scout-v2 find. PoC pending.",
-      "date": "2026-06-09"
+      "verdict": "wontfix",
+      "reason": "VERIFY 2026-06-13 (pre-disclosure): real code bug (daily-compound vs linear, PoC passes) but NOT LIVE. generic WrappedLToken undeployed (their deployments.json: absent); only WrappedLTokenSonic deployed (Sonic 0xeD758d19) which INHERITS the bug but is EMPTY on-chain (totalSupply=0, exchangeRate=0, totalAssets reverts). HUNT 'multi-chain/$3M TVL' was protocol-level (LToken) TVL, not wrapper. Latent fix-before-launch courtesy at most. Mirrors posi-vaults dead-target discipline.",
+      "date": "2026-06-13"
     },
     {
       "sig": "loreum-chamber|contracts/src/Chamber.sol|supply|delegate/transfer voting-weight double-count",

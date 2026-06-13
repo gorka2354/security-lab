@@ -8,13 +8,13 @@
       "channel": "direct",
       "file": "src/protocol-v1/WrappedLToken.sol",
       "line": 114,
-      "status": "drafted",
+      "status": "withdrawn",
       "sev_awarded": "",
       "bounty_expected": 0,
       "bounty_received": 0,
       "found": "2026-06-13",
       "updated": "2026-06-13",
-      "notes": "scout-v2 first find; PoC invariant-lab WrappedLTokenInsolvencyPoC; no bounty -> direct disclosure"
+      "notes": "scout-v2 first find; PoC invariant-lab WrappedLTokenInsolvencyPoC; no bounty -> direct disclosure | VERIFY pre-disclosure 2026-06-13: NOT live. generic WrappedLToken undeployed (deployments.json: absent); only WrappedLTokenSonic deployed (Sonic 0xeD758d19) and it is EMPTY on-chain (totalSupply=0, exchangeRate=0, totalAssets reverts). Code bug real (PoC passes) but zero live impact; HUNT multi-chain/$3M claim was protocol-level TVL, not wrapper. Latent -> fix-before-launch courtesy at most, NOT a Medium user-funds finding."
     },
     {
       "id": "heavy-helms-1",

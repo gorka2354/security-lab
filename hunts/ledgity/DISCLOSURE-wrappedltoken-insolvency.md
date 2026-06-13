@@ -1,6 +1,6 @@
 # Ledgity Yield — WrappedLToken progressive undercollateralization (daily-compound rate vs linear underlying accrual)
 
-**Severity:** Medium (growing solvency deficit; value transfer from late to early unwrappers; last unwrapper bricked)
+**Severity:** Latent / Informational (real code bug, but the buggy wrapper is UNDEPLOYED (generic) / EMPTY (Sonic) -> no live funds at risk today; see Verification). Would be Medium IF the wrapper is ever funded.
 **Component:** `WrappedLToken` (non-rebasing wrapper for `LToken`)
 **Status:** deployed; no external audit listed (DefiLlama `audits=0`); the contract is absent from the repo's own `audit/slither-report.md`.
 
@@ -64,9 +64,36 @@ test_bankRun_lastUnwrapperBricked:
 
 ## Recommendation
 Make the wrapper **balance-backed** (the wstETH pattern), so it can never owe more than it holds:
-`toRebasingAmount(wrapped) = wrapped * lToken.balanceOf(address(this)) / totalSupply()` (an ERC4626
-`totalAssets() == lToken.balanceOf(this)`). Drop the parallel daily-compound `exchangeRate`/`baseRate`/
-checkpoint machinery entirely — the underlying's own rebasing already reflects realized yield.
+`toRebasingAmount(wrapped) = wrapped * lToken.balanceOf(address(this)) / totalSupply()`. Drop the parallel
+daily-compound `exchangeRate`/`baseRate`/checkpoint machinery entirely — the underlying's own rebasing
+already reflects realized yield.
+
+**The contract already computes the correct measure** — `totalAssets()` (WrappedLToken.sol:424-427) returns
+`lToken.balanceOf(address(this))`. The redemption path just doesn't use it: `_unwrap` pays
+`toRebasingAmount()` (the daily-compound projection) instead of the `totalAssets()/totalSupply()` share. So
+the fix is to route redemption through the value the contract already tracks for ERC4626 — a small change,
+not a redesign.
+
+## Verification (2026-06-13, default branch `dev`) -- DEPLOYMENT GATE FAILS: not live today
+
+The CODE bug is real and unfixed:
+- `exchangeRate()` on `LedgityLabs/ledgity-v2-contracts@dev` still daily-compounds (the
+  `for (i<fullDays) compoundedRate = compoundedRate*(RAY+dailyRatio)/RAY` loop is intact); `_unwrap` still pays
+  `toRebasingAmount()` with **no cap** against `lToken.balanceOf(this)`.
+- Unchanged since 2025-08-27 (last commit on the file = folder restructure); no SECURITY.md, no issue, not in
+  the repo's own Slither report, DefiLlama `audits=0` -> unfixed and unreported.
+
+But the **deployment gate fails**, so there is no live impact today:
+- The generic `WrappedLToken` (this report's contract) is **NOT deployed** on any chain — `data/deployments.json`
+  has no entry; Base/Arbitrum/Linea ship only the LToken (LUSDC), no wrapper.
+- The ONLY deployed wrapper is `WrappedLTokenSonic` (Sonic, `0xeD758d19DC4086775Fe23c2EcC18F66Fb7F68262`), which
+  **inherits** the buggy `exchangeRate`/`_unwrap` — but on-chain it is **empty**: `totalSupply()==0`,
+  `exchangeRate()==0`, `totalAssets()` reverts (uninitialized). Zero wrapped value -> nothing to redistribute.
+- The protocol's ~$3M TVL is in the LToken (LUSDC), **not** the wrapper; the wrapper is unused.
+
+**Conclusion:** a real, latent code bug, but **no funds are at risk today**. Correct handling = a low-priority
+"fix the wrapper before it is funded" courtesy note, NOT a "Medium, user funds at risk" disclosure. Re-evaluate
+IF the wrapper is ever populated (totalSupply > 0).
 
 ## Provenance & disclosure
 Deployed, multi-chain (Base/Ethereum/Linea/Arbitrum/Sonic), ~$3M TVL, **no external audit** (DefiLlama
