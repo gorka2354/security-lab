@@ -37,9 +37,30 @@ interest accrual, withdrawal batches) + a differential Foundry PoC with a Wildca
 3. **queue / `paidBacking` double-count** (WildcatWithdrawalLib) -- `market.balanceOf + paidBacking` across a
    `queueWithdrawal -> executeWithdrawal` window; verify no backing is counted twice in `excess()`.
 
-## Verdict: PARK (live, real, but EV-moderate)
-Greenfield + live $6M is attractive, but: no bounty (disclosure-only), main flows verify as conserved, and the
-residual leads are Wildcat-protocol-dependent (a real deep-dive, not a quick add). **Re-open with a Wildcat
-L4 + differential PoC** if egor wants to commit the session to it (start at lead #1, `depositFromMarket`).
-Best live greenfield target the fan-out produced; the other 3 (mezo $29M fork+audited, punks Yuga priv-audited,
-lazy operator-trust) rank below it. See [[feedback-loop-calibrate-and-disclosure-gap]].
+## Deep L4 (2026-06-13, full read: core + OFT + storage + WildcatLib + mock + invariant/fuzz suite)
+Verdict: **IE / hardened -- no demonstrable finding.** All four agent leads trace as CONSERVED once the
+Wildcat mechanics are understood:
+- **skim phantom-mint** -> a donation BECOMES backing; treasury's minted shares ARE backed; the team fuzzes
+  donate()+skim() and their `invariant_backingCoversObligations` (available >= virtualAssets + pendingDebt) holds.
+- **OFT vs virtual asymmetry** -> `virtualShares` is the GLOBAL (all-chain) supply; `_debit/_credit` move the
+  real per-chain ERC20 while redeem/skim use virtual; bridge-out -> redeem keeps backing whole on every walk.
+- **depositFromMarket** -> differential-fuzzed vs a wrap/unwrap proxy + scaleFactor-varying invariant
+  (`shares == market.balanceOf(vault)`); credits the actual face value received, 1:1 backed.
+- **paidBacking double-count** -> queued tokens are burned from `market.balanceOf` (disjoint sets);
+  `executeWithdrawal` bumps `normalizedAmountWithdrawn` in lockstep with underlying leaving.
+`virtualAssets == virtualShares` is rigidly preserved; no profit vector survives L4. Alchemix-class outcome
+(core is hardened). Per VERIFY (FP > miss) -> do NOT disclose.
+
+**Real mock-gap found, but it points the SAFE way:** the mocks mark `normalizedAmountPaid` full+instant on
+`queueWithdrawal`; real Wildcat pays partial/delayed. So in production `paidBacking` UNDER-counts in the
+queued-but-unrepaid window -> `excess()` is understated -> `skim()` reverts rather than over-mints, and
+redeemers are still gated on real `underlying.balanceOf` in `_finalizeQueuedRequest`. Conservative, not
+exploitable. **Courtesy note to the team (test-quality, NOT security):** their headline backing>=owed invariant
+holds only because the mock assumes instant full Wildcat repayment; a realistic partial-repayment harness would
+transiently violate it (harmlessly). Worth hardening the test, not a finding.
+
+## Verdict: IE (insufficient evidence / hardened) -- closed, not disclosed
+Best live greenfield target the fan-out produced ($6M, non-fork), but a deep L4 shows the bespoke virtual-1:1 +
+Wildcat-wrapping + OFT accounting conserves across all paths. No bounty anyway (disclosure-only). Re-open ONLY
+if a future Wildcat-specific edge (delinquency/reserve manipulation in the live market) surfaces. See
+[[fanout-triage-workflow-validated]] + [[feedback-loop-calibrate-and-disclosure-gap]].

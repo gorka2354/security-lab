@@ -320,6 +320,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "eva-markets|contracts/EvaVault.sol|erc4626|virtual 1:1 totalAssets/totalSupply + skim excess + OFT bridge + Wildcat wrap",
+      "target": "eva-markets",
+      "file": "contracts/EvaVault.sol",
+      "line": 348,
+      "detector": "erc4626",
+      "snippet": "virtual 1:1 totalAssets/totalSupply + skim excess + OFT bridge + Wildcat wrap",
+      "verdict": "wontfix",
+      "reason": "Deep L4 2026-06-13 (fan-out top candidate): live $6M greenfield, deployed==repo, but virtual-1:1 accounting is hardened -- all 4 agent leads (skim phantom-mint, OFT-vs-virtual asymmetry, depositFromMarket inflation, paidBacking double-count) trace as CONSERVED; virtualAssets==virtualShares rigid; team has backing>=owed invariant + donate/skim fuzz + differential depositFromMarket fuzz. Real mock-gap (mock assumes instant full Wildcat repayment) points SAFE (excess under-counts -> skim reverts). No bounty. IE/hardened, not disclosed. Mock-invariant test-quality note to team only.",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "heavy-helms|src/game/modes/TournamentGame.sol|weakrand|function _getEnhancedRandomness(uint256 futureBlock)",
       "target": "heavy-helms",
       "file": "src/game/modes/TournamentGame.sol",
