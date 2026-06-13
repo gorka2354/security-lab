@@ -6,6 +6,26 @@ explicit. (Borrows the kill-gate / FP-pattern structure from Krait — ZealynxSe
 severity-calibration + ledger flow.) **Rule: FPs are worse than misses.** A claimed-but-wrong finding burns
 credibility (egor discloses, not me). When unsure -> downgrade to IE (insufficient evidence), not "report it".
 
+## GATE 0 (run FIRST, pre-disclosure, MANDATORY): is the BUGGY contract LIVE?
+
+LIVE-FIRST as a hard gate, not a vibe. A bug only matters in the SPECIFIC contract that carries it, deployed
+AND holding real positions. Two findings died here -> now mandatory before any deeper claim:
+- **posi-vaults**: deployed, but the farm was dead (emissions `positionPerBlock==0`, single-pool empty, vault `totalSupply==0`).
+- **ledgity**: the buggy generic `WrappedLToken` was **UNDEPLOYED**; the only deployed wrapper (Sonic) was **EMPTY** (`totalSupply==0`). The HUNT "~$3M TVL" was **protocol-level** (the LToken), not the buggy contract.
+
+KILL the finding (or downgrade to Latent / IE = "fix-before-funded courtesy") unless ALL THREE hold:
+1. **Exact contract deployed.** Find the on-chain address of the contract *carrying the bug* — the protocol's
+   `deployments.json` / `broadcast/` / explorer — NOT the protocol address or its gov token. No address -> not live.
+2. **Non-empty on-chain state.** `python toolkit/activity.py <addr> --chain <c> [--token <underlying>]` must
+   NOT return `NO-CODE` / `EMPTY` / `DORMANT`. (`EMPTY` = `totalSupply==0` = no positions -> a share/balance/
+   redemption-math bug has nothing to act on.) For non-ERC contracts use `--counter "<pathCounter>()"`.
+3. **Value lives in THIS contract.** The funds at risk are in the contract you found (its `totalSupply` /
+   balances), not merely somewhere in the protocol.
+
+Pitfall: "deployed, multi-chain, $X M TVL" is a *protocol* claim — verify the wrapper/vault/module YOU flagged,
+on its own address. Passing Gate 0 -> proceed to the 8 kill gates. Failing -> ledger `wontfix`/`todo`, calibrate
+the finding `withdrawn` (it was never live), note "re-evaluate IF funded".
+
 ## A finding must SURVIVE ALL 8 KILL GATES
 | Gate | KILL it if... | Note |
 |------|---------------|------|

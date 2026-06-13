@@ -840,6 +840,12 @@ check(activity.classify(2000, 0, 10**18)[0] == "QUIET-VALUE"
       "activity.classify: no events but holds ETH or token value -> QUIET-VALUE / DIG-CAREFUL")
 check(activity.classify(2000, 0, 0)[0] == "DORMANT" and activity.classify(2000, 0, 0)[1] == "PARK/SKIP",
       "activity.classify: deployed, no events, 0 value -> DORMANT / PARK-SKIP (the heavy-helms case)")
+check(activity.classify(2000, 0, 0, supply=0)[0] == "EMPTY" and "not live" in activity.classify(2000, 0, 0, supply=0)[1],
+      "activity.classify: deployed but totalSupply==0 -> EMPTY / not live (the ledgity WrappedLTokenSonic deployment-gate)")
+check(activity.classify(2000, 5, 10**18, supply=0)[0] == "EMPTY",
+      "activity.classify: totalSupply==0 -> EMPTY even with events + value (no shares/positions exist to act on)")
+check(activity.classify(2000, 7, 0, supply=1000)[0] == "ACTIVE" and activity.classify(2000, 0, 0, supply=None)[0] == "DORMANT",
+      "activity.classify: supply>0 doesn't block ACTIVE; supply=None keeps prior behavior (back-compat)")
 check(activity.resolve_chain("base") == "8453" and activity.resolve_chain("8453") == "8453"
       and activity.resolve_chain("eth") == "1",
       "activity.resolve_chain: chain names + ids both resolve to the id string")

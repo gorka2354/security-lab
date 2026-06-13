@@ -9,7 +9,8 @@ not after. Green (ACTIVE/value) -> dig; red (DORMANT) -> park (watch.py) or skip
     python activity.py <addr>[,<addr>...] --chain <id|name> [--blocks N] [--token <erc20>] [--counter "sig()"|0xSELECTOR]
 
 Keyless (public RPC, stdlib + optional web3 for selectors): per address it reports
-  code?  -> recent events (eth_getLogs over the last N blocks)  -> ETH held (+ optional ERC20 balance)
+  code?  -> own totalSupply() (0 = EMPTY: deployed but no positions -> NOT a live finding; the ledgity lesson)
+  -> recent events (eth_getLogs over the last N blocks)  -> ETH held (+ optional ERC20 balance)
   -> optional path-counter (e.g. nextGauntletId() == 0 means that path has never run).
 Reuses fetch_source._rpc / DEFAULT_RPC. A COARSE contract-liveness gate, not a per-function oracle:
 contract-level activity (people touched it) != your bug-path being exercised -- use --counter for that.
@@ -27,6 +28,7 @@ CHAIN_ALIAS = {"eth": "1", "ethereum": "1", "mainnet": "1", "base": "8453", "arb
                "polygon": "137", "matic": "137", "bsc": "56"}
 
 BAL_OF = "0x70a08231"  # balanceOf(address)
+TOTAL_SUPPLY = "0x18160ddd"  # totalSupply() -- the contract's OWN positions/shares (0 = empty -> not live)
 ERC20_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"  # Transfer(addr,addr,uint)
 
 
@@ -53,12 +55,19 @@ def resolve_chain(c):
     return CHAIN_ALIAS.get(str(c).lower(), str(c))
 
 
-def classify(code_len, events, balance_wei, token_bal=None):
-    """PURE: map probe results -> (verdict, recommendation, note). events<0 = query failed."""
+def classify(code_len, events, balance_wei, token_bal=None, supply=None):
+    """PURE: map probe results -> (verdict, recommendation, note). events<0 = query failed; supply is the
+    contract's OWN totalSupply (None = absent / not an ERC-share contract). Deployment-gate addition: a
+    deployed share/balance contract with totalSupply==0 holds NO user positions, so a share/redemption-math
+    bug has nothing to act on -- the ledgity WrappedLTokenSonic lesson (deployed, inherited the bug, EMPTY)."""
     if code_len < 0:
         return ("UNKNOWN", "RETRY", "eth_getCode returned null (RPC issue) -> retry / check the RPC, NOT 'no code'")
     if code_len == 0:
-        return ("NO-CODE", "SKIP", "no bytecode (not deployed / EOA / wrong chain)")
+        return ("NO-CODE", "SKIP", "no bytecode (not deployed / EOA / wrong chain) -> NOT a live finding")
+    if supply == 0:
+        return ("EMPTY", "PARK (not live)",
+                "deployed but totalSupply==0 -> no shares/positions exist; a share/balance/redemption-math bug "
+                "has nothing to act on (re-evaluate IF it gets funded) -- the ledgity lesson")
     if events < 0:
         return ("UNKNOWN", "RETRY", "event query failed (RPC log-range limit) -> lower --blocks and retry")
     has_value = balance_wei > 0 or (token_bal or 0) > 0
@@ -92,13 +101,19 @@ def _selector(sig):
 
 
 def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
-    """Returns (code_len, events, balance_wei, token_bal, counter_val). I/O. events<0 on log-range failure."""
+    """Returns (code_len, events, xfer, balance_wei, token_bal, supply, counter_val). I/O. events<0 on
+    log-range failure. supply = the contract's own totalSupply() (None if it has none / call reverts)."""
     rpc = rpc or fs.DEFAULT_RPC.get(str(chain))
     # None = RPC returned null (error/unsupported) -> UNKNOWN; "0x" = a real EOA -> 0. Don't conflate them.
     code = fs._rpc(rpc, "eth_getCode", [addr, "latest"])
     code_len = -1 if code is None else max(0, len(code) // 2 - 1)
     braw = fs._rpc(rpc, "eth_getBalance", [addr, "latest"])
     bal = _to_int(braw) if braw is not None else 0
+
+    # the contract's OWN positions: totalSupply()==0 on a deployed share/vault/wrapper = empty -> not live.
+    # "0x"/null = no such function (not an ERC-share contract) -> None, leave the verdict to events/value.
+    sraw = fs._rpc(rpc, "eth_call", [{"to": addr, "data": TOTAL_SUPPLY}, "latest"])
+    supply = _to_int(sraw) if (sraw is not None and sraw != "0x") else None
 
     bn = fs._rpc(rpc, "eth_blockNumber", [])
     if bn is None:
@@ -134,7 +149,7 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
             raise
         except Exception:
             cval = None
-    return code_len, events, xfer, bal, tok, cval
+    return code_len, events, xfer, bal, tok, supply, cval
 
 
 def main():
@@ -158,18 +173,20 @@ def main():
     digs = 0
     for addr in addrs:
         try:
-            code_len, events, xfer, bal, tok, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
+            code_len, events, xfer, bal, tok, supply, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
         except SystemExit:
             raise
         except Exception as e:
             print(f"[ERROR     ] {addr}  -- {str(e)[:60]}")
             continue
-        verdict, rec, note = classify(code_len, events, bal, tok)
+        verdict, rec, note = classify(code_len, events, bal, tok, supply)
         thint = token_hint(events, xfer)
         if rec in ("DIG", "DIG-CAREFUL") and not thint:
             digs += 1
         ev = "?" if events < 0 else events
         extra = ""
+        if supply is not None:
+            extra += f" totalSupply={supply / 1e18:.4f}"
         if tok is not None:
             extra += f" token={tok / 1e18:.4f}"
         if cval is not None:
@@ -177,7 +194,7 @@ def main():
         print(f"[{verdict:11}] {addr}  ({'RESOLVE-CORE' if thint else rec})")
         print(f"             code={code_len}B  events(last {args.blocks})={ev}  eth={bal / 1e18:.4f}{extra}")
         print(f"             {thint or note}")
-    print(f"\n-> {digs}/{len(addrs)} worth a deep dive. DORMANT/NO-CODE -> park (watch.py) or skip, don't deep-read.")
+    print(f"\n-> {digs}/{len(addrs)} worth a deep dive. NO-CODE/EMPTY/DORMANT -> park (watch.py) or skip, don't deep-read.")
     print("   NOTE: ETH-only value is a weak proxy (most TVL is ERC20 -> pass --token); events = contract-level,")
     print("   not your exact bug-path (use --counter for that, e.g. nextGauntletId()==0 => path never executed).")
     return 0

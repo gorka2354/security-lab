@@ -21,7 +21,8 @@
   `recon.py` (L1, 33 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
-  Phase-0/1 гейт: active+value? иначе park/skip — ДО глубокого чтения), `calibrate.py` (FEEDBACK-LOOP:
+  Phase-0/1 гейт: code+own-totalSupply+active+value? totalSupply==0 -> EMPTY/not-live; иначе park/skip — ДО
+  чтения И как обязательный pre-disclosure Gate-0 в VERIFY.md), `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
   ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor). Динамический слой
   локально — WSL-лейн (`toolkit/WSL-LANE.md`).
