@@ -441,6 +441,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "mezo-borrow|src/InterestRateManager.sol|index|interestNumerator aggregated interest vs per-trove interestOwed (custom layer on Liquity v1)",
+      "target": "mezo-borrow",
+      "file": "src/InterestRateManager.sol",
+      "line": 163,
+      "detector": "index",
+      "snippet": "interestNumerator aggregated interest vs per-trove interestOwed (custom layer on Liquity v1)",
+      "verdict": "wontfix",
+      "reason": "Deep L4 2026-06-13 (fan-out #2, $29M Cantina-audited Liquity fork): the custom interest-accrual layer (the one real drift surface) is HARDENED -- update-before-change discipline verified across ALL trove-mutating paths (open:626/adjust:769/close:945/refinance:1021/liquidate:662) calling updateSystem(AndTrove)Interest FIRST before any interestNumerator change. No system-debt-vs-sum-of-trove divergence reproduces. Other leads de-risked (oracle=system predeploy, sigs skim-clean, PCV gated). IE/hardened, not disclosed. 2/2 deep-dived fan-out candidates hardened -> reachable space is hardened-dominated.",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "mezo-musd|solidity/contracts/BorrowerOperations.sol|ac|function addColl(...)",
       "target": "mezo-musd",
       "file": "solidity/contracts/BorrowerOperations.sol",
