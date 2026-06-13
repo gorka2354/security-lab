@@ -49,3 +49,24 @@ amount`. -> `sum(userInfo.amount) != totalSupply`, and `rewardPerToken = rewards
   may be deprecated). Severity is gated on that -> ledger F2 = `todo` (PoC + live-check), F1 = `real` (clear but Low).
 - White-hat: read-only. If confirmed live + in-scope, egor confirms + discloses (PositionExchange has no public
   bounty visible -> responsible disclosure direct).
+
+## Phase-0 LIVE-FIRST verdict (2026-06-13) -- DEAD TARGET, closed (wontfix)
+
+On-chain check (BSC) of the staking it auto-compounds + the deployed vaults:
+- **Emissions OFF:** PosiStakingManager(V1) `0x0C54...db0B` `positionPerBlock() = 0`. No POSI is minted -> no reward
+  accrual -> `rewardPerToken()` never grows -> F2's quadratic inflation has nothing to inflate.
+- **Single pool (pid=1, what the vaults compound) is empty:** lpToken=POSI, but staking holds **0 POSI**;
+  `lastRewardBlock = 25,063,962` (~2022) i.e. no interaction for years; allocPoint 7/827.
+- **Deployed vaults are empty:** BNBPosiVault `0x75Ec2073...5bD6` + BUSDPosiVault `0x0385665a...0f38` both have
+  `totalSupply()=0`, single-pool stake 0, only `1e14` (0.0001) POSI dust. Zero TVL, zero users.
+- **POSI itself** is -99.98% from ATH (ATL Feb-2026), swap "under maintenance", protocol migrated to
+  PosiStakingManagerV2 `0xb02de8...b2d1`. BSC farming is abandoned.
+- **Repo->live attribution UNPROVEN:** the cleanest-F2 contract (POSIAutoCompoundVault) is **not deployed**
+  (no on-chain match); the deployed BNB/BUSD vaults expose a **different ABI** (`rewardPerTokenStored()` absent)
+  and the repo's BNB/BUSD files ship a **testnet** config -> the code carrying F2 is not the live bytecode.
+
+**Verdict:** F2 (quadratic reward inflation) + F1 (balanceOf ignores param) are **real code bugs** (math
+re-confirmed against source this session), but the target is dead: no emissions, no TVL, no users, and no proven
+link from the buggy repo code to live bytecode -> **ZERO live impact -> not a finding.** Ledger F1+F2 -> `wontfix`.
+Lesson reinforced: the LIVE-FIRST caveat in the original note was correct -- "an obviously-broken live vault" was
+the tell; one cheap on-chain pass (emissions + pool TVL + vault totalSupply) settles it before any PoC effort.

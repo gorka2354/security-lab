@@ -557,9 +557,9 @@
       "line": 56,
       "detector": "other",
       "snippet": "balanceOf(address user) returns userInfo[msg.sender].amount",
-      "verdict": "real",
-      "reason": "balanceOf(user) IGNORES the param, returns userInfo[msg.sender].amount -> external balanceOf(other)/earned(other) return the CALLER's balance. Masked in state-changing paths (always msg.sender). Low (view correctness).",
-      "date": "2026-06-11"
+      "verdict": "wontfix",
+      "reason": "Same dead target as F2 (2026-06-13). Real view-correctness bug but Low + zero live impact (vaults empty, protocol abandoned). Not for disclosure.",
+      "date": "2026-06-13"
     },
     {
       "sig": "posi-vaults|contracts/POSIAutoCompoundVault.sol|reward|earned = balanceOf(account).mul(perTokenDelta.add(rewards))",
@@ -568,9 +568,9 @@
       "line": 86,
       "detector": "reward",
       "snippet": "earned = balanceOf(account).mul(perTokenDelta.add(rewards))",
-      "verdict": "todo",
-      "reason": "REWARD FORMULA: .add(userInfo.rewards) is INSIDE .mul(balanceOf) -> stored rewards multiplied by balance (Synthetix adds it OUTSIDE) -> earned ~ balance^2*delta after the 2nd 8h update -> reward inflation -> drain/insolvency. Strong lead, NEEDS a Foundry PoC + confirm vault is DEPLOYED+used (likely deprecated since it'd be obviously broken if live). LIVE-FIRST gate before disclosure.",
-      "date": "2026-06-11"
+      "verdict": "wontfix",
+      "reason": "LIVE-FIRST kill (2026-06-13 on-chain check): DEAD target. positionPerBlock=0 (no emissions), single-pool pid=1 empty (staking holds 0 POSI, lastRewardBlock~25M=2022), deployed vaults 0x75Ec/0x0385 totalSupply=0 + 1e14 dust POSI, POSI -99.98% (ATL Feb2026, swap in maintenance, migrated to StakingManagerV2). Repo->live link UNPROVEN: POSIAutoCompoundVault (cleanest F2) not deployed; deployed BNB/BUSD vaults expose a DIFFERENT ABI (rewardPerTokenStored missing) + repo files are on testnet config. Real bug (quadratic reward inflation, math confirmed) but ZERO live impact -> not a finding.",
+      "date": "2026-06-13"
     },
     {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
