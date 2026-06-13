@@ -1,0 +1,49 @@
+{
+  "findings": [
+    {
+      "id": "ledgity-1",
+      "target": "ledgity",
+      "title": "WrappedLToken progressive undercollateralization (daily-compound exchangeRate vs linear accrual)",
+      "sev_claimed": "medium",
+      "channel": "direct",
+      "file": "src/protocol-v1/WrappedLToken.sol",
+      "line": 114,
+      "status": "drafted",
+      "sev_awarded": "",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-06-13",
+      "updated": "2026-06-13",
+      "notes": "scout-v2 first find; PoC invariant-lab WrappedLTokenInsolvencyPoC; no bounty -> direct disclosure"
+    },
+    {
+      "id": "heavy-helms-1",
+      "target": "heavy-helms",
+      "title": "RNG outcome grinding: commit-reveal mixes reveal-tx entropy over blockhash",
+      "sev_claimed": "medium",
+      "channel": "gpl-direct",
+      "file": "src/game/modes/TournamentGame.sol",
+      "line": 1338,
+      "status": "drafted",
+      "sev_awarded": "",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-06-13",
+      "updated": "2026-06-13",
+      "notes": "GPL no-bounty -> responsible disclosure; on-chain criticality currently LOW/dormant"
+    }
+  ],
+  "calibrations": [
+    {
+      "id": "monetrix-1",
+      "target": "monetrix",
+      "source": "C4 2026-04",
+      "public": "M-01 backing undercount",
+      "ours": "found",
+      "result": "TP",
+      "sev": "medium",
+      "lesson": "L4 Accountant mindset + coupled-state caught it (research/shadow-benchmark-monetrix.md)",
+      "date": "2026-06-13"
+    }
+  ]
+}

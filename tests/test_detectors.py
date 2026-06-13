@@ -577,6 +577,22 @@ check(not flagged(recon.det_reward_formula, "contract C{function pending(uint pi
       "det_reward_formula guard: correct MasterChef pending (rewardDebt OUTSIDE in .sub, not inside .mul) NOT flagged")
 check(not flagged(recon.det_reward_formula, "contract C{function f() external { y = balance * (1 + feeRate); }}"),
       "det_reward_formula guard: balance*(1+feeRate) (no reward term) NOT flagged (operator-form precision)")
+
+print("== calibrate (feedback loop: finding-outcome precision + verdict recall) ==")
+import calibrate  # noqa: E402
+_F = [{"status": "accepted"}, {"status": "fixed-silent"}, {"status": "duplicate"},
+      {"status": "disputed"}, {"status": "drafted"}, {"status": "disclosed"}]
+_acc, _dec, _pend = calibrate.precision_stats(_F)
+check(len(_acc) == 3 and len(_dec) == 4 and len(_pend) == 2,
+      "calibrate.precision_stats: accepted/fixed-silent/duplicate count as accepted; disputed is decided; drafted/disclosed pending")
+_C = [{"result": "TP"}, {"result": "TP"}, {"result": "FN"}, {"result": "TN"}]
+_tp, _fn = calibrate.recall_stats(_C)
+check(len(_tp) == 2 and len(_fn) == 1,
+      "calibrate.recall_stats: TP/FN partition for recall (TN excluded)")
+check("duplicate" in calibrate.ACCEPTED_LIKE and "disputed" in calibrate.REJECTED_LIKE,
+      "calibrate: a duplicate is a real finding (accepted-like); a disputed one is rejected-like")
+check(calibrate.SEV_RANK["high"] > calibrate.SEV_RANK["medium"] > calibrate.SEV_RANK["low"],
+      "calibrate.SEV_RANK: severity ordering (for awarded-vs-claimed drift)")
 check(not flagged(recon.det_honeypot_lever, "contract C{function setBlacklist(address a) external { _bl[a] = true; }}"),
       "det_honeypot_lever guard: ungated lever (no owner gate) NOT flagged")
 check(not flagged(recon.det_honeypot_lever, "contract C{function setFee(uint x) external onlyOwner { fee = x; }}"),

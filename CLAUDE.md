@@ -18,11 +18,13 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 32 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
+  `recon.py` (L1, 33 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
-  Phase-0/1 гейт: active+value? иначе park/skip — ДО глубокого чтения). Динамический слой локально —
-  WSL-лейн (`toolkit/WSL-LANE.md`).
+  Phase-0/1 гейт: active+value? иначе park/skip — ДО глубокого чтения), `calibrate.py` (FEEDBACK-LOOP:
+  исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
+  ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor). Динамический слой
+  локально — WSL-лейн (`toolkit/WSL-LANE.md`).
 - **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
 ## Правила
