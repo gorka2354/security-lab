@@ -846,6 +846,11 @@ check(activity.classify(2000, 5, 10**18, supply=0)[0] == "EMPTY",
       "activity.classify: totalSupply==0 -> EMPTY even with events + value (no shares/positions exist to act on)")
 check(activity.classify(2000, 7, 0, supply=1000)[0] == "ACTIVE" and activity.classify(2000, 0, 0, supply=None)[0] == "DORMANT",
       "activity.classify: supply>0 doesn't block ACTIVE; supply=None keeps prior behavior (back-compat)")
+check(activity.classify(2000, 0, 0, supply=988027)[0] == "QUIET-VALUE",
+      "activity.classify: totalSupply>0 + no events/0 held value -> QUIET-VALUE, NOT DORMANT (the lazy funds-forwarded-vault FN fix)")
+check(activity.resolve_chain("mantle") == "5000" and activity.resolve_chain("sonic") == "146"
+      and activity.resolve_chain("mezo") == "31612" and activity.resolve_chain("hyperevm") == "999",
+      "activity.resolve_chain: exotic chains (mantle/sonic/mezo/hyperevm) now alias to ids (the fan-out RPC FN fix)")
 check(activity.resolve_chain("base") == "8453" and activity.resolve_chain("8453") == "8453"
       and activity.resolve_chain("eth") == "1",
       "activity.resolve_chain: chain names + ids both resolve to the id string")

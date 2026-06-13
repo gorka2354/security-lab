@@ -25,10 +25,12 @@ import fetch_source as fs  # reuse _rpc / DEFAULT_RPC  # noqa: E402
 
 CHAIN_ALIAS = {"eth": "1", "ethereum": "1", "mainnet": "1", "base": "8453", "arb": "42161",
                "arbitrum": "42161", "op": "10", "optimism": "10", "linea": "59144",
-               "polygon": "137", "matic": "137", "bsc": "56"}
+               "polygon": "137", "matic": "137", "bsc": "56", "mantle": "5000",
+               "hyperevm": "999", "hyperliquid": "999", "mezo": "31612", "sonic": "146"}
 
 BAL_OF = "0x70a08231"  # balanceOf(address)
 TOTAL_SUPPLY = "0x18160ddd"  # totalSupply() -- the contract's OWN positions/shares (0 = empty -> not live)
+DECIMALS = "0x313ce567"  # decimals() -- so we render supply/token in token units, not hardcoded 1e18
 ERC20_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"  # Transfer(addr,addr,uint)
 
 
@@ -75,6 +77,10 @@ def classify(code_len, events, balance_wei, token_bal=None, supply=None):
         return ("ACTIVE", "DIG", f"{events} event(s) in window" + (" + holds value" if has_value else ""))
     if has_value:
         return ("QUIET-VALUE", "DIG-CAREFUL", "no recent events BUT holds value -> widen window / see who funds it")
+    if (supply or 0) > 0:
+        return ("QUIET-VALUE", "DIG-CAREFUL",
+                "no recent events / 0 ETH-or-token held BUT totalSupply>0 -> outstanding shares/positions exist "
+                "(low-frequency, or a funds-forwarded vault like lazy) -> NOT dormant; widen --blocks to see flow")
     return ("DORMANT", "PARK/SKIP",
             "no events in window + 0 ETH/token -> likely unused (widen --blocks for a low-frequency contract,"
             " and confirm getLogs isn't being range-refused, before trusting a DORMANT)")
@@ -101,8 +107,9 @@ def _selector(sig):
 
 
 def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
-    """Returns (code_len, events, xfer, balance_wei, token_bal, supply, counter_val). I/O. events<0 on
-    log-range failure. supply = the contract's own totalSupply() (None if it has none / call reverts)."""
+    """Returns (code_len, events, xfer, balance_wei, token_bal, supply, decimals, counter_val). I/O.
+    events<0 on log-range failure. supply = the contract's own totalSupply() (None if absent/reverts);
+    decimals = its decimals() (default 18) so we render supply in token units, not hardcoded 1e18."""
     rpc = rpc or fs.DEFAULT_RPC.get(str(chain))
     # None = RPC returned null (error/unsupported) -> UNKNOWN; "0x" = a real EOA -> 0. Don't conflate them.
     code = fs._rpc(rpc, "eth_getCode", [addr, "latest"])
@@ -114,6 +121,11 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
     # "0x"/null = no such function (not an ERC-share contract) -> None, leave the verdict to events/value.
     sraw = fs._rpc(rpc, "eth_call", [{"to": addr, "data": TOTAL_SUPPLY}, "latest"])
     supply = _to_int(sraw) if (sraw is not None and sraw != "0x") else None
+    # decimals() so the printout shows real token units (eva is 6-dec -> /1e18 mis-rendered $2.7M as 0.0000)
+    draw = fs._rpc(rpc, "eth_call", [{"to": addr, "data": DECIMALS}, "latest"])
+    dec = _to_int(draw) if (draw is not None and draw != "0x") else 18
+    if not (0 < dec <= 36):
+        dec = 18
 
     bn = fs._rpc(rpc, "eth_blockNumber", [])
     if bn is None:
@@ -149,7 +161,7 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
             raise
         except Exception:
             cval = None
-    return code_len, events, xfer, bal, tok, supply, cval
+    return code_len, events, xfer, bal, tok, supply, dec, cval
 
 
 def main():
@@ -173,7 +185,7 @@ def main():
     digs = 0
     for addr in addrs:
         try:
-            code_len, events, xfer, bal, tok, supply, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
+            code_len, events, xfer, bal, tok, supply, dec, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
         except SystemExit:
             raise
         except Exception as e:
@@ -184,11 +196,12 @@ def main():
         if rec in ("DIG", "DIG-CAREFUL") and not thint:
             digs += 1
         ev = "?" if events < 0 else events
+        unit = 10 ** dec
         extra = ""
         if supply is not None:
-            extra += f" totalSupply={supply / 1e18:.4f}"
+            extra += f" totalSupply={supply / unit:,.2f}({dec}dec)"
         if tok is not None:
-            extra += f" token={tok / 1e18:.4f}"
+            extra += f" token={tok / unit:.4f}"
         if cval is not None:
             extra += f" counter={cval}" + ("  <- path NEVER run (==0)" if cval == 0 else "")
         print(f"[{verdict:11}] {addr}  ({'RESOLVE-CORE' if thint else rec})")

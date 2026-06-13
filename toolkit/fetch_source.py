@@ -26,6 +26,11 @@ DEFAULT_RPC = {
     "1": "https://ethereum-rpc.publicnode.com", "8453": "https://base-rpc.publicnode.com",
     "42161": "https://arbitrum-one-rpc.publicnode.com", "10": "https://optimism-rpc.publicnode.com",
     "59144": "https://linea-rpc.publicnode.com", "137": "https://polygon-bor-rpc.publicnode.com",
+    "56": "https://bsc-rpc.publicnode.com",          # BSC (posi-vaults lived here)
+    "5000": "https://rpc.mantle.xyz",                # Mantle (mantle-index false-DORMANT fix)
+    "999": "https://rpc.hyperliquid.xyz/evm",        # HyperEVM (hyperbeat)
+    "31612": "https://mezo.drpc.org",                # Mezo (mezo-borrow)
+    "146": "https://sonic.drpc.org",                 # Sonic (ledgity WrappedLTokenSonic)
 }
 
 
