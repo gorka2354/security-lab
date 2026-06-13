@@ -556,6 +556,27 @@ check(flagged(recon.det_honeypot_lever, "contract C{function blacklist(address a
       "det_honeypot_lever: owner-gated blacklist flagged")
 check(flagged(recon.det_honeypot_lever, "contract C{function enableTrading() external onlyOwner { tradingEnabled = true; }}"),
       "det_honeypot_lever: owner-gated enableTrading flagged (can disable sells)")
+
+print("== det_reward_formula (Synthetix mis-bracket: reward accumulator inside .mul(balance)) ==")
+_rf = recon.det_reward_formula("contract C{function earned(address account) public view returns(uint){"
+      " return balanceOf(account).mul(rewardPerToken().sub(p).div(1e18).add(userInfo[account].rewards)); }}", "src/Vault.sol")
+check(bool(_rf) and _rf[0][4] == 0,
+      "det_reward_formula: .add(rewards) INSIDE .mul(balanceOf) -> [!] (posi-vaults quadratic inflation)")
+check(not flagged(recon.det_reward_formula, "contract C{function earned(address account) public view returns(uint){"
+      " return balanceOf(account).mul(rewardPerToken().sub(p)).div(1e18).add(rewards[account]); }}"),
+      "det_reward_formula guard: correct Synthetix (.add(rewards) OUTSIDE the .mul) NOT flagged")
+check(flagged(recon.det_reward_formula, "contract C{function earned(address a) public view returns(uint){"
+      " return balanceOf(a) * ((rpt - paid) / 1e18 + rewards[a]); }}"),
+      "det_reward_formula: operator form balance*(delta + rewards) flagged (no-SafeMath 0.8 style)")
+check(not flagged(recon.det_reward_formula, "contract C{function f(uint a) external { y = amount.mul(price).div(1e18); }}"),
+      "det_reward_formula guard: amount.mul(price) with no reward accumulator inside NOT flagged")
+check(not flagged(recon.det_reward_formula, "contract C{function f() external { y = shares.mul(rate.add(bonus)); }}"),
+      "det_reward_formula guard: .add(bonus) (not a reward accumulator) inside .mul NOT flagged (precision)")
+check(not flagged(recon.det_reward_formula, "contract C{function pending(uint pid,address u) external view returns(uint){"
+      " return user.amount.mul(pool.accPerShare).div(1e12).sub(user.rewardDebt); }}"),
+      "det_reward_formula guard: correct MasterChef pending (rewardDebt OUTSIDE in .sub, not inside .mul) NOT flagged")
+check(not flagged(recon.det_reward_formula, "contract C{function f() external { y = balance * (1 + feeRate); }}"),
+      "det_reward_formula guard: balance*(1+feeRate) (no reward term) NOT flagged (operator-form precision)")
 check(not flagged(recon.det_honeypot_lever, "contract C{function setBlacklist(address a) external { _bl[a] = true; }}"),
       "det_honeypot_lever guard: ungated lever (no owner gate) NOT flagged")
 check(not flagged(recon.det_honeypot_lever, "contract C{function setFee(uint x) external onlyOwner { fee = x; }}"),

@@ -1086,6 +1086,74 @@ def det_honeypot_lever(text, rel):
     return out
 
 
+# ── Detector 33: reward-FORMULA accumulator inside the balance-multiply (Synthetix mis-bracket) ──
+# posi-vaults (PositionExchange) class, found by the L4 read but MISSED by recon-32 (it is a math-SHAPE
+# bug, not an access/marker/RNG pattern). Synthetix earned() is
+#   balance.mul(rPT - paid).div(1e18).add(rewards)      <- stored reward added OUTSIDE the .mul(balance)
+# The bug moves .add(rewards) INSIDE the .mul(...) argument:
+#   balance.mul( (rPT - paid).div(1e18).add(rewards) )  == balance*delta + balance*rewards
+# so every updateReward (which writes earned() back into `rewards`) re-multiplies the stored reward by the
+# balance -> ~balance^2 reward inflation -> reward drain / harvest insolvency. We flag a per-user reward
+# accumulator that is summed INSIDE a .mul(balance) / balance*(...) instead of outside it.
+_ACC_RE = (r"\b(?:rewards?|rewardDebt|rewardsOwed|owed|unclaimed|"
+           r"pendingReward\w*|accruedReward\w*|userReward\w*)\b")
+_REW_ACC = re.compile(_ACC_RE, re.I)
+# a multiplicand that is a user balance/stake/amount/shares -- the quantity the reward must be added OUTSIDE of
+_BAL_LHS = (r"(?:balanceOf\s*\([^;{}]{0,80}?\)|"
+            r"\b\w*(?:[Bb]alance|[Aa]mount|[Ss]hares?|[Ss]tak\w*|[Dd]eposit\w*|[Ll]p\w*|[Ll]iquidity)\w*)")
+_BAL_MUL = re.compile(_BAL_LHS + r"\s*\.\s*mul\s*\(")
+_BAL_OPMUL = re.compile(_BAL_LHS + r"\s*\*\s*\(")
+
+
+def _match_paren(text, open_idx):
+    """open_idx points AT a '('. Return the index just AFTER its matching ')', or -1 if unbalanced.
+    Walks char-by-char so it spans newlines (the buggy earned() is written across several lines)."""
+    depth = 0
+    for i in range(open_idx, len(text)):
+        c = text[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    return -1
+
+
+def det_reward_formula(text, rel):
+    """A Synthetix-style reward view that ADDS the stored per-user reward accumulator INSIDE
+    .mul(balance) / balance*(...) instead of outside -> ~balance^2 reward inflation -> drain
+    (posi-vaults class). Correct: `balance.mul(delta).add(rewards)`; bug: `balance.mul(delta.add(rewards))`.
+    We extract the balanced .mul(...) / *(...) argument and flag a reward accumulator summed inside it."""
+    out, seen = [], set()
+    for pat, is_mul in ((_BAL_MUL, True), (_BAL_OPMUL, False)):
+        for m in pat.finditer(text):
+            open_idx = text.find("(", m.end() - 1)
+            if open_idx < 0:
+                continue
+            close = _match_paren(text, open_idx)
+            if close < 0:
+                continue
+            arg = text[open_idx + 1:close - 1]
+            if not _REW_ACC.search(arg):                 # a stored reward term appears inside the multiply
+                continue
+            if is_mul:
+                if not re.search(r"\.\s*add\s*\(", arg):  # ...and it's being .add()ed in (not just read)
+                    continue
+            elif "+" not in arg:                          # operator form: ...and joined with a '+'
+                continue
+            ln = lineno(text, m.start())
+            if ln in seen:
+                continue
+            seen.add(ln)
+            out.append((rel, ln, re.sub(r"\s+", " ", text[m.start():close])[:70],
+                        "reward accumulator added INSIDE .mul(balance) / balance*(...) instead of OUTSIDE "
+                        "-> stored reward re-multiplied by balance each update -> ~balance^2 inflation -> "
+                        "reward drain / harvest insolvency (Synthetix mis-bracket; posi-vaults class). "
+                        "Verify the earned()/pending() bracketing.", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1156,6 +1224,9 @@ DETECTORS = [
      "Operator-power class: set*Fee/set*Tax with no upper bound -> operator can set 100% (honeypot)."),
     ("RUG: honeypot levers (blacklist/trading-toggle/maxTx)", det_honeypot_lever,
      "Operator-power class: owner can freeze/block exits -> exit-scam toolkit / centralization risk."),
+    ("REWARD-FORMULA inflation (accumulator inside .mul(balance), Synthetix mis-bracket)", det_reward_formula,
+     "posi-vaults class: earned()/pending() adds the stored reward INSIDE .mul(balance) instead of outside "
+     "-> ~balance^2 inflation -> drain. recon-32 missed it (a math-shape bug, found by the L4 read)."),
 ]
 
 
@@ -1169,7 +1240,7 @@ def det_key(title):
                    ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
-                   ("reward", "reward"), ("oracle", "oracle"),
+                   ("reward-formula", "rewardformula"), ("reward", "reward"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),
