@@ -463,6 +463,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "kona-lend|oracle/AaveOracle.sol|oracle|AaveOracle.getAssetPrice() source.latestAnswer() (price>0 only) over Pyth getPriceUnsafe (no maxAge)",
+      "target": "kona-lend",
+      "file": "oracle/AaveOracle.sol",
+      "line": 108,
+      "detector": "oracle",
+      "snippet": "AaveOracle.getAssetPrice() source.latestAnswer() (price>0 only) over Pyth getPriceUnsafe (no maxAge)",
+      "verdict": "wontfix",
+      "reason": "Deep L4 2026-06-14 (Abstract fan-out DIG): IE/known-class. Verbatim Aave-V3 (Certora-verified core) + canonical AaveOracle (no staleness, expects Chainlink heartbeat) + STOCK Zerolend/Pyth PythAggregatorV3 adapter (latestAnswer=getPriceUnsafe, no maxAge). The no-staleness seam is REAL but identical to Zerolend's production deployment (widely used stock code; Pyth itself warns 'review before using'); a frequently-flagged, usually-accepted/keeper-mitigated class. Active lending (today, 19 direct-user callers, borrow/liquidation live) so callable IF chronically stale, but low-novelty inherited known-issue, keeper-conditional. Not a clean/novel finding.",
+      "date": "2026-06-14"
+    },
+    {
       "sig": "lazy (LazyUSD Vault \u2014 getlazy.xyz)|(fanout)|fanout|fanout triage: -",
       "target": "lazy (LazyUSD Vault \u2014 getlazy.xyz)",
       "file": "(fanout)",
@@ -1099,6 +1110,17 @@
       "verdict": "known",
       "reason": "[SKIP/defillama-gamefi-wave] The address is the Venus governance token XVS (name=\"Venus\", symbol=\"XVS\"), exactly the gov-token/XVS trap the note warned about -- NOT the lending core that DefiLlama's $10M TVL refers to. Source is a verbatim Compound Comp.sol de",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "witty|src/Arcade.sol|signature|Arcade coin/solve escrow+balance accounting + ERC-6492 VerifySig arbitrary call",
+      "target": "witty",
+      "file": "src/Arcade.sol",
+      "line": 213,
+      "detector": "signature",
+      "snippet": "Arcade coin/solve escrow+balance accounting + ERC-6492 VerifySig arbitrary call",
+      "verdict": "wontfix",
+      "reason": "Deep L4 2026-06-14 (Abstract fan-out DIG): IE/hardened. coin/solve conserve (toll/escrow fully distributed, require escrow>=payout, balances reconcile); ERC-6492 create2Factory.call dead-ends (msg.sender=VerifySig which holds no funds/approvals/role + Arcade all-nonReentrant); AA code.length branch correct (signer in signed puzzle, unsubstitutable); rewardPolicy is creator-trust per-puzzle (no cross-user drain). Direct-user model (38 callers, better than death-fun custodial) BUT game stopped 65d ago (last tx 2026-04-10), holds 10 WETH (player balances, conserved). No demonstrable exploit.",
+      "date": "2026-06-14"
     },
     {
       "sig": "witty (Arcade) \u2014 signature-gated puzzle/arcade game on Abstract|(fanout)|fanout|fanout triage: gaming",
