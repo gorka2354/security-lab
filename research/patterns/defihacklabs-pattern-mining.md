@@ -92,9 +92,28 @@ Cross-year consistency is striking: the SAME root causes recur every year. Sourc
    tuple-cache LPC variant AND excludes in-place SafeMath `balances[x]=balances[x].op(v)` (UniswapV2ERC20/OZ);
    (b) pair-reserve flags burn-of-pair always but **sync/skim only inside a reflection token** (markers:
    `_reflectFee`/`_rOwned`/`triggerAutoBurn`/…) — DEX router/pair periphery `.sync()` no longer FPs.
-3. Forge next (syntactic): `det_unprotected_init` (E), extend `det_signature`
-   (F: ecrecover-0 / isValidSignature-param), `det_caller_supplied_authority` (E).
-4. hypothesize.py invariant-seeds: add the reasoning-tier seeds above to the CORE/ECONOMIC/GAMEFI menus (reward-on-no-op +
-   self-liquidation + flashloan-governance + read-only-reentrancy + stale-solvency-check + bridge minted<=locked).
+3. **DONE (class E):** `det_unprotected_init` + `det_caller_supplied_authority` — forged + golden + test+tune.
+   Honest calibration (the valuable part):
+   - `det_unprotected_init` — external/public `initialize`/`init` granting ownership/role with no
+     `initializer`/`only*`/manual-`initialized` guard. Golden-precise both ways; **0 FP on 16 real proxy protocols**
+     (every legit verified initializer correctly skipped via its guard). Real-victim TP-grounding was BLOCKED:
+     init-hijack impls are unverified (PikeFinance/Telcoin) or the proxy resolves to a patched/different impl
+     (Renegade) — but the shape it flags IS the documented DaoMaker/Telcoin/Pike mechanism (golden mirrors it).
+   - `det_caller_supplied_authority` — keyed to the **canonical inline shape**: `transferFrom(order.maker, …)`
+     where the source is a **`calldata`** struct field, external/public, no msg.sender/signature binding. The
+     `calldata` gate is essential: it kills the Aave/Compound logic-library FP (`safeTransferFrom(params.user,…)`
+     from a **`memory`** struct the Pool already bound to msg.sender upstream — was 12 FP on kona/lagoon/reserve/cap
+     → 0). Golden-precise; 0 FP on 10 protocols. **BUT it missed all testable real 2026 hacks**: MAPProtocol
+     (bridge `Helper._safeTransferFrom(_token,_from,…)`, `_from` decoded into a memory struct) and NewMarketTrading
+     (Safe-module `execTransactionFromModule` + `abi.encodeWithSelector(transferFrom.selector,…)`) use helper-wrapped /
+     decoded-to-memory / Safe-module plumbing, NOT an inline `transferFrom(struct.field,…)`. TrustedVolumes IS the
+     canonical RFQ shape but its impl is unverified. → the broad class is **reasoning-tier (T2/T3)**; this T0 detector
+     covers only the inline-RFQ sub-shape. Broadening to bare-local/helper sources = router FP flood → DON'T.
+4. **hypothesize.py invariant-seeds (next):** add the reasoning-tier seeds to CORE/ECONOMIC/GAMEFI (reward-on-no-op +
+   self-liquidation + flashloan-governance + read-only-reentrancy + stale-solvency-check + bridge minted<=locked),
+   **plus the broad caller-supplied-authority seed** (the debited party MUST be bound to msg.sender or a verified
+   signature, never a decoded calldata/struct field — covers the helper-wrapped/Safe-module/bridge variants T0 misses).
+5. extend `det_signature` (F: ecrecover==0 / isValidSignature on a fn param / no nonce-consumed).
+6. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
 5. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
 See [[fanout-triage-workflow-validated]] (the mining невод) + the vault note "Датасеты багов и чек-листы".

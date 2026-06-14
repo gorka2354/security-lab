@@ -262,7 +262,7 @@ def det_oracle(text, rel):
     return out
 
 
-# ── Detector 4: dangerous primitives + unprotected initialize ──
+# ── Detector 4: dangerous primitives ── (unprotected-init moved to dedicated det_unprotected_init #37)
 def det_danger(text, rel):
     out = []
     for pat, note in [(r"\bdelegatecall\b", "delegatecall - storage/context risk"),
@@ -271,10 +271,6 @@ def det_danger(text, rel):
                       (r"\.call\{", "low-level call{...} - reentrancy/return check")]:
         for m in re.finditer(pat, text):
             out.append((rel, lineno(text, m.start()), m.group(0), note, 1))
-    for m in re.finditer(r"function\s+(initialize\w*)\s*(\([^{};]*?)\{", text, re.S):
-        if "initializer" not in m.group(2) and "only" not in m.group(2).lower():
-            out.append((rel, lineno(text, m.start()), f"function {m.group(1)}(...)",
-                        "initialize without initializer/onlyX -> front-run / re-init?", 0))
     return out
 
 
@@ -1283,6 +1279,104 @@ def det_pair_reserve_mutation(text, rel):
     return out
 
 
+# ── Detector 37: unprotected initializer (front-runnable ownership/role grab) ── DeFiHackLabs class E
+# An external/public `initialize`/`init` that grants ownership / an admin role with NO `initializer` modifier, no
+# `only*`/auth modifier, and no manual one-shot flag -> anyone can front-run the deploy (or re-init the proxy /
+# call it on the implementation) and seize the contract (DaoMaker, Telcoin, PikeFinance, Renegade).
+INIT_NAME = re.compile(r"^(?:initiali[sz]e|reinitiali[sz]e|init|__\w*_?init)\w*$", re.I)
+INIT_AUTHORITY = re.compile(
+    r"\b_?owner\s*=(?!=)|\b_?admin\s*=(?!=)|\b_?governance\s*=(?!=)|"
+    r"_transferOwnership|transferOwnership\s*\(|__Ownable_init|__AccessControl\w*_init|"
+    r"_grantRole|_setupRole|grantRole\s*\(|DEFAULT_ADMIN_ROLE|_setOwner\b|setOwner\s*\(", re.I)
+# one-shot / access guards that make an init safe: OZ initializer, an only*/auth modifier, a manual `initialized`
+# flag, a msg.sender check, or _disableInitializers in the ctor.
+INIT_GUARD = re.compile(r"\b(?:re)?initializer\b|\binitializ(?:ed|ing)\b|\b_init(?:ialized|ialised)\b|"
+                        r"\bonly\w+|\bauth\b|\brestricted\b|\bonlyWards?\b|_disableInitializers|"
+                        r"require\s*\([^;]*msg\.sender", re.I)
+
+
+def det_unprotected_init(text, rel):
+    """An external/public initializer that grants ownership/admin role with no initializer/only*/one-shot guard ->
+    anyone front-runs it (or re-inits the proxy) and takes the contract (DaoMaker/Telcoin/PikeFinance class).
+    Internal inits and ones carrying the OZ `initializer` modifier / an only* gate / a manual `initialized` flag
+    are NOT flagged."""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*\(", text):
+        name = m.group(1)
+        if not INIT_NAME.match(name):
+            continue
+        brace = text.find("{", m.end())
+        if brace < 0:
+            continue
+        pc = text.rfind(")", m.end(), brace)
+        if pc < 0:
+            continue
+        mods = text[pc + 1:brace]                       # visibility + modifiers only (not the params)
+        if not re.search(r"\b(external|public)\b", mods):
+            continue                                    # internal/private init = called by a guarded outer, safe
+        if INIT_GUARD.search(mods):
+            continue                                    # initializer / only* / auth modifier present
+        nxt = text.find("function ", brace)
+        body = text[brace:(nxt if nxt > 0 else brace + 1500)]
+        if INIT_AUTHORITY.search(body) and not INIT_GUARD.search(body):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "external/public initializer grants ownership/admin role with NO initializer/only*/one-shot "
+                        "guard -> anyone can front-run it (or re-init the proxy / call it on the impl) and seize the "
+                        "contract (DaoMaker/Telcoin/PikeFinance class). Add the OZ `initializer` modifier or auth.", 0))
+    return out
+
+
+# ── Detector 38: caller-supplied authority (transferFrom source = decoded calldata field) ── class E, #1 of 2026
+# transferFrom/safeTransferFrom whose SOURCE (the debited party) is a STRUCT/DECODED field (order.maker,
+# params.owner) -> authority taken from attacker-supplied calldata, not bound to msg.sender. A bare-param `from`
+# is allowance-gated (safe router); a decoded struct-field source with no signature / msg.sender binding is the
+# 2026 drain class (TrustedVolumes, NewMarketTrading, Ekubo, MAPProtocol).
+CALLER_AUTH_SRC = re.compile(r"\.(?:safeTransferFrom|transferFrom)\s*\(\s*(\w+\.\w+)\s*,", re.I)
+AUTH_BIND = re.compile(r"msg\.sender\s*==|==\s*msg\.sender|_msgSender\(\)\s*==|==\s*_msgSender|"
+                       r"\becrecover\b|isValidSignature|SignatureChecker|_verif|_checkSig|"
+                       r"require\s*\([^;]*sign|EIP712|_hashTypedData", re.I)
+
+
+def det_caller_supplied_authority(text, rel):
+    """A transferFrom whose source (the debited party) is a caller-supplied struct/decoded field (`order.maker`),
+    in an external/public fn that neither binds it to msg.sender nor verifies a signature over it -> the caller
+    names any victim that approved this contract as the debited party (the #1 2026 class: TrustedVolumes/
+    MAPProtocol/Ekubo). A bare-param `from` (allowance-gated router) does NOT match; a signed/msg.sender-bound
+    source is skipped."""
+    out, seen = [], set()
+    for m in CALLER_AUTH_SRC.finditer(text):
+        src = m.group(1)
+        if re.match(r"(?:address|msg|block|tx)\b", src):   # msg.sender / tx.origin source = caller's own, safe
+            continue
+        srcvar = src.split(".")[0]
+        fn_start = text.rfind("function ", 0, m.start())
+        if fn_start < 0:
+            continue
+        brace = text.find("{", fn_start)
+        head = text[fn_start:brace + 1] if brace > 0 else ""
+        if not re.search(r"\b(external|public)\b", head):
+            continue
+        # the authority must be decoded from a CALLDATA struct param (attacker-supplied) -- NOT a `memory` struct
+        # populated by trusted internal code (the Aave/Compound logic-library pattern, where the Pool entrypoint
+        # already bound `.user`/`.caller` to msg.sender upstream -> a memory-struct source is a cross-file FP).
+        if not re.search(r"\bcalldata\s+" + re.escape(srcvar) + r"\b", head):
+            continue
+        nxt = text.find("function ", m.start() + 1)
+        fn_text = text[fn_start:(nxt if nxt > 0 else m.end() + 400)]
+        if AUTH_BIND.search(fn_text):
+            continue                                       # bound to caller / signature-verified -> safe
+        ln = lineno(text, m.start())
+        if ln in seen:
+            continue
+        seen.add(ln)
+        out.append((rel, ln, f"transferFrom({src}, ...)",
+                    "transferFrom source is a caller-supplied struct/decoded field, not bound to msg.sender and with "
+                    "no signature check -> the caller can name any victim that approved this contract as the debited "
+                    "party (caller-supplied-authority, the #1 2026 class: TrustedVolumes/MAPProtocol/Ekubo). Bind the "
+                    "source to msg.sender or verify a signature over it.", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1330,7 +1424,7 @@ DETECTORS = [
      "== / != on this.balance or balanceOf is brittle: anyone force-feeds ETH/tokens to break "
      "the exact match -> DoS / bad accounting. Use >= / <= and deltas."),
     ("DANGEROUS primitives", det_danger,
-     "delegatecall / tx.origin / selfdestruct / call / open initialize."),
+     "delegatecall / tx.origin / selfdestruct / low-level call."),
     ("L2 / AA footguns (zkSync: extcodesize EOA-check, isContract sig branch)", det_l2_footgun,
      "zkSync native AA: 'EOA == no code' is false -> isContract/extcodesize-gated auth+signatures bypassable."),
     ("DOWNCAST truncation (uintN(x) silent overflow)", det_downcast,
@@ -1365,6 +1459,12 @@ DETECTORS = [
     ("PAIR-RESERVE mutation (unprivileged sync/skim/burn-of-pair -> price crash)", det_pair_reserve_mutation,
      "DeFiHackLabs reflection/deflationary BSC class (~30+): unprivileged pair.sync()/skim() or burn-of-pair-balance "
      "shrinks the DEX reserve -> constant-product overvalues the attacker's tokens (BIGFI/LAURA/BYToken)."),
+    ("UNPROTECTED INITIALIZER (front-run ownership/role grab)", det_unprotected_init,
+     "DeFiHackLabs class E: an external/public initialize/init that grants ownership/admin role with no "
+     "initializer/only*/one-shot guard -> front-run the deploy or re-init the proxy and seize it (DaoMaker/Telcoin/PikeFinance)."),
+    ("CALLER-SUPPLIED AUTHORITY (transferFrom source from calldata struct)", det_caller_supplied_authority,
+     "DeFiHackLabs class E, #1 of 2026: transferFrom source is a decoded calldata field (order.maker) not bound to "
+     "msg.sender / no signature -> caller debits any victim that approved this contract (TrustedVolumes/MAPProtocol/Ekubo)."),
 ]
 
 
@@ -1380,7 +1480,8 @@ def det_key(title):
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
                    ("reward-formula", "rewardformula"), ("reward", "reward"),
                    ("spot-amm", "spotoracle"), ("self-transfer", "selftransfer"),
-                   ("pair-reserve", "pairreserve"), ("oracle", "oracle"),
+                   ("pair-reserve", "pairreserve"), ("unprotected init", "uinit"),
+                   ("caller-supplied", "callerauth"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),

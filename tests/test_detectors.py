@@ -617,6 +617,32 @@ check(not flagged(recon.det_pair_reserve_mutation, "contract Tok{function adminR
 check(not flagged(recon.det_pair_reserve_mutation, "contract Tok{function transfer(address to,uint a) external { _balances[msg.sender]-=a; _balances[to]+=a; }}"),
       "det_pair_reserve_mutation guard: a normal transfer (no pair sync/skim/burn) NOT flagged")
 
+print("== det_unprotected_init (front-runnable ownership/role grab, class E) ==")
+check(flagged(recon.det_unprotected_init, "contract C{function initialize(address _owner) external { owner = _owner; }}"),
+      "det_unprotected_init: external initialize sets owner, no guard -> flagged (DaoMaker class)")
+check(flagged(recon.det_unprotected_init, "contract C{function initialize() public { __Ownable_init(); }}"),
+      "det_unprotected_init: public initialize calls __Ownable_init, no initializer modifier -> flagged")
+check(not flagged(recon.det_unprotected_init, "contract C{function initialize(address o) external initializer { owner = o; }}"),
+      "det_unprotected_init guard: OZ `initializer` modifier NOT flagged")
+check(not flagged(recon.det_unprotected_init, "contract C{function initialize() external onlyOwner { admin = msg.sender; }}"),
+      "det_unprotected_init guard: onlyOwner-gated init NOT flagged")
+check(not flagged(recon.det_unprotected_init, "contract C{function initialize(address o) external { require(!initialized,'done'); initialized=true; owner=o; }}"),
+      "det_unprotected_init guard: manual `initialized` one-shot flag NOT flagged")
+check(not flagged(recon.det_unprotected_init, "contract C{function initialize(uint x) external { cap = x; }}"),
+      "det_unprotected_init guard: init that grants no ownership/role NOT flagged")
+
+print("== det_caller_supplied_authority (transferFrom source from calldata struct, class E #1 2026) ==")
+check(flagged(recon.det_caller_supplied_authority, "contract C{function fill(Order calldata o,uint amt) external { token.transferFrom(o.maker, msg.sender, amt); }}"),
+      "det_caller_supplied_authority: transferFrom(o.maker,...) unbound -> flagged (TrustedVolumes class)")
+check(not flagged(recon.det_caller_supplied_authority, "contract C{function fill(Order calldata o,bytes sig) external { require(isValidSignature(o,sig)); token.transferFrom(o.maker, msg.sender, amt); }}"),
+      "det_caller_supplied_authority guard: signature-verified order source NOT flagged")
+check(not flagged(recon.det_caller_supplied_authority, "contract C{function fill(Order calldata o) external { require(o.maker==msg.sender); token.transferFrom(o.maker, address(this), amt); }}"),
+      "det_caller_supplied_authority guard: source bound to msg.sender NOT flagged")
+check(not flagged(recon.det_caller_supplied_authority, "contract C{function pull(address from,uint amt) external { token.transferFrom(from, address(this), amt); }}"),
+      "det_caller_supplied_authority guard: bare-param `from` (allowance-gated router) NOT flagged")
+check(not flagged(recon.det_caller_supplied_authority, "library L{function executeSupply(ExecuteSupplyParams memory params) external { IERC20(params.asset).safeTransferFrom(params.user, aToken, params.amount); }}"),
+      "det_caller_supplied_authority guard: Aave-fork `memory` struct (.user bound upstream) NOT flagged")
+
 print("== calibrate (feedback loop: finding-outcome precision + verdict recall) ==")
 import calibrate  # noqa: E402
 _F = [{"status": "accepted"}, {"status": "fixed-silent"}, {"status": "duplicate"},
