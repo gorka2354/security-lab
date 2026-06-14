@@ -12,6 +12,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "Alvara|(fanout)|fanout|fanout triage: basket-fund (claimed) \u2014 actually a single-file ERC20 token stub",
+      "target": "Alvara",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: basket-fund (claimed) \u2014 actually a single-file ERC20 token stub",
+      "verdict": "known",
+      "reason": "[SKIP/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
       "sig": "Ample (Ample Earn \u2014 layer3xyz/ample-earn)|(fanout)|fanout|fanout triage: -",
       "target": "Ample (Ample Earn \u2014 layer3xyz/ample-earn)",
       "file": "(fanout)",
@@ -21,6 +32,39 @@
       "verdict": "known",
       "reason": "[UNREACHABLE/defillama-gamefi-wave] Source is a genuine dead-end: layer3xyz/ample-earn is private, no npm mirror, no contract addresses in the static site (dApp behind Cloudflare), and the Pashov PDF carries no deployed address or chain \u2014 so I can't reach .sol",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "Edel|(fanout)|fanout|fanout triage: LayerZero OFT cross-chain ERC20 token (NOT a lending/tokenized-stocks platform; TARGET description mismatches deployed code)",
+      "target": "Edel",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: LayerZero OFT cross-chain ERC20 token (NOT a lending/tokenized-stocks platform; TARGET description mismatches deployed code)",
+      "verdict": "known",
+      "reason": "[SKIP/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
+      "sig": "Flex|(fanout)|fanout|fanout triage: lending (fixed-rate money market, borrower-chosen rates; Liquity-V2-inspired, Vyper reimplementation)",
+      "target": "Flex",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lending (fixed-rate money market, borrower-chosen rates; Liquity-V2-inspired, Vyper reimplementation)",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
+      "sig": "K613|(fanout)|fanout|fanout triage: staking / rewards-distributor / token-sale (mislabeled as lending)",
+      "target": "K613",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: staking / rewards-distributor / token-sale (mislabeled as lending)",
+      "verdict": "known",
+      "reason": "[SKIP/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
     },
     {
       "sig": "Kona Lend (kona-lend)|(fanout)|fanout|fanout triage: lending",
@@ -34,6 +78,50 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "LiveArt|(fanout)|fanout|fanout triage: RWA / merkle-claim vesting (bespoke)",
+      "target": "LiveArt",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: RWA / merkle-claim vesting (bespoke)",
+      "verdict": "wontfix",
+      "reason": "[PARK/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
+      "sig": "LiveArt/VestingStrategy|src/VestingStrategy.sol|manual-triage|",
+      "target": "LiveArt/VestingStrategy",
+      "file": "src/VestingStrategy.sol",
+      "line": 131,
+      "detector": "manual-triage",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "BSC proxy 0x150abfd35..ec LIVE but DORMANT (0 strategies, _tokenApprover=address(0), 0 allowance, 0 ART). Greenfield bespoke vesting; forkdrift ERC4626 = FixedPointMathLib FP. Leads: unbounded rewardPercentage createStrategy L131 (no <=BASIS_POINTS, owner-set), unchecked transferFrom L412/303/333. PARK until approver+strategies wired.",
+      "date": "2026-06-14"
+    },
+    {
+      "sig": "Monolith Market|(fanout)|fanout|fanout triage: CDP-stablecoin (autonomous single-collateral stablecoin factory; dual free/paid debt + share-accounted debt, ERC4626 yield Vault, PSM)",
+      "target": "Monolith Market",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: CDP-stablecoin (autonomous single-collateral stablecoin factory; dual free/paid debt + share-accounted debt, ERC4626 yield Vault, PSM)",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
+      "sig": "PRED|(fanout)|fanout|fanout triage: prediction-market / Gnosis CTF resolution adapter (centralized-resolver fork of Polymarket UMA CTF Adapter)",
+      "target": "PRED",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: prediction-market / Gnosis CTF resolution adapter (centralized-resolver fork of Polymarket UMA CTF Adapter)",
+      "verdict": "known",
+      "reason": "[SKIP/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
       "sig": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)|(fanout)|fanout|fanout triage: -",
       "target": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)",
       "file": "(fanout)",
@@ -43,6 +131,17 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live, funded (~$1.02M USDC NAV), original (non-fork) async ERC-4626/EIP-7540-style vault on ETH mainnet with a concrete permissionless economic lead: withdrawals lock NO share price at request time, so the 7-day-cooldown que",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "Tizi|(fanout)|fanout|fanout triage: yield-aggregator (cross-chain USDC-backed stablecoin TD + ERC4626 stTD staking, hub-and-spoke on Base)",
+      "target": "Tizi",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: yield-aggregator (cross-chain USDC-backed stablecoin TD + ERC4626 stTD staking, hub-and-spoke on Base)",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
     },
     {
       "sig": "acre|solidity/contracts/stBTC.sol|supply|function burnReceipt(uint256 amount) -> repayDebt()",
@@ -518,6 +617,28 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "lisAster|(fanout)|fanout|fanout triage: ERC20 governance token (NOT a yield aggregator)",
+      "target": "lisAster",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: ERC20 governance token (NOT a yield aggregator)",
+      "verdict": "known",
+      "reason": "[SKIP/underreviewed-mixed-chains] ",
+      "date": "2026-06-14"
+    },
+    {
+      "sig": "lisAster:0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46|contracts/ListaToken.sol|det_access_control|",
+      "target": "lisAster:0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46",
+      "file": "contracts/ListaToken.sol",
+      "line": 100,
+      "detector": "det_access_control",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Deployed addr resolves to ListaToken (LISTA gov ERC20), NOT the ASTER yield aggregator. Verbatim long-deployed audited gov token. updateDomainSeparator no-modifier is idempotent/no-priv (recomputes from constants); ecrecover-no-addr0 mitigated by ==owner; cached DOMAIN_SEPARATOR has recompute fn. Wrong-contract redirect: resolve real aggregator core.",
+      "date": "2026-06-14"
+    },
+    {
       "sig": "loreum-chamber|contracts/src/Chamber.sol|supply|delegate/transfer voting-weight double-count",
       "target": "loreum-chamber",
       "file": "contracts/src/Chamber.sol",
@@ -692,6 +813,17 @@
       "verdict": "fp",
       "reason": "Liquity/Threshold inline caller-auth (_requireCallerIs*); recon missed it -> fix#33 added. ~13 FPs.",
       "date": "2026-06-10"
+    },
+    {
+      "sig": "monolith-market|src/Lender.sol|rounding-debt-share-asymmetry|",
+      "target": "monolith-market",
+      "file": "src/Lender.sol",
+      "line": 549,
+      "detector": "rounding-debt-share-asymmetry",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Greenfield CDP stablecoin; mainnet Factory deployed (0x6d96, blk 24949282) but ZERO token transfers/no funded market => dormant value~0. Backlog flag: increaseDebt mulDivUp+maxBorrowDeltaBps(2%) vs decreaseDebt partial mulDivDown vs getDebtOf mulDivUp. Thin-pool share-rounding HYPOTHESES: partial-repay/redeem dust + setRedemptionStatus round-trip. Vault MIN_SHARES dead-shares present. DIG-CAREFUL (deployable, cold).",
+      "date": "2026-06-14"
     },
     {
       "sig": "myriad-markets (PredictionMarketV3_3, Abstract)|(fanout)|fanout|fanout triage: prediction",
@@ -1077,6 +1209,17 @@
       "verdict": "wontfix",
       "reason": "[PARK/defillama-gamefi-wave] Reached full source; it is rich, novel, lead-dense custom GameFi accounting (UUPS GameCore + Election monarchy, bespoke tax/reward/voter math -- not a fork, no audit). BUT it is deployed only on Monad TESTNET (mainnet = NO-CODE) wi",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "tizi|contracts/Statistics/MainTokenStats.sol|det_divide_before_multiply|",
+      "target": "tizi",
+      "file": "contracts/Statistics/MainTokenStats.sol",
+      "line": 343,
+      "detector": "det_divide_before_multiply",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "repo-only/no-deploy-evidence; NAV ingestion admin-SIGNED (ECDSA->DEFAULT_ADMIN_ROLE) so manip=trusted-oracle/centralization. Survivors for hand deep-dive: uint256 underflow in NAV negative-branch (updateYield DoS), tokenAmount*tokenValue unchecked overflow :327/329, netAsset dual-bookkeeping vs full overwrite (TiziDollar updateYield:198). RNG DepositHelper:368=FP(txId event only).",
+      "date": "2026-06-14"
     },
     {
       "sig": "usual-eth0|token/Usual.sol|target|",
