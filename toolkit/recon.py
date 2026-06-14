@@ -1160,31 +1160,39 @@ def det_reward_formula(text, rel):
 # on the path -> flashloan moves it, protocol reads it, attacker profits, unwinds. recon's oracle-staleness only
 # checks Chainlink freshness; this catches the spot-source family (PancakeBunny/Cream/EGD/UwuLend/Moonwell/GMX...).
 SPOT_ORACLE = re.compile(
-    r"\.getReserves\s*\(|\.getAmountsOut\s*\(|\bgetPricePerFullShare\s*\(|\bpricePerShare\s*\(|"
-    r"\bget_virtual_price\s*\(|\.slot0\s*\(|\bgetRate\s*\(|\bgetPoolTokenInfo\s*\(", re.I)
+    r"\.getReserves\s*\(|\bgetPricePerFullShare\s*\(|\bpricePerShare\s*\(|"
+    r"\bget_virtual_price\s*\(|\.slot0\s*\(", re.I)
+# a LENDING/VAULT VALUATION sink (where a manipulable price IS a bug) -- NOT swap/LP math (where reserves are
+# the legitimate input). Narrowed after a real FP pass on Uniswap/Velodrome cores.
 VALUE_SINK = re.compile(
-    r"\b(_mint|mint|borrow|collateral|redeem|liquidat|reward|payout|valueOf|getAmountOut|deposit)\w*", re.I)
+    r"\b(borrow|collateral|liquidat|redeem|reward|payout|valueOf|debt|exchangeRate|healthFactor|"
+    r"_mint|sharesFor|assetsFor|getUnderlyingPrice|getAssetPrice)\w*", re.I)
 # a manipulation-resistant source on the path -> NOT a spot-oracle bug
 TWAP_SAFE = re.compile(
     r"latestRoundData|\bconsult\s*\(|\bobserve\s*\(|twap|timeWeighted|AggregatorV3|chainlink|updatedAt", re.I)
+# AMM-internal fns where spot reserves ARE the legitimate input (swap/LP/quote math), not an external oracle -> skip
+SPOT_AMM_FN = re.compile(r"^(_?swap|add_?liquidity|remove_?liquidity|quote|_?update|sync|skim|getAmounts?(In|Out)|_v[23])", re.I)
 
 
 def det_spot_oracle(text, rel):
-    """A mint/borrow/collateral/redeem/reward decision priced from a SAME-TX manipulable spot source
-    (getReserves/pricePerShare/get_virtual_price/slot0/getAmountsOut) with no TWAP/Chainlink on the path =
-    the #1 DeFiHackLabs root cause. recon's oracle-staleness only checks Chainlink staleness; this catches the
-    spot-AMM-as-oracle family (PancakeBunny $45M, Cream $130M, EGD, UwuLend, Moonwell, GMX $41M)."""
+    """A borrow/collateral/redeem/reward VALUATION priced from a SAME-TX manipulable spot source
+    (getReserves/pricePerShare/get_virtual_price/slot0) with no TWAP/Chainlink on the path = the #1 DeFiHackLabs
+    root cause. recon's oracle-staleness only checks Chainlink freshness; this catches the spot-AMM-as-oracle
+    family (PancakeBunny $45M, Cream $130M, EGD, UwuLend, Moonwell, GMX $41M). AMM-core swap/LP fns are skipped
+    (there the reserves ARE the legitimate input, not an external oracle)."""
     out = []
     for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
         name = m.group(1)
+        if SPOT_AMM_FN.search(name):   # swap/addLiquidity/quote -> reserves are the point here, not an oracle
+            continue
         nxt = text.find("function ", m.end())
         body = text[m.end():(nxt if nxt > 0 else m.end() + 1200)]
         sm = SPOT_ORACLE.search(body)
         if sm and VALUE_SINK.search(body) and not TWAP_SAFE.search(body):
             out.append((rel, lineno(text, m.start()), f"function {name}(...) {sm.group(0).strip()[:24]}",
-                        "spot AMM/share source (getReserves/pricePerShare/get_virtual_price/slot0/getAmountsOut) "
-                        "feeds a mint/borrow/collateral/reward decision with NO TWAP/Chainlink on the path -> "
-                        "flashloan price-manip (the #1 DeFiHackLabs class). Verify the price can't be moved in-tx.", 0))
+                        "spot AMM/share source (getReserves/pricePerShare/get_virtual_price/slot0) feeds a "
+                        "borrow/collateral/redeem/reward valuation with NO TWAP/Chainlink -> flashloan price-manip "
+                        "(the #1 DeFiHackLabs class). Verify the price can't be moved in-tx.", 0))
     return out
 
 
