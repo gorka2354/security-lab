@@ -215,6 +215,15 @@ check(any("EMERGENT+RECON+OPEN" in p for p in hypothesize.auto_propose({}, set()
 check(not any("EMERGENT-OPEN" in p for p in hypothesize.auto_propose({}, set(), [("s.cfg", {"a", "b", "c"})], {}, [], set())),
       "auto_propose: all-gated root (no open writers) is NOT EMERGENT-OPEN (cold, admin-only)")
 
+print("== hypothesize INVARIANT_MENU (DeFiHackLabs reasoning-tier seeds, CI-gated) ==")
+_menu_groups = {g for g, _ in hypothesize.INVARIANT_MENU}
+check(_menu_groups == {"CORE", "ECONOMIC (DeFi)", "GAMEFI / NFT (egor's edge)", "BRIDGE / CROSS-CHAIN"},
+      "INVARIANT_MENU has the 4 sector groups (incl the new BRIDGE / CROSS-CHAIN)")
+_all_seeds = " || ".join(s for _, seeds in hypothesize.INVARIANT_MENU for s in seeds)
+for _kw in ["caller-supplied-authority", "stale-solvency-check", "read-only-reentrancy", "flashloan-governance",
+            "self-liquidation-as-profit", "reward-on-no-op", "minted <= proven-locked", "spoofed-callee-return"]:
+    check(_kw in _all_seeds, f"INVARIANT_MENU carries the '{_kw}' reasoning-tier seed")
+
 print("== fetch_source (live-first: etherscan source parsing, no network) ==")
 import fetch_source  # noqa: E402
 check(fetch_source.parse_etherscan_source("contract C{}", "MyToken") == {"MyToken.sol": "contract C{}"},

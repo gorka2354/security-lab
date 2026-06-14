@@ -60,7 +60,7 @@ research/
 | ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
 | ✅ | **mining** | [**defihacklabs-pattern-mining**](patterns/defihacklabs-pattern-mining.md) | T0-T3 | **751 real hacks → 53 patterns** (cross-year taxonomy + invariant-seeds + detector-backlog). *spot-oracle/token-reserve-manip/donation/business-logic dominate every year.* |
 
-### Harvest status — the T1-catchable slice is wired into `recon.py` (38 detectors, 331 tests, leads-not-verdicts)
+### Harvest status — the T1-catchable slice is wired into `recon.py` (38 detectors, 340 tests, leads-not-verdicts)
 | Pattern | Detector (recon.py) | What it flags |
 |---|---|---|
 | erc4626-inflation | `det_erc4626` **+fix#20** | no offset/dead-shares; **enriched** when `totalAssets()` is balance-based (dStake flavor). |

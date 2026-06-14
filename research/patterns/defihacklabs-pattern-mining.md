@@ -109,11 +109,12 @@ Cross-year consistency is striking: the SAME root causes recur every year. Sourc
      decoded-to-memory / Safe-module plumbing, NOT an inline `transferFrom(struct.field,…)`. TrustedVolumes IS the
      canonical RFQ shape but its impl is unverified. → the broad class is **reasoning-tier (T2/T3)**; this T0 detector
      covers only the inline-RFQ sub-shape. Broadening to bare-local/helper sources = router FP flood → DON'T.
-4. **hypothesize.py invariant-seeds (next):** add the reasoning-tier seeds to CORE/ECONOMIC/GAMEFI (reward-on-no-op +
-   self-liquidation + flashloan-governance + read-only-reentrancy + stale-solvency-check + bridge minted<=locked),
-   **plus the broad caller-supplied-authority seed** (the debited party MUST be bound to msg.sender or a verified
-   signature, never a decoded calldata/struct field — covers the helper-wrapped/Safe-module/bridge variants T0 misses).
+4. **DONE:** hypothesize.py invariant-seeds — the reasoning-tier (T2/T3) slice the T0 detectors can't reach, now a
+   CI-gated `INVARIANT_MENU` constant (4 sector groups). Added: caller-supplied-authority (CORE, the broad form T0
+   misses — bind the debited party to msg.sender/a verified sig, never a decoded calldata/struct/helper/Safe-module
+   field); stale-solvency-check + read-only-reentrancy + flashloan-governance + self-liquidation + collateral-reuse
+   (ECONOMIC); reward-on-no-op (GAMEFI); and a NEW **BRIDGE / CROSS-CHAIN** group (minted<=proven-locked + dedup +
+   value-in-hash; spoofed-callee-return; message-authenticity). 9 golden tests gate the seeds (340 total).
 5. extend `det_signature` (F: ecrecover==0 / isValidSignature on a fn param / no nonce-consumed).
 6. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
-5. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
 See [[fanout-triage-workflow-validated]] (the mining невод) + the vault note "Датасеты багов и чек-листы".

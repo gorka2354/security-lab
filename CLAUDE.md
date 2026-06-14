@@ -59,14 +59,16 @@
 - **DETECT:** `recon.py` (**38 детекторов**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс, `det_self_transfer`/
   `det_pair_reserve_mutation` = BSC token-классы, `det_unprotected_init` = front-run ownership-grab,
   `det_caller_supplied_authority` = calldata-order transferFrom drain) +
-  `hypothesize.py` (shared-state seeds + инвариант-меню CORE/ECONOMIC/GAMEFI). Память `ledger.py` гасит шум.
+  `hypothesize.py` (shared-state seeds + CI-gated `INVARIANT_MENU` CORE/ECONOMIC/GAMEFI/BRIDGE — вкл. DeFiHackLabs
+  reasoning-tier сиды: stale-solvency/read-only-reentrancy/flashloan-gov/self-liq/caller-auth/bridge-minted<=locked).
+  Память `ledger.py` гасит шум.
 - **FAN-OUT (масштаб):** Workflow-невод (агент-на-таргет: reach+forkdrift+recon+gate → структурный вердикт →
   я ранжирую); `fanout_log.py` персист (типизированная таблица `hunts/_fanout/` + ledger-suppress + DIG-очередь).
   Доказан на 2 задачах: triage (Abstract/DeFiLlama-волны) + pattern-mining (DeFiHackLabs 751 хак → 53 паттерна).
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).
-- **331 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
+- **340 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
   (Примеры: `det_self_transfer`/`det_pair_reserve_mutation` — TP на ВЫТЯНУТОМ on-chain коде BY/LPC/GPU + 0 FP на 8 клонах
   (write-back-тэлл вместо cache-read + reflection-gate). `det_caller_supplied_authority` — calldata-гейт убил Aave-lib FP
   (memory-структура `.user` привязана выше = не attacker-controlled), но широкий класс = reasoning-tier: реальные 2026-хаки

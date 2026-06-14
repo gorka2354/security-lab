@@ -242,6 +242,55 @@ def auto_propose(by_verb, pairs, ranked, rflags, invs, open_fns=None):
     return props
 
 
+# Section-4 menu of STRONGER invariants to PROVE (fuzz/PoC), grouped by sector. Mined from Krait economic-design +
+# gamefi primer (MIT) + our own hunts (Ledgity/RockSolid/Morpho/Monetrix) + the DeFiHackLabs 751-hack reasoning-tier
+# seeds (stale-solvency / read-only-reentrancy / flashloan-governance / self-liquidation / caller-supplied-authority /
+# bridge minted<=locked) -- the T2/T3 slice the recon T0 detectors can't reach. Module-level so tests gate the seeds.
+INVARIANT_MENU = [
+    ("CORE", [
+        "solvency: SUM(user claims) <= protocol assets, ALL times, ALL markets",
+        "conservation: total debt issued == total credit owed (no value minted in matching)",
+        "round-trip: do(x) then undo() leaves caller <= start (never richer)",
+        "cross-component: an op in A never breaks B's invariant via shared state",
+        "no-free-value: no op sequence leaves caller richer with protocol unchanged",
+        "caller-supplied-authority: the debited/credited party is bound to msg.sender (or a signature verified "
+        "OVER it) -- NEVER a decoded calldata/struct field (order.maker/params.owner) or a helper/Safe-module "
+        "arg (TrustedVolumes/MAPProtocol/NewMarketTrading 2026; det_caller_supplied_authority catches only the "
+        "inline-RFQ shape -- prove the rest here)",
+    ]),
+    ("ECONOMIC (DeFi)", [
+        "backing-conservation: SUM(ALL liabilities incl borrow/PM) <= backing, across EVERY settle path (Monetrix M-01)",
+        "accrual-before-param-change: setRate/setFee/setRewardRate calls accrue()/sync() FIRST (else retroactive over/under-distribution)",
+        "withdrawal-queue rate lock: rate at request-time == rate at fulfillment-time (else arb; Lagoon/RockSolid)",
+        "liquidation: liquidator_profit>0 at the threshold (else silent bad debt); bad-debt socialized BEFORE the liquidator bonus is paid (ordering)",
+        "first/last-mover: first depositor can't inflate share price (virtual shares); last exiter not bricked by rounding (Ledgity)",
+        "price-source consistency: liquidation and settlement use the SAME price (no mark-vs-index split); fee-path parity (no cheaper bypass)",
+        "stale-solvency-check: health is recomputed on FRESH POST-mutation state after EVERY borrow/withdraw/decrease -- debt <= collateral*LTV must hold AFTER the change, not on a pre-mutation snapshot (Sharwa/Unilend/MIMSpell, 2025's dominant class)",
+        "read-only-reentrancy: a consumer reading get_virtual_price/getRate/getUserAccountData while the SOURCE pool is mid-callback gets a desynced price -- use the pool's reentrancy-safe view / VaultReentrancyLib (Sturdy/Conic/dForce/Sentiment)",
+        "flashloan-governance: voting weight from tokens acquired THIS tx == 0; propose->execute can't complete in one block (timelock) -- else a flashloan passes+executes a proposal (Beanstalk/Audius)",
+        "self-liquidation-as-profit: the debt-opener != the liquidation-beneficiary within one tx; liquidating your own position can't net a profit (UwuLend/Sonne)",
+        "collateral re-use: withdrawCollateral reverts while order.debt>0; the borrow callee == the canonical market (XCarnival/Kashi)",
+    ]),
+    ("GAMEFI / NFT (egor's edge)", [
+        "mint-supply-cap holds on ALL paths incl admin; uncapped-emission inflation bounded",
+        "reward requires real gameplay state-change (no no-op claim) + anti-Sybil/flash-loan multiplication",
+        "reward-on-no-op: transfer(from==to) credits 0 reward; emergencyWithdraw settles rewards via the SAME path as withdraw; donate-then-claim can't raise the donor's own same-tx claimable (IdolsNFT/SWAPPStaking/BankrollNetwork/Popsicle/Visor)",
+        "outcome integrity: on-chain RNG outcome (rarity/loot/battle/raffle) not predictable AND not revert-to-reroll-able AND VRF-callback not retry-gameable",
+        "asset-locking: a locked/staked NFT can't transfer/sell externally (cross-contract state synced on _update/transfer)",
+        "callback safety: ERC721/1155 receiver hook during claim/mint/transfer can't reenter (the #1 NFT root cause, 35%+)",
+    ]),
+    ("BRIDGE / CROSS-CHAIN", [
+        "minted <= proven-locked: SUM(minted on dst) <= SUM(proven-locked on src); used[txid] dedup blocks replay; "
+        "ALL value fields are bound into the verified hash; acceptableRoot != 0 (Nomad empty-root/VerusBridge/"
+        "MAPProtocol/AdsharesBridge -- recon's det_mapping_default is the Nomad leg)",
+        "spoofed-callee-return: an external contract the protocol calls is attacker-chosen AND its return feeds "
+        "value accounting -> allowlist the callee (Convergence uint256.max-mint, Penpie fake-Pendle-market)",
+        "message authenticity: the cross-chain message source/sender is verified against a trusted endpoint, not "
+        "decoded-and-trusted from the payload (the bridge cousin of caller-supplied-authority)",
+    ]),
+]
+
+
 def main():
     ap = argparse.ArgumentParser(description="Extract attack-hypothesis seeds from contracts")
     ap.add_argument("path")
@@ -381,32 +430,12 @@ def main():
         out.append("  (no invariant harness found - point at the repo ROOT to scan test/; "
                    "or they don't fuzz -> even more room)")
 
-    # menu of STRONGER invariants to assert in the L4 read (mined from Krait economic-design + gamefi primer,
-    # MIT, + our own hunts: Ledgity first/last-mover, RockSolid withdrawal-queue rate, Morpho bad-debt, Monetrix
-    # M-01 backing). Pick the group matching the target; each is a thing to PROVE (fuzz/PoC), not read.
+    # render the INVARIANT_MENU (module-level; provenance + sectors documented there) -- a thing to PROVE per line.
     out.append("\n## 4. Suggested STRONGER invariants (menu -- pick by sector, prove don't read)")
-    out.append("  CORE:")
-    for s in ["solvency: SUM(user claims) <= protocol assets, ALL times, ALL markets",
-              "conservation: total debt issued == total credit owed (no value minted in matching)",
-              "round-trip: do(x) then undo() leaves caller <= start (never richer)",
-              "cross-component: an op in A never breaks B's invariant via shared state",
-              "no-free-value: no op sequence leaves caller richer with protocol unchanged"]:
-        out.append(f"  - {s}")
-    out.append("  ECONOMIC (DeFi):")
-    for s in ["backing-conservation: SUM(ALL liabilities incl borrow/PM) <= backing, across EVERY settle path (Monetrix M-01)",
-              "accrual-before-param-change: setRate/setFee/setRewardRate calls accrue()/sync() FIRST (else retroactive over/under-distribution)",
-              "withdrawal-queue rate lock: rate at request-time == rate at fulfillment-time (else arb; Lagoon/RockSolid)",
-              "liquidation: liquidator_profit>0 at the threshold (else silent bad debt); bad-debt socialized BEFORE the liquidator bonus is paid (ordering)",
-              "first/last-mover: first depositor can't inflate share price (virtual shares); last exiter not bricked by rounding (Ledgity)",
-              "price-source consistency: liquidation and settlement use the SAME price (no mark-vs-index split); fee-path parity (no cheaper bypass)"]:
-        out.append(f"  - {s}")
-    out.append("  GAMEFI / NFT (egor's edge):")
-    for s in ["mint-supply-cap holds on ALL paths incl admin; uncapped-emission inflation bounded",
-              "reward requires real gameplay state-change (no no-op claim) + anti-Sybil/flash-loan multiplication",
-              "outcome integrity: on-chain RNG outcome (rarity/loot/battle/raffle) not predictable AND not revert-to-reroll-able AND VRF-callback not retry-gameable",
-              "asset-locking: a locked/staked NFT can't transfer/sell externally (cross-contract state synced on _update/transfer)",
-              "callback safety: ERC721/1155 receiver hook during claim/mint/transfer can't reenter (the #1 NFT root cause, 35%+)"]:
-        out.append(f"  - {s}")
+    for group, seeds in INVARIANT_MENU:
+        out.append(f"  {group}:")
+        for s in seeds:
+            out.append(f"  - {s}")
 
     # bridge: recon pattern flags per function (analyzer -> hypothesizer), then auto-propose
     rflags = {}
