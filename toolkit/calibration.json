@@ -31,6 +31,22 @@
       "found": "2026-06-13",
       "updated": "2026-06-13",
       "notes": "GPL no-bounty -> responsible disclosure; on-chain criticality currently LOW/dormant"
+    },
+    {
+      "id": "death-fun-1",
+      "target": "death-fun",
+      "title": "increaseBet free betAmount inflation (sig replay + no msg.value)",
+      "sev_claimed": "medium",
+      "channel": "direct",
+      "file": "contracts/DeathFun.sol",
+      "line": 349,
+      "status": "drafted",
+      "sev_awarded": "",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-06-14",
+      "updated": "2026-06-14",
+      "notes": "Abstract fan-out; PoC passes (51 ETH betAmount vs 1 ETH escrow); High-conditional on backend payout sizing; no bounty -> direct disclosure"
     }
   ],
   "calibrations": [
