@@ -125,5 +125,13 @@ Cross-year consistency is striking: the SAME root causes recur every year. Sourc
    (broadening FP'd reserve `Permit.sol` + stakewise validatorsManager, 0 added TP). The real MureDistribution victim
    uses a bare `signer` param -> caught by the CORE caller-supplied-authority seed (enriched with the ERC-1271 variant),
    not the T0 detector. golden 340->346, 0 FP on 10 signature-heavy clones.
-6. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
+6. **DONE:** shadow.py `--corpus defihacklabs` — a labelled sample of 9 REAL DeFiHackLabs victims (deployed verified
+   source pulled by fetch_source, proxy-resolved) vs the recon det_key that should fire. HONEST production-code recall:
+   **HIT 3/4 = 75%** of the T0-coverable+reachable slice (BYToken=pair-reserve, LPC+GPU=self-transfer — the token
+   detectors fire on the real on-chain code); MISS=1 (Renegade — the proxy resolves to a PATCHED impl, version-drift
+   not a regex gap); UNCOVERED=3 (MAPProtocol/NewMarketTrading/MureDistribution — reasoning-tier by design, the broad
+   caller-auth / bare-param-1271 shapes T0 deliberately can't reach -> hypothesize seeds); UNREACHABLE=2 (Pike/Trusted-
+   Volumes impls unverified). The big honest takeaway: **token-class hacks are well-caught at T0; access/signature/
+   bridge hacks are reasoning-tier or version-drifted/unverified** — so finding-density is gated by FRESHNESS + the
+   reasoning layer, not more T0 detectors (matches the calibration in CLAUDE.md). Backlog CLOSED.
 See [[fanout-triage-workflow-validated]] (the mining невод) + the vault note "Датасеты багов и чек-листы".

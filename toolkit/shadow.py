@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """shadow.py - measure recon's RECALL against a labelled corpus of real bug types (where are we blind?).
 
-We tune detectors by intuition + the targets we happen to hit. This measures it with DATA: run recon
-over DeFiVulnLabs (SunWeb3Sec/DeFiVulnLabs -- 48 vulnerability types, each a self-contained Foundry test
-with the vulnerable contract INLINE + the type in the filename). For each file we know the expected bug
-class; we check whether the recon detector that SHOULD fire actually does.
+We tune detectors by intuition + the targets we happen to hit. This measures it with DATA. Two corpora:
 
-    python shadow.py [--repo <DeFiVulnLabs path>] [--clone] [--show hit|miss|uncovered|unmapped|all]
+  --corpus defivulnlabs (default): SunWeb3Sec/DeFiVulnLabs -- 48 vuln types, each a self-contained Foundry
+    test with the vulnerable contract INLINE + the type in the filename. Minimal repros -> ideal conditions.
+        python shadow.py [--repo <path>] [--clone] [--show hit|miss|uncovered|unmapped|all]
+      HIT/MISS/UNCOVERED/UNMAPPED per file; recall over COVERED classes.
 
-Verdict per file:
-  HIT       - an expected detector fired (recon catches this class)
-  MISS      - recon HAS a detector for this class but it didn't fire here -> a precision/regex gap to fix
-  UNCOVERED - recon has NO detector for this class -> a NEW-detector candidate (the blind spot)
-  UNMAPPED  - the filename didn't match our bench map -> refine BENCH (printed so we can)
+  --corpus defihacklabs: a labelled sample of REAL DeFiHackLabs hacks -- the victim's DEPLOYED verified source
+    pulled by fetch_source (proxy-resolved). The HONEST recall on production code (library noise, proxies, the
+    works). Many victims are unverified -> a real limit of static recon.
+        python shadow.py --corpus defihacklabs [--no-fetch]
+      HIT (a detector fired) / MISS (a detector exists but didn't fire -> regex gap) / UNCOVERED (no T0 detector
+      -> reasoning-tier, a hypothesize seed) / UNREACHABLE (victim source unverified).
 
-Output: recall over COVERED classes + a ranked blind-spot list (the data-driven detector backlog).
-Reuses recon.detect_all / recon.det_key. ASCII.
+Output: recall + a ranked blind-spot list (the data-driven backlog). Reuses recon.detect_all / recon.det_key. ASCII.
 """
 
 import argparse
@@ -149,13 +149,122 @@ def _iter_corpus(repo):
         break  # only the first existing root
 
 
+# ---- DeFiHackLabs real-hack corpus (victim on-chain source, NOT inline minimal repros) ----
+# Labelled sample of REAL DeFiHackLabs hacks: the victim's DEPLOYED verified source (pulled by fetch_source,
+# proxy-resolved) vs the recon det_key(s) that SHOULD fire. This is the HONEST recall on production code
+# (library noise, proxies, the works) -- and many victims are unverified -> UNREACHABLE, itself a real limit of
+# static recon. keys=None => recon has no T0 detector for the class (reasoning-tier blind spot, a hypothesize seed).
+DEFIHACKLABS_SAMPLE = [
+    {"label": "BYToken-2026-06",          "chain": 56,    "addr": "0x6f50cffEcd4e00EcF7E442774C08c089450B62Ca", "keys": {"pairreserve"},  "cls": "pair-reserve (reflection BSC)",            "note": ""},
+    {"label": "LPC-2022-07",              "chain": 56,    "addr": "0x1E813fA05739Bf145c1F182CB950dA7af046778d", "keys": {"selftransfer"}, "cls": "self-transfer inflation",                  "note": ""},
+    {"label": "GPU-2024-05",              "chain": 56,    "addr": "0xf51CBf9F8E089Ca48e454EB79731037a405972ce", "keys": {"selftransfer"}, "cls": "self-transfer inflation",                  "note": ""},
+    # reasoning-tier (keys=None): the broad caller-auth / bare-param ERC-1271 shapes are deliberately NOT T0
+    # (they FP on routers/permit) -> covered by the caller-supplied-authority hypothesize seed, not a regex.
+    {"label": "MAPProtocol-2026-05",      "chain": 1,     "addr": "0x0000317Bec33Af037b5fAb2028f52d14658F6A56", "keys": None,             "cls": "caller-supplied-authority (bridge helper)", "note": "Helper._safeTransferFrom + memory-decoded authority -> reasoning-tier"},
+    {"label": "NewMarketTrading-2026-05", "chain": 1,     "addr": "0x1f1d37a3Bf840e35c6a860c7C2dA71Fe555123ca", "keys": None,             "cls": "caller-supplied-authority (Safe-module)",   "note": "Safe-module exec + encodeWithSelector -> reasoning-tier"},
+    {"label": "MureDistribution-2026-05", "chain": 1,     "addr": "0x365083717eFB17F3895290BA38f20F568C7A4D8a", "keys": None,             "cls": "signature (ERC-1271 bare-param verifier)",  "note": "bare-param 1271 verifier (permit-ambiguous) -> reasoning-tier; T0 covers only struct-field"},
+    {"label": "Renegade-2026-05",         "chain": 42161, "addr": "0x30bD8eAb29181F790D7e495786d4B96d7AfDC518", "keys": {"uinit"},        "cls": "unprotected-init",                          "note": "proxy resolves to a PATCHED impl (no init) -> version-drift, not a regex gap"},
+    {"label": "PikeFinance-2024-04",      "chain": 1,     "addr": "0xFC7599cfFea9De127a9f9C748CCb451a34d2F063", "keys": {"uinit"},        "cls": "unprotected-init / upgrade",                "note": "impl unverified"},
+    {"label": "TrustedVolumes-2026-05",   "chain": 1,     "addr": "0xeEeEEe53033F7227d488ae83a27Bc9A9D5051756", "keys": None,             "cls": "caller-supplied-authority (RFQ signer)",    "note": "impl unverified + reasoning-tier"},
+]
+
+
+def _fired_keys_dir(d):
+    """Union of recon det_keys that fire across every non-lib .sol under a fetched source dir."""
+    fired = set()
+    for dp, dns, fns in os.walk(d):
+        dns[:] = [x for x in dns if x.lower() not in recon.SKIP_DIRS and x != "node_modules"]
+        for fn in fns:
+            if not fn.endswith(".sol"):
+                continue
+            try:
+                fired |= fired_keys(open(os.path.join(dp, fn), encoding="utf-8", errors="ignore").read(), fn)
+            except Exception:
+                continue
+    return fired
+
+
+def _resolve_or_fetch(addr, chain, do_fetch):
+    """Locate the fetched verified-source dir for (addr, chain); fetch (proxy-resolved) if missing and do_fetch.
+    Returns the dir path, or None if the victim source is unverified/unreachable."""
+    import re as _re
+    direct = os.path.join("fetched", f"{chain}_{addr}")
+    if os.path.isdir(direct):
+        return direct
+    if not do_fetch:
+        return None
+    here = os.path.dirname(os.path.abspath(__file__))
+    r = subprocess.run([sys.executable, os.path.join(here, "fetch_source.py"), addr, "--chain", str(chain), "--proxy"],
+                       capture_output=True, text=True)
+    if "no verified source" in r.stdout:
+        return None
+    m = _re.search(r"->\s*(fetched[\\/]\S+)", r.stdout)
+    if m:
+        dd = m.group(1).replace("\\", "/").rstrip(".")
+        if os.path.isdir(dd):
+            return dd
+    return None
+
+
+def classify_dhl(keys, fired, reachable):
+    """HIT/MISS/UNCOVERED/UNREACHABLE for one DeFiHackLabs sample entry."""
+    if not reachable:
+        return "UNREACHABLE"      # victim source unverified -> static recon can't see it (a real recall limit)
+    if keys is None:
+        return "UNCOVERED"        # recon has no T0 detector for this class (reasoning-tier -> hypothesize seed)
+    return "HIT" if (fired & keys) else "MISS"
+
+
+def bench_defihacklabs(do_fetch=True):
+    """Bench recon over the labelled DeFiHackLabs real-victim sample -> honest production-code recall."""
+    buckets = {"HIT": [], "MISS": [], "UNCOVERED": [], "UNREACHABLE": []}
+    for e in DEFIHACKLABS_SAMPLE:
+        d = _resolve_or_fetch(e["addr"], e["chain"], do_fetch)
+        fired = _fired_keys_dir(d) if d else set()
+        buckets[classify_dhl(e["keys"], fired, d is not None)].append((e, sorted(fired & (e["keys"] or set()))))
+    return buckets
+
+
+def _print_defihacklabs(buckets):
+    total = sum(len(v) for v in buckets.values())
+    print(f"\n# shadow benchmark: recon vs DeFiHackLabs REAL victims  ({total} hacks, deployed verified source)\n")
+    for v in ("HIT", "MISS", "UNCOVERED", "UNREACHABLE"):
+        rows = buckets[v]
+        if not rows:
+            continue
+        print(f"## {v}  ({len(rows)})")
+        for e, hitkeys in sorted(rows, key=lambda r: r[0]["label"]):
+            tail = f"keys={sorted(e['keys'])}" if e["keys"] else "(no T0 detector -> reasoning-tier)"
+            if v == "HIT":
+                tail += f" fired={hitkeys}"
+            elif e.get("note"):
+                tail += f"  [{e['note']}]"
+            print(f"  {e['label']:26} {e['cls']:46} {tail}")
+        print()
+    hit, miss, unc, unr = (len(buckets[k]) for k in ("HIT", "MISS", "UNCOVERED", "UNREACHABLE"))
+    cov = hit + miss
+    recall = (hit / cov * 100) if cov else 0.0
+    print("=" * 70)
+    print(f"REAL-HACK RECALL (reachable & covered): {hit}/{cov} = {recall:.0f}%   "
+          f"(MISS={miss} regex-gaps, UNCOVERED={unc} reasoning-tier, UNREACHABLE={unr} unverified)")
+    print("-> MISS = a detector exists but didn't fire on real code (regex gap). UNCOVERED = reasoning-tier "
+          "(a hypothesize seed). UNREACHABLE = victim source unverified -> a hard limit of STATIC recall.")
+
+
 def main():
-    ap = argparse.ArgumentParser(description="recon recall benchmark on DeFiVulnLabs (find recon's blind spots)")
+    ap = argparse.ArgumentParser(description="recon recall benchmark (DeFiVulnLabs inline repros OR DeFiHackLabs real victims)")
+    ap.add_argument("--corpus", default="defivulnlabs", choices=["defivulnlabs", "defihacklabs"],
+                    help="defivulnlabs = inline minimal repros; defihacklabs = real on-chain victim source (fetched)")
+    ap.add_argument("--no-fetch", action="store_true", help="(defihacklabs) only use already-fetched sources, don't network-fetch")
     ap.add_argument("--repo", default="cache/DeFiVulnLabs", help="path to a DeFiVulnLabs clone")
     ap.add_argument("--clone", action="store_true", help="git clone DeFiVulnLabs into --repo first")
     ap.add_argument("--show", default="miss,uncovered,unmapped",
                     help="comma list of verdicts to print per-file (hit/miss/uncovered/unmapped/all)")
     args = ap.parse_args()
+
+    if args.corpus == "defihacklabs":
+        _print_defihacklabs(bench_defihacklabs(do_fetch=not args.no_fetch))
+        return 0
 
     if args.clone or not os.path.isdir(args.repo):
         os.makedirs(os.path.dirname(os.path.abspath(args.repo)) or ".", exist_ok=True)

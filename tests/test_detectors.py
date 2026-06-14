@@ -992,6 +992,16 @@ check(shadow.classify(("downcast", {"downcast"}), {"downcast", "access"}) == "HI
       and shadow.classify(("readonly", None), set()) == "UNCOVERED"
       and shadow.classify((None, None), set()) == "UNMAPPED",
       "shadow.classify: HIT (expected fired) / MISS (expected exists, didn't fire) / UNCOVERED / UNMAPPED")
+# DeFiHackLabs real-victim corpus (#6): classify_dhl + manifest sanity
+check(shadow.classify_dhl({"selftransfer"}, {"selftransfer", "access"}, True) == "HIT"
+      and shadow.classify_dhl({"uinit"}, {"access"}, True) == "MISS"
+      and shadow.classify_dhl(None, set(), True) == "UNCOVERED"
+      and shadow.classify_dhl({"uinit"}, set(), False) == "UNREACHABLE",
+      "shadow.classify_dhl: HIT / MISS (regex-gap) / UNCOVERED (reasoning-tier) / UNREACHABLE (unverified)")
+_dhlkeys = {k for e in shadow.DEFIHACKLABS_SAMPLE if e["keys"] for k in e["keys"]}
+_allkeys = {recon.det_key(t) for t, _f, _d in recon.DETECTORS}
+check(_dhlkeys <= _allkeys and all(e.get("addr", "").startswith("0x") for e in shadow.DEFIHACKLABS_SAMPLE),
+      "shadow.DEFIHACKLABS_SAMPLE: every expected key is a real recon det_key + every entry has an address")
 
 print("== analyze L2 bridge (Windows->WSL Slither path translation) ==")
 import analyze  # noqa: E402
