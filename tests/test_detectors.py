@@ -510,6 +510,18 @@ _fresh = {"title": "A Vault", "desc": "lending", "pot": 100000, "start_unix": _n
 _stale = {"title": "B Vault", "desc": "lending", "pot": 100000, "start_unix": _now - 40*3600, "end_unix": _now + 9e5, "status": "live"}
 check(cm.score(_fresh, _now, 48) > cm.score(_stale, _now, 48),
       "contest_monitor.score: a fresher contest outranks a stale one (equal pot/zone) -- timing edge baked in")
+# --alert trigger: alertable() = NEW + FRESH + EVM-likely + our-zone (the always-on Task signal)
+def _cm_c(plat, cid, title, desc, age_h):
+    return {"platform": plat, "id": cid, "title": title, "desc": desc, "pot": 50000,
+            "start_unix": _now - int(age_h * 3600), "end_unix": _now + 7 * 86400, "status": "live"}
+_cm_live = [_cm_c("sherlock", "1", "Fresh Lending Vault", "a lending vault protocol", 2),    # NEW+FRESH+EVM+zone -> ALERT
+            _cm_c("cantina", "2", "Old Perp DEX", "perp dex", 100),                          # NEW but stale -> no
+            _cm_c("code4rena", "3", "Solana Staking", "solana anchor staking program", 1),   # NEW+FRESH but non-EVM -> no
+            _cm_c("sherlock", "4", "Generic Thing", "just some app", 1),                     # NEW+FRESH+EVM, no zone -> no
+            _cm_c("cantina", "5", "Seen Stablecoin", "stablecoin cdp", 1)]                   # fresh+zone but SEEN -> no
+_cm_newkeys = {cm.contest_key(c) for c in _cm_live} - {cm.contest_key(_cm_live[4])}
+check([h["id"] for h in cm.alertable(_cm_live, _cm_newkeys, _now, 48)] == ["1"],
+      "contest_monitor.alertable: only the NEW+FRESH+EVM+our-zone contest fires (drops stale/non-EVM/no-zone/seen)")
 
 print("== vault-gap detectors (downcast / precision / encodePacked / fee-on-transfer / delete-mapping) ==")
 check(flagged(recon.det_downcast, "contract C{function f(uint256 a,uint256 b) external { y = uint128(a + b); }}"),

@@ -50,8 +50,10 @@
 **Движок собран end-to-end И упакован в скилл `/hunt`** (`.claude/skills/hunt/SKILL.md`) — одна команда
 проходит весь конвейер:
 - **SOURCE:** `scout.py` — contests (GH) + **v2 DefiLlama** (deployed-unaudited, +CORE-repo резолв) +
-  **v3 Immunefi** (точные in-scope адреса+выплата); `contest_monitor.py` (**тайминг-эдж**: cron алертит на
-  свежий контест → хантим первыми). Сектор расширен на GameFi/гэмблинг/лотереи/предикшн.
+  **v3 Immunefi** (точные in-scope адреса+выплата); `contest_monitor.py` (**тайминг-эдж**: `--alert` → exit-10 +
+  `monitor/ALERTS.md` на НОВЫЙ+СВЕЖИЙ+our-zone контест. **ALWAYS-ON**: Windows-Task `security-lab-contest-watch`
+  каждые 4ч (`toolkit/watch_contests.ps1` → desktop balloon; ставить `toolkit/register_contest_watch.ps1`) —
+  алертит на свежий контест ДАЖЕ при закрытом Claude → хантим первыми). Сектор расширен на GameFi/гэмблинг/лотереи/предикшн.
 - **REACH:** `fetch_source.py` (verified-source по адресу через **Etherscan-v2** — ключ в env (setx, persistent) →
   ВСЕ 64 chains вкл. Abstract/Mantle/Sonic/HyperEVM/zkSync) + **DefiLlama-Adapters** как источник CORE-адресов.
 - **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф

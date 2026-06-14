@@ -169,6 +169,18 @@ def contest_key(c):
     return f"{c['platform']}:{c.get('id') or c.get('title','')}".lower()
 
 
+def alertable(live, new_keys, now_unix, fresh_hours):
+    """PURE: the contests worth a desktop ALERT this run -- NEW (unseen) AND FRESH (< fresh_hours) AND EVM-likely
+    AND in our zone (DeFi-zone hit or GameFi). This is the timing-edge trigger: a freshly-launched, in-scope,
+    hunt-able contest we haven't seen before. Returns them ranked (best first)."""
+    out = [c for c in live
+           if contest_key(c) in new_keys
+           and hours_since_start(c, now_unix) < fresh_hours
+           and not looks_non_evm(c)
+           and (zone_hits(c) or is_gamefi(c))]
+    return sorted(out, key=lambda c: -score(c, now_unix, fresh_hours))
+
+
 def _get(url):
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (security-lab contest-monitor)"})
@@ -197,6 +209,8 @@ def main():
     ap.add_argument("--min-pot", type=float, default=0, help="hide contests with pot < N USD")
     ap.add_argument("--no-state", action="store_true", help="don't read/write the seen-state (no [NEW] flagging)")
     ap.add_argument("--state", default=STATE_FILE)
+    ap.add_argument("--alert", action="store_true",
+                    help="cron/Task mode: on a NEW+FRESH+our-zone contest, append monitor/ALERTS.md and exit 10")
     a = ap.parse_args()
     now = int(time.time())
 
@@ -244,8 +258,23 @@ def main():
     print("\nNext: pick a FRESH our-zone contest -> clone its repo -> forkdrift -> recon/hypothesize -> PoC.")
     print("Cron it (like watch.py) to catch launches within the hour: it flags [NEW] vs the seen-state.")
 
+    # --alert: the always-on Task trigger. Compute the NEW+FRESH+our-zone contests, persist an ALERTS.md line,
+    # and exit 10 so a Windows-Task / cron wrapper can fire a desktop notification. (State is still saved below,
+    # so the SAME contest won't re-alert next run.)
+    hits = alertable(live, new_keys, now, a.fresh_hours) if a.alert else []
+    if a.alert and hits:
+        os.makedirs("monitor", exist_ok=True)
+        with open("monitor/ALERTS.md", "a", encoding="utf-8") as f:
+            for c in hits:
+                f.write(f"- {_unix_to_iso(now)}  [{c['platform']}] {c['title'][:60]}  ${c['pot']/1e3:.0f}k  "
+                        f"ends {_unix_to_iso(c['end_unix'])}  zone:{','.join(zone_hits(c)) or 'gamefi'}  {c['url']}\n")
+        print("ALERT: " + str(len(hits)) + " new fresh our-zone contest(s): "
+              + "; ".join(c["title"][:30] for c in hits))
+
     if not a.no_state:
         save_seen(a.state, seen | {contest_key(c) for c in live})
+    if a.alert and hits:
+        raise SystemExit(10)
 
 
 if __name__ == "__main__":
