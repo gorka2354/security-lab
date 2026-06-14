@@ -529,6 +529,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "flex|src/trove_manager.vy:1402|signature|",
+      "target": "flex",
+      "file": "src/trove_manager.vy:1402",
+      "line": 1402,
+      "detector": "signature",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "FLEX-002 (upfront-fee post-insertion avg-rate manip): bug LIVE in deployed code (avg=new_total_weighted_debt//new_total_debt, no floor; audit rec#1 pre-insertion-avg NOT applied) BUT atomic exploit BLOCKED by same-block guard (close_trove:810/:644 assert last_debt_update_time!=block.timestamp). Cross-block bypass is mechanically possible but economically marginal (helper pays own upfront fee + MCR collateral + 1blk interest; profitable only in thin market) & strictly worse than the blocked atomic. KNOWN audit finding + NO bounty/scope (solo johnnyonline/Flex) -> not disclosable. Audit-drift lane validated (Vyper recon-blind -> manual+audit cross-ref).",
+      "date": "2026-06-14"
+    },
+    {
       "sig": "flip-battle (adrians12345/flip-battle)|(fanout)|fanout|fanout triage: -",
       "target": "flip-battle (adrians12345/flip-battle)",
       "file": "(fanout)",
