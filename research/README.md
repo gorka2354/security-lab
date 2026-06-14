@@ -49,7 +49,7 @@ research/
     signatures/  cross-chain-and-aa                        → det_sig / det_l2_footgun, invariant: no replay
 ```
 
-## Index (6 patterns)
+## Index (6 classes + the DeFiHackLabs mining synthesis)
 | ✓ | Class | Pattern | Tier | Hook |
 |---|---|---|---|---|
 | ✅ | accounting | [erc4626-inflation](patterns/accounting/erc4626-inflation.md) | T2 | donation/first-depositor + vault-as-oracle. *dStake (first-hand), Venus, Inertia.* |
@@ -58,12 +58,15 @@ research/
 | ✅ | pricing | [index-manipulation](patterns/pricing/index-manipulation.md) | T2/T3 | Aave-fork `liquidityIndex` inflation on empty markets. *dTRINITY $257k (first-hand).* |
 | ✅ | liquidation | [liquidation-math](patterns/liquidation/liquidation-math.md) | T2/T3 | bad-debt socialization, self-liquidation, threshold, rounding direction. *TermMax/CU (first-hand).* |
 | ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
+| ✅ | **mining** | [**defihacklabs-pattern-mining**](patterns/defihacklabs-pattern-mining.md) | T0-T3 | **751 real hacks → 53 patterns** (cross-year taxonomy + invariant-seeds + detector-backlog). *spot-oracle/token-reserve-manip/donation/business-logic dominate every year.* |
 
-### Harvest status — the T1-catchable slice is wired into `recon.py` (73 tests, leads-not-verdicts)
+### Harvest status — the T1-catchable slice is wired into `recon.py` (34 detectors, 312 tests, leads-not-verdicts)
 | Pattern | Detector (recon.py) | What it flags |
 |---|---|---|
 | erc4626-inflation | `det_erc4626` **+fix#20** | no offset/dead-shares; **enriched** when `totalAssets()` is balance-based (dStake flavor). |
 | oracle-manipulation | `det_oracle` **+ spot sub-check** | value/price fn that divides **spot** reserves; recognizes TWAP/clamped → no flag. |
+| **spot-AMM-as-oracle** (DeFiHackLabs #1) | **`det_spot_oracle`** | borrow/collateral/reward priced from `getReserves`/`pricePerShare`/`get_virtual_price`/`slot0` w/ no TWAP; skips AMM-core swap fns (tuned on real DEX). |
+| reward-formula (posi class) | **`det_reward_formula`** | reward accumulator added **inside** `.mul(balance)` (Synthetix mis-bracket) → ~balance² inflation. |
 | reward-accounting | `det_reward` | payout transfers with no claimed/rewardDebt marker (or marker **after** transfer); skips keeper-gated. |
 | index-manipulation | `det_index` | Aave-fork `liquidityIndex`/`cumulateToLiquidityIndex` with no min-liquidity/cap guard. |
 | liquidation-math | `det_liquidation` | surfaces liquidation entrypoints; [!] if no self-liq guard or seize rounds **up**. |

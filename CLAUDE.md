@@ -18,7 +18,7 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 33 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
+  `recon.py` (L1, 34 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
   Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может
@@ -52,19 +52,25 @@
 - **SOURCE:** `scout.py` — contests (GH) + **v2 DefiLlama** (deployed-unaudited, +CORE-repo резолв) +
   **v3 Immunefi** (точные in-scope адреса+выплата); `contest_monitor.py` (**тайминг-эдж**: cron алертит на
   свежий контест → хантим первыми). Сектор расширен на GameFi/гэмблинг/лотереи/предикшн.
-- **REACH:** `fetch_source.py` (verified-source по адресу; **Etherscan-ключ** в env → покрытие шире Sourcify)
-  + **DefiLlama-Adapters** как источник CORE-адресов (не gov-токен).
+- **REACH:** `fetch_source.py` (verified-source по адресу через **Etherscan-v2** — ключ в env (setx, persistent) →
+  ВСЕ 64 chains вкл. Abstract/Mantle/Sonic/HyperEVM/zkSync) + **DefiLlama-Adapters** как источник CORE-адресов.
 - **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф
   дрейфа + audited-ли? → роутер (drift / out-of-scope / economic / greenfield). LIVE-FIRST.
-- **DETECT:** `recon.py` (**32 детектора**) + `hypothesize.py` (shared-state seeds + инвариант-меню
-  CORE/ECONOMIC/GAMEFI). Память `ledger.py` гасит шум.
-- **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + what's-missing + coupled-state) →
-  `toolkit/VERIFY.md` (8 kill-gates + 10 FP-паттернов; «FP хуже miss'а»). Методология заимствована у Krait (MIT).
-- **193 golden-теста** (CI-гейт). Цикл самоулучшения: баг → детектор; FP → точность.
+- **DETECT:** `recon.py` (**34 детектора**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс + `det_reward_formula`) +
+  `hypothesize.py` (shared-state seeds + инвариант-меню CORE/ECONOMIC/GAMEFI). Память `ledger.py` гасит шум.
+- **FAN-OUT (масштаб):** Workflow-невод (агент-на-таргет: reach+forkdrift+recon+gate → структурный вердикт →
+  я ранжирую); `fanout_log.py` персист (типизированная таблица `hunts/_fanout/` + ledger-suppress + DIG-очередь).
+  Доказан на 2 задачах: triage (Abstract/DeFiLlama-волны) + pattern-mining (DeFiHackLabs 751 хак → 53 паттерна).
+- **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
+  (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
+  txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).
+- **312 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
 
-**Находки:** 1 подтверждённая — **Ledgity (Medium, PoC)**; остальные (RockSolid/Royco/Stobox/Alchemix/Syntropia/
-Monetrix-bench…) свелись к clean/audited/forks. **Урок сессии:** достижимое hunting-пространство доминируют
-аудированные/платформенные деплои → finding-density упирается в **свежесть+достижимость** цели, не в тулинг.
-Поэтому: contest_monitor ловит свежие контесты, reachability-стек достаёт CORE-код, EV-ставка — live-контесты
-(гарантированно недо-ревьюнуты) + GameFi-ниша (твой эдж). Бэклог: Solodit-кросс-реф, `shadow.py`-бенчмарк-харнесс.
-Точка продолжения — в memory (`next-scout-v2-underreviewed-targets.md`).
+**Находки (честная калибровка):** НОЛЬ live-находок с impact на счету — все при строгом VERIFY свелись к
+non-live / hardened / non-callable: Ledgity (not-live: wrapper undeployed/empty), death.fun (real `increaseBet`-баг
++ PoC, но **non-callable** в custodial-модели), eva/mezo/witty/kona (hardened/known), posi-vaults (dead-target).
+**Уроки:** (1) достижимое пространство доминируют закалённые/аудированные деплои → finding-density упирается в
+**свежесть**, не в тулинг; (2) **callability ≠ code-bug** — проверяй вызываемость (txlist/per-fn/custodial) ДО severity.
+Реальный выигрыш сессий — ДВИЖОК: reach-ключ (64 chains), fan-out-невод+персист, txlist-liveness, callability-gates,
+DeFiHackLabs-mining + `det_spot_oracle`. Точка продолжения — memory + `research/patterns/defihacklabs-pattern-mining.md`
+(детектор/инвариант-backlog: pair-reserve-mutation, self-transfer, unprotected-init, +reasoning-tier invariant-seeds).

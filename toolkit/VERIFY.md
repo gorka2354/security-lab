@@ -26,6 +26,24 @@ Pitfall: "deployed, multi-chain, $X M TVL" is a *protocol* claim — verify the 
 on its own address. Passing Gate 0 -> proceed to the 8 kill gates. Failing -> ledger `wontfix`/`todo`, calibrate
 the finding `withdrawn` (it was never live), note "re-evaluate IF funded".
 
+## GATE 0.5 (after Gate 0): is the BUG actually CALLABLE in the live system?
+
+The death.fun lesson: a contract can be LIVE + busy yet the bug NON-exploitable. A real PoC-backed broken
+invariant (`increaseBet` free `betAmount` inflation) was un-callable because the system is custodial. Three
+checks BEFORE writing any severity (don't over-claim a live contract):
+1. **txlist-liveness, NOT getLogs.** `eth_getLogs` range-limits / false-0s -> I twice mis-called a live contract
+   DORMANT. Use Etherscan-v2 `account txlist` (`activity.py` does this when `ETHERSCAN_API_KEY` is set): a contract
+   with recent TXNS is LIVE even if events are quiet. Txns are authoritative; events lie.
+2. **Per-function usage.** A contract can be busy while the BUG function is dormant. death.fun: 3021 `createGame`
+   in 6000 txns but **0 `increaseBet`** -> the bug path isn't exercised (backend stopped issuing those sigs).
+   Check the specific bug-function's recent txlist usage, not just "contract is live".
+3. **Custodial-caller check.** Ask "who is the on-chain `msg.sender` in live txns?" death.fun: every `createGame`
+   from ONE backend relayer -> on-chain `game.player == relayer`, not the real user -> a `player==msg.sender`-gated
+   bug is uncallable by an actual attacker. A backend-relayer (custodial) architecture can make a "user-callable"
+   bug uncallable.
+Fail any -> **informational** (real-bug / non-callable): real in code, not exploitable today. Note "re-open IF the
+architecture changes (non-custodial relaunch / the bug-fn becomes user-reachable)".
+
 ## A finding must SURVIVE ALL 8 KILL GATES
 | Gate | KILL it if... | Note |
 |------|---------------|------|
