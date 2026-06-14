@@ -866,6 +866,14 @@ check(activity.classify(2000, 0, 0, supply=988027)[0] == "QUIET-VALUE",
 check(activity.resolve_chain("mantle") == "5000" and activity.resolve_chain("sonic") == "146"
       and activity.resolve_chain("mezo") == "31612" and activity.resolve_chain("hyperevm") == "999",
       "activity.resolve_chain: exotic chains (mantle/sonic/mezo/hyperevm) now alias to ids (the fan-out RPC FN fix)")
+check(activity.resolve_chain("abstract") == "2741" and activity.resolve_chain("abs") == "2741",
+      "activity.resolve_chain: Abstract (zkSync) aliases to 2741")
+check(activity.classify(2000, 0, 0, txcount=20)[0] == "ACTIVE" and "txlist" in activity.classify(2000, 0, 0, txcount=20)[2],
+      "activity.classify: recent txns (txlist) -> ACTIVE even with 0 getLogs events (the death.fun false-DORMANT fix)")
+check(activity.classify(2000, 0, 0, txcount=0)[0] == "DORMANT" and activity.classify(2000, 0, 0, txcount=None)[0] == "DORMANT",
+      "activity.classify: txcount 0/None does NOT override -> DORMANT preserved (no key / genuinely idle)")
+check(activity.classify(2000, 0, 0, supply=0, txcount=20)[0] == "EMPTY",
+      "activity.classify: EMPTY (totalSupply==0) still beats txns -> an empty share contract is not live even if admin transacts")
 check(activity.resolve_chain("base") == "8453" and activity.resolve_chain("8453") == "8453"
       and activity.resolve_chain("eth") == "1",
       "activity.resolve_chain: chain names + ids both resolve to the id string")

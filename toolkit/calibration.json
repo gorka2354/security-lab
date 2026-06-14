@@ -40,13 +40,13 @@
       "channel": "direct",
       "file": "contracts/DeathFun.sol",
       "line": 349,
-      "status": "drafted",
+      "status": "withdrawn",
       "sev_awarded": "",
       "bounty_expected": 0,
       "bounty_received": 0,
       "found": "2026-06-14",
       "updated": "2026-06-14",
-      "notes": "Abstract fan-out; PoC passes (51 ETH betAmount vs 1 ETH escrow); High-conditional on backend payout sizing; no bounty -> direct disclosure"
+      "notes": "Abstract fan-out; PoC passes (51 ETH betAmount vs 1 ETH escrow); High-conditional on backend payout sizing; no bounty -> direct disclosure | On-chain callability check downgraded to informational: real bug but NON-callable in the live custodial/relayer model (on-chain player==backend relayer, not the user) + increaseBet dormant (0/6000 txns). Not disclosable as Medium/High; courtesy note only."
     }
   ],
   "calibrations": [

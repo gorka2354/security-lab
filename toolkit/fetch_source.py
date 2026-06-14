@@ -31,6 +31,7 @@ DEFAULT_RPC = {
     "999": "https://rpc.hyperliquid.xyz/evm",        # HyperEVM (hyperbeat)
     "31612": "https://mezo.drpc.org",                # Mezo (mezo-borrow)
     "146": "https://sonic.drpc.org",                 # Sonic (ledgity WrappedLTokenSonic)
+    "2741": "https://api.mainnet.abs.xyz",            # Abstract (ZK Stack / Pudgy; gaming + native AA)
 }
 
 

@@ -21,8 +21,10 @@
   `recon.py` (L1, 33 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
-  Phase-0/1 гейт: code+own-totalSupply+active+value? totalSupply==0 -> EMPTY/not-live; иначе park/skip — ДО
-  чтения И как обязательный pre-disclosure Gate-0 в VERIFY.md), `calibrate.py` (FEEDBACK-LOOP:
+  Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может
+  false-0 -> Etherscan-v2 txlist authoritative override (death.fun урок); park/skip — ДО чтения И как
+  обязательный pre-disclosure Gate-0 в VERIFY.md. ПЕРЕД severity: txlist-liveness + per-function usage +
+  custodial-caller check), `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
   ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`
   (ПЕРСИСТ fan-out-невода: типизированная таблица `hunts/_fanout/<date>-<label>.md` по type+chain +

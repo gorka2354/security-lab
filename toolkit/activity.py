@@ -26,7 +26,8 @@ import fetch_source as fs  # reuse _rpc / DEFAULT_RPC  # noqa: E402
 CHAIN_ALIAS = {"eth": "1", "ethereum": "1", "mainnet": "1", "base": "8453", "arb": "42161",
                "arbitrum": "42161", "op": "10", "optimism": "10", "linea": "59144",
                "polygon": "137", "matic": "137", "bsc": "56", "mantle": "5000",
-               "hyperevm": "999", "hyperliquid": "999", "mezo": "31612", "sonic": "146"}
+               "hyperevm": "999", "hyperliquid": "999", "mezo": "31612", "sonic": "146",
+               "abstract": "2741", "abs": "2741"}
 
 BAL_OF = "0x70a08231"  # balanceOf(address)
 TOTAL_SUPPLY = "0x18160ddd"  # totalSupply() -- the contract's OWN positions/shares (0 = empty -> not live)
@@ -57,11 +58,33 @@ def resolve_chain(c):
     return CHAIN_ALIAS.get(str(c).lower(), str(c))
 
 
-def classify(code_len, events, balance_wei, token_bal=None, supply=None):
+def etherscan_txcount(addr, chain, key=None):
+    """Recent on-chain tx activity via the Etherscan-v2 account txlist -- a liveness signal that does NOT
+    rely on eth_getLogs (which range-limits / quirk-returns a FALSE 0). Returns the # of txns on the most
+    recent page (0..N, capped), or None when no key / the call fails. The death.fun lesson: 0 getLogs
+    events but ~100 txns / 20 min -> a false-DORMANT that an event-only gate misses; txns are authoritative."""
+    key = key or os.environ.get("ETHERSCAN_API_KEY")
+    if not key:
+        return None
+    url = ("https://api.etherscan.io/v2/api?chainid=%s&module=account&action=txlist&address=%s"
+           "&page=1&offset=20&sort=desc&apikey=%s" % (chain, addr, key))
+    try:
+        import urllib.request
+        import json as _json
+        d = _json.load(urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": "security-lab"}), timeout=25))
+        r = d.get("result")
+        return len(r) if isinstance(r, list) else None
+    except Exception:
+        return None
+
+
+def classify(code_len, events, balance_wei, token_bal=None, supply=None, txcount=None):
     """PURE: map probe results -> (verdict, recommendation, note). events<0 = query failed; supply is the
-    contract's OWN totalSupply (None = absent / not an ERC-share contract). Deployment-gate addition: a
-    deployed share/balance contract with totalSupply==0 holds NO user positions, so a share/redemption-math
-    bug has nothing to act on -- the ledgity WrappedLTokenSonic lesson (deployed, inherited the bug, EMPTY)."""
+    contract's OWN totalSupply (None = absent / not an ERC-share contract); txcount = recent txns from the
+    Etherscan-v2 txlist (None if unavailable). Deployment-gate: a deployed share contract with totalSupply==0
+    holds NO positions (ledgity EMPTY lesson); recent TXNS are an authoritative liveness signal that overrides
+    an event-based false-DORMANT (the death.fun lesson: 0 getLogs events but the contract is busy on-chain)."""
     if code_len < 0:
         return ("UNKNOWN", "RETRY", "eth_getCode returned null (RPC issue) -> retry / check the RPC, NOT 'no code'")
     if code_len == 0:
@@ -70,6 +93,10 @@ def classify(code_len, events, balance_wei, token_bal=None, supply=None):
         return ("EMPTY", "PARK (not live)",
                 "deployed but totalSupply==0 -> no shares/positions exist; a share/balance/redemption-math bug "
                 "has nothing to act on (re-evaluate IF it gets funded) -- the ledgity lesson")
+    if (txcount or 0) > 0:
+        return ("ACTIVE", "DIG",
+                "%d+ recent txns (Etherscan-v2 txlist) -> live, even if getLogs is quiet; events can false-0 on "
+                "range limits, txns are authoritative (the death.fun lesson). Verify the BUG-path is among them." % txcount)
     if events < 0:
         return ("UNKNOWN", "RETRY", "event query failed (RPC log-range limit) -> lower --blocks and retry")
     has_value = balance_wei > 0 or (token_bal or 0) > 0
@@ -161,7 +188,8 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
             raise
         except Exception:
             cval = None
-    return code_len, events, xfer, bal, tok, supply, dec, cval
+    txc = etherscan_txcount(addr, chain)  # authoritative liveness (txns) when getLogs false-0s
+    return code_len, events, xfer, bal, tok, supply, dec, txc, cval
 
 
 def main():
@@ -185,13 +213,13 @@ def main():
     digs = 0
     for addr in addrs:
         try:
-            code_len, events, xfer, bal, tok, supply, dec, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
+            code_len, events, xfer, bal, tok, supply, dec, txc, cval = probe(addr, chain, args.blocks, rpc, args.token, args.counter)
         except SystemExit:
             raise
         except Exception as e:
             print(f"[ERROR     ] {addr}  -- {str(e)[:60]}")
             continue
-        verdict, rec, note = classify(code_len, events, bal, tok, supply)
+        verdict, rec, note = classify(code_len, events, bal, tok, supply, txc)
         thint = token_hint(events, xfer)
         if rec in ("DIG", "DIG-CAREFUL") and not thint:
             digs += 1
@@ -202,6 +230,8 @@ def main():
             extra += f" totalSupply={supply / unit:,.2f}({dec}dec)"
         if tok is not None:
             extra += f" token={tok / unit:.4f}"
+        if txc is not None:
+            extra += f" txns(recent)={txc}"
         if cval is not None:
             extra += f" counter={cval}" + ("  <- path NEVER run (==0)" if cval == 0 else "")
         print(f"[{verdict:11}] {addr}  ({'RESOLVE-CORE' if thint else rec})")

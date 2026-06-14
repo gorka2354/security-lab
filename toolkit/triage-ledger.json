@@ -205,8 +205,8 @@
       "line": 349,
       "detector": "signature",
       "snippet": "increaseBet betAmount += amount; no msg.value check + no nonce/replay guard in signed message",
-      "verdict": "real",
-      "reason": "Abstract fan-out DIG -> deep L4 + Foundry PoC (PASSES): increaseBet sig binds only (prefix,gameId,amount,deadline) -- no msg.sender/msg.value/nonce/address(this)/chainid + no consumed-sig guard -> one admin authorization REPLAYABLE until deadline, each call betAmount+=amount at msg.value=0. PoC: 1 ETH escrow -> 51 ETH betAmount. Deployed impl 0x2c1332 == source, live 20.79 ETH. Drain backend-conditional (payout admin-signed; High if backend sizes payout from on-chain betAmount). Disclosure drafted. egor sends (no bounty).",
+      "verdict": "wontfix",
+      "reason": "DOWNGRADED 2026-06-14 after on-chain callability check: real broken invariant (PoC valid) BUT NOT callable by an external attacker. Contract 0x27EDd16e is LIVE+busy (3021 createGame in 6000 txns) but CUSTODIAL: all createGame come from ONE backend relayer 0xd4b0eb0d (fixed 0.001 ETH), so on-chain game.player == relayer, not the real player -> increaseBet's game.player==msg.sender gate means a real user can never call it. AND increaseBet is dormant (0/6000 recent txns; was active ~block 45M). cashOut payout is admin-signed (no on-chain inflation). -> informational: real code bug, non-exploitable in the current custodial architecture. Disclose as courtesy (fix before any non-custodial relaunch). My earlier 'game stopped' was a FALSE event-scan 0 (fixed: activity.py now uses txlist liveness).",
       "date": "2026-06-14"
     },
     {

@@ -26,8 +26,23 @@ the drain is realized only if the off-chain backend trusts on-chain `betAmount` 
 - No `address(this)`/chainid in any signed message -> cross-deployment signature replay (forward-looking risk if a
   redeploy reuses prefix "DeathFun" + the same signer 0x937C...).
 
-## Verdict: REAL on-chain broken invariant; drain backend-conditional -> disclosure-worthy
-The cleanest result of the fan-out sessions: a verified, live, PoC-backed broken invariant on a funded contract,
-found via the Abstract sweep (freshness + the gaming niche = the lever, re-confirmed). Severity calibrated HONESTLY
-(Medium/High-conditional, not a guaranteed drain -- the payout is admin-signed). No bounty -> egor discloses direct.
-See [[fanout-triage-workflow-validated]].
+## Callability check (2026-06-14) -> NOT exploitable in the live custodial model -> downgraded
+On-chain reality (Etherscan-v2 txlist): the contract IS live + busy (**3021 createGame in 6000 recent txns**),
+but it is **CUSTODIAL** -- every `createGame` comes from ONE backend relayer `0xd4b0eb0d` (fixed 0.001 ETH bet),
+`markGameAsLost` from admin signer `0x937c`. So the on-chain `game.player` is the **RELAYER, not the real
+(off-chain) user**. `increaseBet` gates on `game.player == msg.sender` -> a real user is never the on-chain
+player -> **cannot call `increaseBet` on their game**. And `increaseBet` is **dormant** (0/6000 recent txns;
+last used ~block 45M). `cashOut` payout is admin-signed (no on-chain inflation). => the broken invariant is REAL
+in code but **NON-exploitable by an external attacker in this architecture**.
+
+NB: my earlier "game stopped / contract quiet" was a **FALSE event-scan 0** (getLogs range-limit returned 0 while
+the contract had ~100 txns/20min). Fixed: `activity.py` now uses Etherscan-v2 **txlist** as the authoritative
+liveness signal, overriding an event-based false-DORMANT.
+
+## Verdict: REAL code bug, INFORMATIONAL (non-callable in the live custodial model) -> ledger wontfix
+PoC-backed broken invariant, but the custodial relayer architecture (on-chain player == backend) + the dormant
+feature make it non-exploitable today. Disclose only as a **courtesy** (fix `increaseBet` before any
+non-custodial relaunch), not as a Medium/High live finding. No bounty. calibrate -> withdrawn; ledger -> wontfix.
+**Lessons captured -> activity.py / VERIFY:** (1) liveness via **txlist** not getLogs (events false-0); (2)
+**per-function callability** (is the bug fn actually called?); (3) **custodial-caller check** (is the on-chain
+actor a backend relayer, not the user?). See [[fanout-triage-workflow-validated]].
