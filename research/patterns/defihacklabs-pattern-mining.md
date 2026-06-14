@@ -115,6 +115,15 @@ Cross-year consistency is striking: the SAME root causes recur every year. Sourc
    field); stale-solvency-check + read-only-reentrancy + flashloan-governance + self-liquidation + collateral-reuse
    (ECONOMIC); reward-on-no-op (GAMEFI); and a NEW **BRIDGE / CROSS-CHAIN** group (minted<=proven-locked + dedup +
    value-in-hash; spoofed-callee-return; message-authenticity). 9 golden tests gate the seeds (340 total).
-5. extend `det_signature` (F: ecrecover==0 / isValidSignature on a fn param / no nonce-consumed).
+5. **DONE (class F):** extended `det_signature` — (a) **nonce-consumed** refinement: a nonce that's declared/read but
+   never WRITTEN (`nonces[x]++`/`used[digest]=`) is still replayable -> sharper than the old "has the word nonce";
+   (b) **ERC-1271 caller-supplied verifier**: `IERC1271(order.signer).isValidSignature` / `isValidSignatureNow(o.signer,…)`
+   where the verifier is a decoded calldata STRUCT FIELD not bound to a trusted signer -> attacker passes a yes-contract
+   (MureDistribution). Honest scope (same as caller-supplied-authority): the **bare-param** verifier
+   (`isValidSignatureNow(owner,…)`) is the safe EIP-2612 permit shape (owner self-authorizes) and is INDISTINGUISHABLE
+   from the MureDistribution bug at T0 (only fund-flow differs: self vs 3rd-party pull) -> reasoning-tier, NOT flagged
+   (broadening FP'd reserve `Permit.sol` + stakewise validatorsManager, 0 added TP). The real MureDistribution victim
+   uses a bare `signer` param -> caught by the CORE caller-supplied-authority seed (enriched with the ERC-1271 variant),
+   not the T0 detector. golden 340->346, 0 FP on 10 signature-heavy clones.
 6. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
 See [[fanout-triage-workflow-validated]] (the mining невод) + the vault note "Датасеты багов и чек-листы".

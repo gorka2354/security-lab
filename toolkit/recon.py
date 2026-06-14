@@ -333,29 +333,68 @@ def det_arbcall(text, rel):
     return out
 
 
-# ── Detector 7: signature / ecrecover (replay, malleability, no expiry) ──
+# ── Detector 7: signature gaps (ecrecover replay/malleability + ERC-1271 caller-supplied verifier) ── class F
+# ERC-1271 verify where the VERIFIER is a decoded calldata STRUCT FIELD (order.signer) not bound to a trusted
+# signer -> the attacker passes their own contract returning the magic value, so any signature is "valid". The
+# struct-field gate is essential: a BARE-param verifier (`isValidSignatureNow(owner,...)`) is the safe EIP-2612
+# permit shape (owner self-authorizes) and is INDISTINGUISHABLE from the MureDistribution bug at T0 (the only
+# difference is fund flow: self vs 3rd-party pull) -> that bare-param shape is reasoning-tier (caller-supplied-
+# authority invariant-seed in hypothesize.py), NOT flagged here.
+SIG1271 = re.compile(r"IERC1271\s*\(\s*(\w+(?:\.\w+)+)\s*\)\s*\.\s*isValidSignature|"
+                     r"\bisValidSignatureNow\s*\(\s*(\w+(?:\.\w+)+)\s*,", re.I)
+# a nonce/used-digest that is actually CONSUMED (written), not merely declared/read -> real anti-replay.
+NONCE_CONSUMED = re.compile(r"nonce\w*\s*(?:\[[^\]]*\])?\s*(?:\+\+|--|\+=|-=|=(?!=))|"
+                            r"\b(?:used|_used|seen|executed|consumed|invalidated)\w*\s*\[[^\]]+\]\s*=(?!=)|"
+                            r"invalidateNonce|\.consume\s*\(", re.I)
+
+
+def _verifier_bound(text, name):
+    """The ERC-1271 verifier struct-field `name` (order.signer) is BOUND/safe if it's the result of an ECDSA
+    .recover() or compared (`==`) to a trusted value somewhere in the file (a verified signed order)."""
+    full = re.escape(name)
+    if re.search(full + r"\s*=\s*[^;\n]*\.recover\s*\(", text):
+        return True
+    if re.search(r"\b" + full + r"\s*==|==\s*" + full + r"\b", text):
+        return True
+    return False
+
+
 def det_signature(text, rel):
-    """Raw ecrecover has two classic bugs: (1) a malformed/empty signature
-    recovers to address(0) -> if not rejected it can impersonate; (2) without a
-    nonce the signed message is REPLAYABLE, without a deadline it never expires.
-    OZ's ECDSA.recover handles (1); raw ecrecover does not."""
-    if "ecrecover" not in text:
-        return []
-    has_zero = bool(re.search(r"address\(0\)|\bECDSA\b|tryRecover", text))
-    has_nonce = bool(re.search(r"\bnonce", text, re.I))
-    has_deadline = bool(re.search(r"deadline|expir|validUntil|validAfter", text, re.I))
+    """Class-F signature gaps. (1) Raw ecrecover: empty/malleable sig recovers to address(0) (no zero-check ->
+    impersonation); REPLAYABLE with no nonce OR a nonce that's declared-but-never-consumed; never-expiring with
+    no deadline. (2) ERC-1271 isValidSignature on a CALLER-SUPPLIED verifier that is a decoded calldata STRUCT
+    FIELD (order.signer), not bound to a trusted signer -> the attacker passes a contract returning the magic
+    value, so any signature passes (MureDistribution class; the bare-param permit shape is reasoning-tier)."""
     out = []
-    for m in re.finditer(r"\becrecover\s*\(", text):
-        miss = []
-        if not has_zero:
-            miss.append("address(0) check (malleable/empty sig)")
-        if not has_nonce:
-            miss.append("nonce (replay)")
-        if not has_deadline:
-            miss.append("deadline (no expiry)")
-        note = ("raw ecrecover, file MISSING: " + ", ".join(miss)) if miss else \
-               "raw ecrecover but file has zero/nonce/deadline guards (review)"
-        out.append((rel, lineno(text, m.start()), "ecrecover(...)", note, 0 if miss else 2))
+    # (2) ERC-1271 with an attacker-supplied (calldata-struct) verifier
+    for m in SIG1271.finditer(text):
+        signer = m.group(1) or m.group(2) or ""
+        if _verifier_bound(text, signer):
+            continue
+        out.append((rel, lineno(text, m.start()), f"isValidSignature({signer})",
+                    "ERC-1271 isValidSignature on a CALLER-SUPPLIED verifier (a decoded calldata struct field) not "
+                    "bound to a trusted/stored signer -> the attacker passes their own contract returning the magic "
+                    "value, so any signature passes (MureDistribution class). Verify the signer is a trusted address "
+                    "(or a recovered+compared signer), not taken from calldata.", 0))
+    # (1) raw ecrecover guards
+    if "ecrecover" in text:
+        has_zero = bool(re.search(r"address\(0\)|\bECDSA\b|tryRecover", text))
+        has_nonce = bool(re.search(r"\bnonce", text, re.I))
+        nonce_consumed = bool(NONCE_CONSUMED.search(text))
+        has_deadline = bool(re.search(r"deadline|expir|validUntil|validAfter", text, re.I))
+        for m in re.finditer(r"\becrecover\s*\(", text):
+            miss = []
+            if not has_zero:
+                miss.append("address(0) check (malleable/empty sig)")
+            if not has_nonce:
+                miss.append("nonce (replay)")
+            elif not nonce_consumed:
+                miss.append("nonce declared but NEVER consumed/incremented (still replayable)")
+            if not has_deadline:
+                miss.append("deadline (no expiry)")
+            note = ("raw ecrecover, file MISSING: " + ", ".join(miss)) if miss else \
+                   "raw ecrecover but file has zero/nonce/deadline guards (review)"
+            out.append((rel, lineno(text, m.start()), "ecrecover(...)", note, 0 if miss else 2))
     return out
 
 
@@ -1390,8 +1429,9 @@ DETECTORS = [
      "Heuristic 6: external call before state update (CEI violation), no nonReentrant."),
     ("ARBITRARY external call (bridge-aggregator approval drain)", det_arbcall,
      "Heuristic 7: (address+bytes) param + low-level call -> route to transferFrom = drain."),
-    ("SIGNATURE / ecrecover (replay, malleability, no expiry)", det_signature,
-     "Raw ecrecover: needs address(0) check + nonce (anti-replay) + deadline (expiry)."),
+    ("SIGNATURE / ecrecover (replay, malleability, no expiry) + ERC-1271 caller-supplied verifier", det_signature,
+     "Class F: raw ecrecover needs address(0) check + a CONSUMED nonce (anti-replay) + deadline; ERC-1271 "
+     "isValidSignature on a calldata-struct verifier = attacker deploys a yes-contract (MureDistribution)."),
     ("DOMAIN SEPARATOR cached (cross-chain / fork replay)", det_domain,
      "Pattern 06: EIP-712 separator cached with block.chainid, no recompute -> fork/cross-chain replay."),
     ("UPGRADE safety (unprotected UUPS _authorizeUpgrade)", det_upgrade,

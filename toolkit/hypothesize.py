@@ -256,7 +256,9 @@ INVARIANT_MENU = [
         "caller-supplied-authority: the debited/credited party is bound to msg.sender (or a signature verified "
         "OVER it) -- NEVER a decoded calldata/struct field (order.maker/params.owner) or a helper/Safe-module "
         "arg (TrustedVolumes/MAPProtocol/NewMarketTrading 2026; det_caller_supplied_authority catches only the "
-        "inline-RFQ shape -- prove the rest here)",
+        "inline-RFQ shape -- prove the rest here). The ERC-1271 SIGNER/verifier is the same trap: it must be a "
+        "trusted/stored address, never a caller-supplied param -- else the attacker passes a yes-contract and any "
+        "signature passes (MureDistribution; det_signature catches only the struct-field verifier, not bare params)",
     ]),
     ("ECONOMIC (DeFi)", [
         "backing-conservation: SUM(ALL liabilities incl borrow/PM) <= backing, across EVERY settle path (Monetrix M-01)",

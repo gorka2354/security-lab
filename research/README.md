@@ -60,7 +60,7 @@ research/
 | ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
 | ✅ | **mining** | [**defihacklabs-pattern-mining**](patterns/defihacklabs-pattern-mining.md) | T0-T3 | **751 real hacks → 53 patterns** (cross-year taxonomy + invariant-seeds + detector-backlog). *spot-oracle/token-reserve-manip/donation/business-logic dominate every year.* |
 
-### Harvest status — the T1-catchable slice is wired into `recon.py` (38 detectors, 340 tests, leads-not-verdicts)
+### Harvest status — the T1-catchable slice is wired into `recon.py` (38 detectors, 346 tests, leads-not-verdicts)
 | Pattern | Detector (recon.py) | What it flags |
 |---|---|---|
 | erc4626-inflation | `det_erc4626` **+fix#20** | no offset/dead-shares; **enriched** when `totalAssets()` is balance-based (dStake flavor). |
@@ -75,6 +75,7 @@ research/
 | index-manipulation | `det_index` | Aave-fork `liquidityIndex`/`cumulateToLiquidityIndex` with no min-liquidity/cap guard. |
 | liquidation-math | `det_liquidation` | surfaces liquidation entrypoints; [!] if no self-liq guard or seize rounds **up**. |
 | cross-chain-and-aa | `det_domain` + `det_l2_footgun` | cached EIP-712 separator (no fork-recompute) + extcodesize/`isContract` AA footguns. |
+| **signature gaps** (class F) | **`det_signature`** | raw ecrecover missing address(0)/deadline + a nonce **declared-but-never-consumed** (still replayable); ERC-1271 `isValidSignature` on a calldata-struct verifier = attacker yes-contract (MureDistribution). *Bare-param verifier = permit shape → reasoning-tier.* |
 
 **T2/T3 slice (NOT regex — the reasoning layer) ✅ harvested → [`invariant-lab/test/templates/`](../invariant-lab):** a
 self-validating Foundry invariant template per class (mock with a `buggy` toggle → fuzzed invariant passes on fixed,

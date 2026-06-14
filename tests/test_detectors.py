@@ -142,6 +142,22 @@ check(not flagged(recon.det_unchecked, "try IERC20(innerToken).transfer(to, amou
 print("== det_signature / det_upgrade / det_oracle ==")
 check(flagged(recon.det_signature, "contract C{ function f() external { a = ecrecover(h,v,r,s); } }"),
       "raw ecrecover (no guards) flagged")
+# class-F extension: ERC-1271 caller-supplied verifier = a decoded calldata STRUCT FIELD (MureDistribution class)
+check(flagged(recon.det_signature, "contract C{function claim(Order calldata o,bytes sig) external { require(IERC1271(o.signer).isValidSignature(hash,sig)==0x1626ba7e); }}", "isValidSignature"),
+      "det_signature: ERC-1271 isValidSignature on a struct-field verifier (o.signer) -> flagged")
+check(flagged(recon.det_signature, "contract C{function claim(Req calldata r,bytes sig) external { require(SignatureChecker.isValidSignatureNow(r.signer,hash,sig)); }}", "isValidSignature"),
+      "det_signature: isValidSignatureNow with a struct-field signer -> flagged")
+check(not flagged(recon.det_signature, "contract C{function claim(Order calldata o,bytes sig) external { require(o.signer==trustedSigner); require(IERC1271(o.signer).isValidSignature(hash,sig)==0x1626ba7e); }}", "isValidSignature"),
+      "det_signature guard: struct-field verifier compared (== trustedSigner) -> bound -> NOT flagged")
+check(not flagged(recon.det_signature, "contract C{function permit(address owner,bytes sig) external { require(SignatureChecker.isValidSignatureNow(owner,hash,sig)); }}", "isValidSignature"),
+      "det_signature scope: bare-param verifier (EIP-2612 permit shape) is reasoning-tier -> NOT flagged (avoids the permit FP)")
+# class-F extension: a nonce that is declared/read but never consumed -> still replayable
+_sign = recon.det_signature("contract C{mapping(address=>uint) nonces; function f(address u) external { uint n=nonces[u]; address s=ecrecover(h,v,r,s); require(s!=address(0)); } }", "src/C.sol")
+check(any("never consumed" in (t[3] or "").lower() for t in _sign),
+      "det_signature: nonce declared but never consumed -> 'still replayable' note")
+_sigc = recon.det_signature("contract C{mapping(address=>uint) nonces; function f(address u) external { address s=ecrecover(h,v,r,s); require(s!=address(0)); nonces[u]++; } }", "src/C.sol")
+check(not any("never consumed" in (t[3] or "").lower() for t in _sigc),
+      "det_signature: a CONSUMED nonce (nonces[u]++) does not raise the never-consumed note")
 check(flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal override {}}"),
       "empty _authorizeUpgrade flagged")
 check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal override onlyOwner {}}"),

@@ -68,7 +68,7 @@
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).
-- **340 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
+- **346 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
   (Примеры: `det_self_transfer`/`det_pair_reserve_mutation` — TP на ВЫТЯНУТОМ on-chain коде BY/LPC/GPU + 0 FP на 8 клонах
   (write-back-тэлл вместо cache-read + reflection-gate). `det_caller_supplied_authority` — calldata-гейт убил Aave-lib FP
   (memory-структура `.user` привязана выше = не attacker-controlled), но широкий класс = reasoning-tier: реальные 2026-хаки
