@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "sig": "Aborean|(fanout)|fanout|fanout triage: dex",
+      "target": "Aborean",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: dex",
+      "verdict": "known",
+      "reason": "[SKIP/abstract] Aborean is a verbatim re-deployment of Velodrome V2 (vAMM/sAMM ve(3,3): Voter/Minter/VotingEscrow/RewardsDistributor + Pool _f/_d/_get_y/_k stable-swap math, BUSL-1.1) plus Velodrome Slipstream (CLPool/CLFactory, Uniswap-v3-fork core libs). Tok",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "Ample (Ample Earn \u2014 layer3xyz/ample-earn)|(fanout)|fanout|fanout triage: -",
       "target": "Ample (Ample Earn \u2014 layer3xyz/ample-earn)",
       "file": "(fanout)",
@@ -10,6 +21,17 @@
       "verdict": "known",
       "reason": "[UNREACHABLE/defillama-gamefi-wave] Source is a genuine dead-end: layer3xyz/ample-earn is private, no npm mirror, no contract addresses in the static site (dApp behind Cloudflare), and the Pashov PDF carries no deployed address or chain \u2014 so I can't reach .sol",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "Kona Lend (kona-lend)|(fanout)|fanout|fanout triage: lending",
+      "target": "Kona Lend (kona-lend)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lending",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/abstract] Live Aave V3 money market on Abstract ($436K TVL, 232K USDC + WETH/USDT/PENGU positions outstanding, totalSupply>0 = QUIET-VALUE). The entire Pool surface is a VERBATIM fork: flat-token-stream identity check vs canonical aave-v3-core sho",
+      "date": "2026-06-15"
     },
     {
       "sig": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)|(fanout)|fanout|fanout triage: -",
@@ -175,6 +197,17 @@
       "verdict": "fp",
       "reason": "_initializePlanet has require(!isInitialized); SNARK-gated game action, not a contract initializer",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "death-fun (death.fun)|(fanout)|fanout|fanout triage: luck-games",
+      "target": "death-fun (death.fun)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: luck-games",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/abstract] LIVE + non-fork greenfield gambling contract on Abstract: proxy 0x27EDd... holds 20.79 ETH, gameCounter=4,650,952, 323 events/5000 blocks, prefix \"DeathFun\". Real money, no audit evidence -> high-EV surface, egor's luck-games edge. Concr",
+      "date": "2026-06-15"
     },
     {
       "sig": "dreusd|dreusd/contracts/dreAaveAdapter.sol|reentrancy|function withdraw(uint256 amount, address to)",
@@ -384,6 +417,17 @@
       "verdict": "wontfix",
       "reason": "[PARK/defillama-gamefi-wave] The code has genuine critical logic bugs (missing access control + value-credit-without-token-transfer), but LIVE-FIRST fails hard: single-commit junk/SEO repo (README is an auto-generated \"download the game\" page whose links point",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "gacha (Onchain Heroes / Proof-of-Play, Abstract)|(fanout)|fanout|fanout triage: prediction",
+      "target": "gacha (Onchain Heroes / Proof-of-Play, Abstract)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: prediction",
+      "verdict": "wontfix",
+      "reason": "[PARK/abstract] The only gacha-resolvable LIVE contract is Weapon721 (S2, ACTIVE, totalSupply=14580) -- a clean 240-line Solady/ERC721A NFT: mint() gated by _ROLE_0, manualMint() onlyOwner, rarity written externally via setMetadata (_ROLE_0). NO on-chain RNG i",
+      "date": "2026-06-15"
     },
     {
       "sig": "heavy-helms|src/game/modes/TournamentGame.sol|weakrand|function _getEnhancedRandomness(uint256 futureBlock)",
@@ -617,6 +661,17 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "myriad-markets (PredictionMarketV3_3, Abstract)|(fanout)|fanout|fanout triage: prediction",
+      "target": "myriad-markets (PredictionMarketV3_3, Abstract)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: prediction",
+      "verdict": "known",
+      "reason": "[SKIP/abstract] addr1 (0x39e6...f340) is NO-CODE (not deployed) -> dead. addr2 (0x3e0F...3289) is a live ERC1967 proxy (impl 0xd083...c59a) = Polkamarkets/Myriad PredictionMarketV3_3, genuinely ACTIVE (marketIndex()==888, 888 markets, WETH+owner set -- the act",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "native-credit|src/CreditVault.sol|liquidation|",
       "target": "native-credit",
       "file": "src/CreditVault.sol",
@@ -780,6 +835,17 @@
       "verdict": "fp",
       "reason": "burn/burnFrom are 'restricted' (OZ AccessManager AccessManagedUpgradeable) -> gated. recon missed the modifier -> fix#32 (added restricted to WARD_MOD). 47 access FPs -> 0.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "sakuraswap (Abstract / zkSync L2, chainid 2741)|(fanout)|fanout|fanout triage: dex",
+      "target": "sakuraswap (Abstract / zkSync L2, chainid 2741)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: dex",
+      "verdict": "known",
+      "reason": "[SKIP/abstract] Live ($3.6M TVL, posMgr ACTIVE with 19 events/200k blocks, on-chain wiring coherent: posMgr.factory()==factory, factory has owner 0x2BAD..., router 109KB code). But the source is a verbatim port of the canonical, audited Uniswap V3 stack (facto",
+      "date": "2026-06-15"
     },
     {
       "sig": "solo-ascend (heichenya/solo-ascend)|(fanout)|fanout|fanout triage: -",
@@ -1022,6 +1088,17 @@
       "verdict": "known",
       "reason": "[SKIP/defillama-gamefi-wave] The address is the Venus governance token XVS (name=\"Venus\", symbol=\"XVS\"), exactly the gov-token/XVS trap the note warned about -- NOT the lending core that DefiLlama's $10M TVL refers to. Source is a verbatim Compound Comp.sol de",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "witty (Arcade) \u2014 signature-gated puzzle/arcade game on Abstract|(fanout)|fanout|fanout triage: gaming",
+      "target": "witty (Arcade) \u2014 signature-gated puzzle/arcade game on Abstract",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gaming",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/abstract] activity.py returned a FALSE DORMANT -- direct RPC eth_getLogs proves the contract is genuinely LIVE: 10k+ events in early chain, thousands of plays (Coin/Solve/Expire/Withdraw), last activity 2026-04-10 (~2mo ago), and it CURRENTLY HOLD",
+      "date": "2026-06-15"
     },
     {
       "sig": "wolfgame|Barn.sol|unchecked|wool.transfer return ignored",
