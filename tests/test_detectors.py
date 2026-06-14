@@ -591,6 +591,32 @@ check(not flagged(recon.det_spot_oracle, "contract C{function valuePosition(uint
 check(not flagged(recon.det_spot_oracle, "contract Pair{function sync() external { (uint112 r0,uint112 r1,)=getReserves(); reserve0=r0; reserve1=r1; }}"),
       "det_spot_oracle guard: getReserves() with NO value sink (sync just caches reserves) NOT flagged")
 
+print("== det_self_transfer (LPC/SSS/GPU self-transfer balance inflation) ==")
+check(flagged(recon.det_self_transfer, "contract T{function _transfer(address from,address to,uint256 amount) internal {"
+      " uint256 fromBal=_balances[from]; uint256 toBal=_balances[to]; _balances[from]=fromBal-amount; _balances[to]=toBal+amount; }}"),
+      "det_self_transfer: caches BOTH balances[from] and balances[to], no from==to guard -> flagged (LPC/SSS class)")
+check(not flagged(recon.det_self_transfer, "contract T{function _update(address from,address to,uint256 value) internal {"
+      " uint256 fromBalance=_balances[from]; _balances[from]=fromBalance-value; _balances[to]+=value; }}"),
+      "det_self_transfer guard: OZ-style (caches only `from`, uses += for `to`) NOT flagged")
+check(not flagged(recon.det_self_transfer, "contract T{function _transfer(address from,address to,uint256 amt) internal {"
+      " require(from!=to,'self'); uint256 a=_balances[from]; uint256 b=_balances[to]; _balances[from]=a-amt; _balances[to]=b+amt; }}"),
+      "det_self_transfer guard: explicit from!=to guard NOT flagged")
+check(flagged(recon.det_self_transfer, "contract T{function _transfer(address sender,address recipient,uint amount) internal {"
+      " (bool vs,uint senderBalance)=_updateBalance(sender); (bool vr,uint recipientBalance)=_updateBalance(recipient);"
+      " _balances[sender]=senderBalance.sub(amount); _balances[recipient]=recipientBalance.add(amount); }}"),
+      "det_self_transfer: tuple/helper-cached write-back (real LPC on-chain shape) -> flagged")
+check(not flagged(recon.det_self_transfer, "contract T{function _transfer(address from,address to,uint v) internal {"
+      " balanceOf[from]=balanceOf[from].sub(v); balanceOf[to]=balanceOf[to].add(v); }}"),
+      "det_self_transfer guard: in-place SafeMath (UniswapV2ERC20 shape, RHS is the mapping) NOT flagged")
+
+print("== det_pair_reserve_mutation (reflection/deflationary BSC reserve crash) ==")
+check(flagged(recon.det_pair_reserve_mutation, "contract Tok{function triggerAutoBurn() external { _burn(uniswapV2Pair, 1e18); IUniswapV2Pair(uniswapV2Pair).sync(); }}"),
+      "det_pair_reserve_mutation: unprivileged burn-of-pair + sync() -> flagged (BIGFI/BYToken class)")
+check(not flagged(recon.det_pair_reserve_mutation, "contract Tok{function adminRebalance() external onlyOwner { IUniswapV2Pair(pair).sync(); }}"),
+      "det_pair_reserve_mutation guard: onlyOwner sync (admin op) NOT flagged")
+check(not flagged(recon.det_pair_reserve_mutation, "contract Tok{function transfer(address to,uint a) external { _balances[msg.sender]-=a; _balances[to]+=a; }}"),
+      "det_pair_reserve_mutation guard: a normal transfer (no pair sync/skim/burn) NOT flagged")
+
 print("== calibrate (feedback loop: finding-outcome precision + verdict recall) ==")
 import calibrate  # noqa: E402
 _F = [{"status": "accepted"}, {"status": "fixed-silent"}, {"status": "duplicate"},

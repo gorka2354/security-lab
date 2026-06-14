@@ -60,12 +60,14 @@ research/
 | ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
 | ✅ | **mining** | [**defihacklabs-pattern-mining**](patterns/defihacklabs-pattern-mining.md) | T0-T3 | **751 real hacks → 53 patterns** (cross-year taxonomy + invariant-seeds + detector-backlog). *spot-oracle/token-reserve-manip/donation/business-logic dominate every year.* |
 
-### Harvest status — the T1-catchable slice is wired into `recon.py` (34 detectors, 312 tests, leads-not-verdicts)
+### Harvest status — the T1-catchable slice is wired into `recon.py` (36 detectors, 320 tests, leads-not-verdicts)
 | Pattern | Detector (recon.py) | What it flags |
 |---|---|---|
 | erc4626-inflation | `det_erc4626` **+fix#20** | no offset/dead-shares; **enriched** when `totalAssets()` is balance-based (dStake flavor). |
 | oracle-manipulation | `det_oracle` **+ spot sub-check** | value/price fn that divides **spot** reserves; recognizes TWAP/clamped → no flag. |
 | **spot-AMM-as-oracle** (DeFiHackLabs #1) | **`det_spot_oracle`** | borrow/collateral/reward priced from `getReserves`/`pricePerShare`/`get_virtual_price`/`slot0` w/ no TWAP; skips AMM-core swap fns (tuned on real DEX). |
+| **self-transfer inflation** (LPC/SSS/GPU) | **`det_self_transfer`** | custom transfer writes BOTH balances from pre-captured locals (no from==to guard) → self-send overwrites the debit. Catches direct-cache (GPU) + tuple-via-helper (LPC) variants; skips OZ `+=` / in-place SafeMath. *TP-confirmed on BY/LPC/GPU on-chain source.* |
+| **pair-reserve mutation** (reflection/BSC) | **`det_pair_reserve_mutation`** | unprivileged burn-of-pair-balance, or reflection-token `pair.sync()/skim()`, crashes the DEX reserve → constant-product overvalues the attacker's tokens. Skips DEX router/pair periphery sync (no reflection markers) + owner-gated. |
 | reward-formula (posi class) | **`det_reward_formula`** | reward accumulator added **inside** `.mul(balance)` (Synthetix mis-bracket) → ~balance² inflation. |
 | reward-accounting | `det_reward` | payout transfers with no claimed/rewardDebt marker (or marker **after** transfer); skips keeper-gated. |
 | index-manipulation | `det_index` | Aave-fork `liquidityIndex`/`cumulateToLiquidityIndex` with no min-liquidity/cap guard. |

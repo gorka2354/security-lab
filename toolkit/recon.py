@@ -1196,6 +1196,93 @@ def det_spot_oracle(text, rel):
     return out
 
 
+# ── Detector 35: self-transfer balance inflation (LPC/SSS/GPU class, ~6 DeFiHackLabs hacks) ──
+# A custom token transfer that caches BOTH balances[from] AND balances[to] into locals, then writes both back
+# from the stale cache with no from==to guard: for a self-transfer (from==to) the `to` write overwrites the
+# `from` debit using the stale to-cache + amount => balance inflates for free. OZ's _update caches only `from`
+# and uses `+=` for the credit, so it is NOT flagged.
+# The bug's true tell is the WRITE-BACK: both balances are written from a PRE-CAPTURED local (`_balances[from] =
+# senderBalance.sub(amount)` + `_balances[to] = recipientBalance.add(...)`). For a self-transfer the `to` write
+# overwrites the `from` debit using the stale local -> free inflation. This matches the direct-cache (GPU) AND the
+# tuple-cache-via-helper (LPC `(bool,uint senderBalance)=_updateBalance(sender)`) variants. The safe in-place form
+# `balances[to] = balances[to].add(v)` (UniswapV2ERC20) and OZ's `_balances[to] += v` do NOT match (RHS is the
+# mapping itself / a compound `+=`, not a bare local), so they are not flagged.
+_WB_FROM = re.compile(r"(?:_balances|balances|balanceOf|_balanceOf|_tOwned|_rOwned)\s*\[\s*"
+                      r"(?:from|sender|_from|src)\s*\]\s*=\s*(\w+)\s*[.\-]", re.I)
+_WB_TO = re.compile(r"(?:_balances|balances|balanceOf|_balanceOf|_tOwned|_rOwned)\s*\[\s*"
+                    r"(?:to|recipient|_to|dst)\s*\]\s*=\s*(\w+)\s*[.+]", re.I)
+_BAL_NAMES = {"_balances", "balances", "balanceof", "_balanceof", "_towned", "_rowned"}
+_SELF_GUARD = re.compile(r"\bfrom\s*[=!]=\s*to\b|\b(?:sender|src)\s*[=!]=\s*(?:recipient|dst|to)\b|"
+                         r"require\s*\([^;]*[!=]=\s*(?:to|recipient|dst)", re.I)
+
+
+def det_self_transfer(text, rel):
+    """Custom token transfer that writes BOTH balances back from pre-captured locals (`_balances[from]=fromBal-amt`
+    + `_balances[to]=toBal+amt`) with no from==to guard -> a self-transfer overwrites the debit with the stale
+    to-local -> free balance inflation (LPC/SSS/GPU DeFiHackLabs class). OZ's `+=` credit and the in-place
+    `balances[x]=balances[x].op(v)` form are NOT flagged (RHS is a compound-op / the mapping itself, not a local)."""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name = m.group(1)
+        if not re.search(r"transfer|_update", name, re.I):
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 2400)]
+        mf = _WB_FROM.search(body)
+        mt = _WB_TO.search(body)
+        if (mf and mt and mf.group(1).lower() not in _BAL_NAMES and mt.group(1).lower() not in _BAL_NAMES
+                and not _SELF_GUARD.search(body)):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
+                        "custom transfer writes BOTH balances from pre-captured locals with no from==to guard -> "
+                        "self-transfer (from==to) overwrites the debit with the stale to-local -> free balance "
+                        "inflation (LPC/SSS/GPU class). Add a from==to guard or use += for the credit.", 0))
+    return out
+
+
+# ── Detector 36: pair-reserve mutation (reflection/deflationary BSC class, ~30+ DeFiHackLabs hacks) ──
+# A custom token / public fn that calls pair.sync()/skim() or burns the DEX pair's balance from an UNPRIVILEGED
+# path -> shrinks the pair's token reserve -> constant-product overvalues the attacker's tokens -> swap dust for
+# the paired asset (BIGFI, LAURA, BYToken, MTToken, YSDAO, the 9+ reflection-token hacks of 2023). Owner-gated = ok.
+# burn/balance-mutation TARGETING a pair/LP address = the token-side reserve drain (strong, UNIQUE signal).
+PAIR_BURN = re.compile(r"\b_?burn\s*\(\s*(?:address\s*\(\s*)?"
+                       r"(?:uniswapV2Pair|\w*[Pp]air\w*|\w*[Ll][Pp]\w*|pair|lp)\b", re.I)
+# a sync/skim CALL re-syncs reserves -- only the EXPLOIT when called from a reflection/deflation token, NOT from
+# DEX router/pair periphery (which sync legitimately) -> gate this branch behind reflection markers.
+PAIR_SYNC = re.compile(r"\.sync\s*\(\s*\)|\.skim\s*\(", re.I)
+REFLECTION_MARK = re.compile(r"_reflectFee|_rOwned|_tOwned|isExcluded|_taxFee|_liquidityFee|reflectionFromToken|"
+                             r"_getRate\b|triggerAutoBurn|autoBurn|\brebase\b|_takeLiquidity|\bdeliver\s*\(", re.I)
+
+
+def det_pair_reserve_mutation(text, rel):
+    """Token-side DEX-reserve drain: an unprivileged path that BURNS the pair's balance (always suspicious) or,
+    in a reflection/deflationary token, calls pair.sync()/skim() to re-sync the shrunk reserve -> constant-product
+    overvalues the attacker's tokens (BIGFI/LAURA/BYToken/MTToken/YSDAO, ~30+ DeFiHackLabs hacks). DEX router/pair
+    sync (no reflection markers) and owner/auth-gated ops are NOT flagged."""
+    out, seen = [], set()
+    is_reflection = REFLECTION_MARK.search(text) is not None
+    for rx, needs_reflection in ((PAIR_BURN, False), (PAIR_SYNC, True)):
+        if needs_reflection and not is_reflection:
+            continue   # bare sync/skim in a non-reflection contract = DEX periphery, legit -> skip the branch
+        for m in rx.finditer(text):
+            fn_start = text.rfind("function ", 0, m.start())
+            if fn_start < 0:
+                continue
+            brace = text.find("{", fn_start)
+            fn_head = text[fn_start:brace + 1] if brace > 0 else ""
+            scope = text[fn_start:m.end() + 200]
+            if "only" in fn_head.lower() or INLINE_AUTH.search(scope) or WARD_MOD.search(fn_head):
+                continue   # admin/auth-gated reserve op is legitimate
+            ln = lineno(text, m.start())
+            if ln in seen:
+                continue
+            seen.add(ln)
+            out.append((rel, ln, m.group(0).strip()[:40],
+                        "token-side pair-balance burn or reflection-token pair.sync()/skim() -> crashes the DEX "
+                        "reserve so the constant-product curve overvalues the attacker's tokens (reflection/"
+                        "deflationary BSC class: BIGFI/LAURA/BYToken). Verify no flashloan triggers it + gate it.", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1272,6 +1359,12 @@ DETECTORS = [
     ("SPOT-AMM-AS-ORACLE (flashloan price-manip, #1 DeFiHackLabs class)", det_spot_oracle,
      "A mint/borrow/collateral/reward priced from a same-tx spot source (getReserves/pricePerShare/"
      "get_virtual_price/slot0/getAmountsOut) with no TWAP/Chainlink -> flashloan-movable (PancakeBunny/Cream/EGD/UwuLend)."),
+    ("SELF-TRANSFER balance inflation (from==to overwrites the debit)", det_self_transfer,
+     "DeFiHackLabs LPC/SSS/GPU class: a custom transfer caches BOTH balances[from] and balances[to] then writes "
+     "back from the stale cache with no from==to guard -> self-send inflates balance for free."),
+    ("PAIR-RESERVE mutation (unprivileged sync/skim/burn-of-pair -> price crash)", det_pair_reserve_mutation,
+     "DeFiHackLabs reflection/deflationary BSC class (~30+): unprivileged pair.sync()/skim() or burn-of-pair-balance "
+     "shrinks the DEX reserve -> constant-product overvalues the attacker's tokens (BIGFI/LAURA/BYToken)."),
 ]
 
 
@@ -1286,7 +1379,8 @@ def det_key(title):
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
                    ("reward-formula", "rewardformula"), ("reward", "reward"),
-                   ("spot-amm", "spotoracle"), ("oracle", "oracle"),
+                   ("spot-amm", "spotoracle"), ("self-transfer", "selftransfer"),
+                   ("pair-reserve", "pairreserve"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),

@@ -83,10 +83,18 @@ Cross-year consistency is striking: the SAME root causes recur every year. Sourc
 - **Unit/decimals confusion** (Bedrock 1 uniBTC per 1 ETH; FutureSwap wad-as-bps): mint amount == msg.value/amountIn with no rate; a value scaled by WAD passed where bps expected.
 
 ## Action backlog (priority order)
-1. **DONE today:** `det_spot_oracle` (class A, #1) + golden tests.
-2. Forge next (syntactic, high-freq): `det_pair_reserve_mutation` (B), `det_self_transfer` (B-self), `det_unprotected_init` (E),
-   extend `det_signature` (F: ecrecover-0 / isValidSignature-param), `det_caller_supplied_authority` (E).
-3. hypothesize.py invariant-seeds: add the reasoning-tier seeds above to the CORE/ECONOMIC/GAMEFI menus (reward-on-no-op +
+1. **DONE:** `det_spot_oracle` (class A, #1) + golden tests.
+2. **DONE:** `det_pair_reserve_mutation` (B) + `det_self_transfer` (B-self) — forged + golden + **test+tune on real
+   on-chain source**: TP-confirmed on BY (pair-reserve, BYToken.sol:197 token-side `_burn(pair)`+`sync`),
+   LPC (self-transfer, tuple-cache-via-`_updateBalance` write-back) and GPU (self-transfer, direct cache);
+   0 FP on 8 audited/DEX clones (magicswap/eva/kona/mezo/…). Two FP-fixes baked in:
+   (a) self-transfer keys on the **write-back tell** (`_balances[x]=<local>.op`) not the cache-read — catches the
+   tuple-cache LPC variant AND excludes in-place SafeMath `balances[x]=balances[x].op(v)` (UniswapV2ERC20/OZ);
+   (b) pair-reserve flags burn-of-pair always but **sync/skim only inside a reflection token** (markers:
+   `_reflectFee`/`_rOwned`/`triggerAutoBurn`/…) — DEX router/pair periphery `.sync()` no longer FPs.
+3. Forge next (syntactic): `det_unprotected_init` (E), extend `det_signature`
+   (F: ecrecover-0 / isValidSignature-param), `det_caller_supplied_authority` (E).
+4. hypothesize.py invariant-seeds: add the reasoning-tier seeds above to the CORE/ECONOMIC/GAMEFI menus (reward-on-no-op +
    self-liquidation + flashloan-governance + read-only-reentrancy + stale-solvency-check + bridge minted<=locked).
-4. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
+5. shadow.py: bench recon against a DeFiHackLabs sample (not just DeFiVulnLabs minimal-repros) to measure real-hack recall.
 See [[fanout-triage-workflow-validated]] (the mining невод) + the vault note "Датасеты багов и чек-листы".

@@ -18,7 +18,7 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 34 детектора), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
+  `recon.py` (L1, 36 детекторов), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
   Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может
@@ -56,7 +56,8 @@
   ВСЕ 64 chains вкл. Abstract/Mantle/Sonic/HyperEVM/zkSync) + **DefiLlama-Adapters** как источник CORE-адресов.
 - **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф
   дрейфа + audited-ли? → роутер (drift / out-of-scope / economic / greenfield). LIVE-FIRST.
-- **DETECT:** `recon.py` (**34 детектора**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс + `det_reward_formula`) +
+- **DETECT:** `recon.py` (**36 детекторов**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс, `det_reward_formula`,
+  `det_self_transfer` = LPC/SSS/GPU self-send inflation, `det_pair_reserve_mutation` = reflection/BSC reserve-crash) +
   `hypothesize.py` (shared-state seeds + инвариант-меню CORE/ECONOMIC/GAMEFI). Память `ledger.py` гасит шум.
 - **FAN-OUT (масштаб):** Workflow-невод (агент-на-таргет: reach+forkdrift+recon+gate → структурный вердикт →
   я ранжирую); `fanout_log.py` персист (типизированная таблица `hunts/_fanout/` + ledger-suppress + DIG-очередь).
@@ -64,7 +65,8 @@
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).
-- **312 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
+- **320 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
+  (Свежий пример: `det_self_transfer`/`det_pair_reserve_mutation` скованы → golden → TP на ВЫТЯНУТОМ on-chain коде BY/LPC/GPU + 0 FP на 8 аудир./DEX-клонах; FP-фиксы — write-back-тэлл вместо cache-read + reflection-gate на sync.)
 
 **Находки (честная калибровка):** НОЛЬ live-находок с impact на счету — все при строгом VERIFY свелись к
 non-live / hardened / non-callable: Ledgity (not-live: wrapper undeployed/empty), death.fun (real `increaseBet`-баг
