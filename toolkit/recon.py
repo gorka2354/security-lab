@@ -1154,6 +1154,40 @@ def det_reward_formula(text, rel):
     return out
 
 
+# ── Detector 34: spot-AMM-as-oracle (the #1 DeFiHackLabs class, every year 2021-2026, ~100+ hacks) ──
+# A value-bearing decision (mint/borrow/collateral/redeem/reward) priced off a SAME-TX manipulable spot source
+# (getReserves / balanceOf(pair) / getAmountsOut / pricePerShare / get_virtual_price / slot0) with no TWAP/Chainlink
+# on the path -> flashloan moves it, protocol reads it, attacker profits, unwinds. recon's oracle-staleness only
+# checks Chainlink freshness; this catches the spot-source family (PancakeBunny/Cream/EGD/UwuLend/Moonwell/GMX...).
+SPOT_ORACLE = re.compile(
+    r"\.getReserves\s*\(|\.getAmountsOut\s*\(|\bgetPricePerFullShare\s*\(|\bpricePerShare\s*\(|"
+    r"\bget_virtual_price\s*\(|\.slot0\s*\(|\bgetRate\s*\(|\bgetPoolTokenInfo\s*\(", re.I)
+VALUE_SINK = re.compile(
+    r"\b(_mint|mint|borrow|collateral|redeem|liquidat|reward|payout|valueOf|getAmountOut|deposit)\w*", re.I)
+# a manipulation-resistant source on the path -> NOT a spot-oracle bug
+TWAP_SAFE = re.compile(
+    r"latestRoundData|\bconsult\s*\(|\bobserve\s*\(|twap|timeWeighted|AggregatorV3|chainlink|updatedAt", re.I)
+
+
+def det_spot_oracle(text, rel):
+    """A mint/borrow/collateral/redeem/reward decision priced from a SAME-TX manipulable spot source
+    (getReserves/pricePerShare/get_virtual_price/slot0/getAmountsOut) with no TWAP/Chainlink on the path =
+    the #1 DeFiHackLabs root cause. recon's oracle-staleness only checks Chainlink staleness; this catches the
+    spot-AMM-as-oracle family (PancakeBunny $45M, Cream $130M, EGD, UwuLend, Moonwell, GMX $41M)."""
+    out = []
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name = m.group(1)
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1200)]
+        sm = SPOT_ORACLE.search(body)
+        if sm and VALUE_SINK.search(body) and not TWAP_SAFE.search(body):
+            out.append((rel, lineno(text, m.start()), f"function {name}(...) {sm.group(0).strip()[:24]}",
+                        "spot AMM/share source (getReserves/pricePerShare/get_virtual_price/slot0/getAmountsOut) "
+                        "feeds a mint/borrow/collateral/reward decision with NO TWAP/Chainlink on the path -> "
+                        "flashloan price-manip (the #1 DeFiHackLabs class). Verify the price can't be moved in-tx.", 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1227,6 +1261,9 @@ DETECTORS = [
     ("REWARD-FORMULA inflation (accumulator inside .mul(balance), Synthetix mis-bracket)", det_reward_formula,
      "posi-vaults class: earned()/pending() adds the stored reward INSIDE .mul(balance) instead of outside "
      "-> ~balance^2 inflation -> drain. recon-32 missed it (a math-shape bug, found by the L4 read)."),
+    ("SPOT-AMM-AS-ORACLE (flashloan price-manip, #1 DeFiHackLabs class)", det_spot_oracle,
+     "A mint/borrow/collateral/reward priced from a same-tx spot source (getReserves/pricePerShare/"
+     "get_virtual_price/slot0/getAmountsOut) with no TWAP/Chainlink -> flashloan-movable (PancakeBunny/Cream/EGD/UwuLend)."),
 ]
 
 
@@ -1240,7 +1277,8 @@ def det_key(title):
                    ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
-                   ("reward-formula", "rewardformula"), ("reward", "reward"), ("oracle", "oracle"),
+                   ("reward-formula", "rewardformula"), ("reward", "reward"),
+                   ("spot-amm", "spotoracle"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),

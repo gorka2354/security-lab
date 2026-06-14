@@ -578,6 +578,19 @@ check(not flagged(recon.det_reward_formula, "contract C{function pending(uint pi
 check(not flagged(recon.det_reward_formula, "contract C{function f() external { y = balance * (1 + feeRate); }}"),
       "det_reward_formula guard: balance*(1+feeRate) (no reward term) NOT flagged (operator-form precision)")
 
+print("== det_spot_oracle (spot-AMM-as-oracle, #1 DeFiHackLabs class) ==")
+_so = recon.det_spot_oracle("contract C{function valuePosition(uint amt) public view returns(uint){"
+      " (uint112 r0,uint112 r1,)=pair.getReserves(); uint price=uint(r1)*1e18/uint(r0); uint collateral=amt*price/1e18; return collateral; }}", "src/Lend.sol")
+check(bool(_so) and _so[0][4] == 0,
+      "det_spot_oracle: getReserves() feeding a collateral computation, no TWAP -> [!] (PancakeBunny/UwuLend class)")
+check(flagged(recon.det_spot_oracle, "contract V{function mint(uint a) external { uint pps=vault.getPricePerFullShare(); _mint(msg.sender, a*pps/1e18); }}"),
+      "det_spot_oracle: getPricePerFullShare() feeding a _mint -> flagged")
+check(not flagged(recon.det_spot_oracle, "contract C{function valuePosition(uint amt) public view returns(uint){"
+      " (,int256 p,,uint256 updatedAt,)=oracle.latestRoundData(); require(block.timestamp-updatedAt<3600); return amt*uint(p)/1e8; }}"),
+      "det_spot_oracle guard: latestRoundData() + updatedAt staleness check (Chainlink/TWAP-safe) NOT flagged")
+check(not flagged(recon.det_spot_oracle, "contract Pair{function sync() external { (uint112 r0,uint112 r1,)=getReserves(); reserve0=r0; reserve1=r1; }}"),
+      "det_spot_oracle guard: getReserves() with NO value sink (sync just caches reserves) NOT flagged")
+
 print("== calibrate (feedback loop: finding-outcome precision + verdict recall) ==")
 import calibrate  # noqa: E402
 _F = [{"status": "accepted"}, {"status": "fixed-silent"}, {"status": "duplicate"},
