@@ -28,3 +28,7 @@ hunts/_volume/
 
 # fetch_source.py output (deployed verified source pulled by address — third-party)
 fetched/
+
+# transient session artifacts
+.playwright-mcp/
+scout-worklist.json
