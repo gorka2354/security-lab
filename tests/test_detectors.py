@@ -158,6 +158,9 @@ check(any("never consumed" in (t[3] or "").lower() for t in _sign),
 _sigc = recon.det_signature("contract C{mapping(address=>uint) nonces; function f(address u) external { address s=ecrecover(h,v,r,s); require(s!=address(0)); nonces[u]++; } }", "src/C.sol")
 check(not any("never consumed" in (t[3] or "").lower() for t in _sigc),
       "det_signature: a CONSUMED nonce (nonces[u]++) does not raise the never-consumed note")
+_sigi = recon.det_signature("contract C{mapping(address=>Counters.Counter) _nonces; function permit(address o) external { uint n=_nonces[o].current(); address s=ecrecover(h,v,r,s); require(s==o); _nonces[o].increment(); } }", "src/C.sol")
+check(not any("never consumed" in (t[3] or "").lower() for t in _sigi),
+      "det_signature: OZ Counters _nonces[o].increment() counts as consumed (Apiary/OZ-permit FP fix)")
 check(flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal override {}}"),
       "empty _authorizeUpgrade flagged")
 check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal override onlyOwner {}}"),

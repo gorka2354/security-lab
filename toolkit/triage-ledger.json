@@ -78,6 +78,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "apiary-berachain|src/ApiaryToken.sol:152|signature|",
+      "target": "apiary-berachain",
+      "file": "src/ApiaryToken.sol:152",
+      "line": 0,
+      "detector": "signature",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Apiary (Berachain OHM-fork): mint onlyRole(MINTER_ROLE)-gated (recon:180=burnFrom FP); AUDIT-FIX-* annotations=already audited; permit nonce consumed via OZ Counters .increment() (my det FP, fixed)",
+      "date": "2026-06-14"
+    },
+    {
       "sig": "avalon-superearn|(fanout)|fanout|fanout triage: -",
       "target": "avalon-superearn",
       "file": "(fanout)",

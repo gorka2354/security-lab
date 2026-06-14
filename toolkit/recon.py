@@ -343,8 +343,11 @@ def det_arbcall(text, rel):
 SIG1271 = re.compile(r"IERC1271\s*\(\s*(\w+(?:\.\w+)+)\s*\)\s*\.\s*isValidSignature|"
                      r"\bisValidSignatureNow\s*\(\s*(\w+(?:\.\w+)+)\s*,", re.I)
 # a nonce/used-digest that is actually CONSUMED (written), not merely declared/read -> real anti-replay.
+# Covers: nonces[x]++ / nonces[x]= ; OZ Counters `_nonces[x].increment()` ; OZ 5.x `_useNonce`/`_useCheckedNonce` ;
+# a used-digest mapping write. Recognizing .increment() kills the Apiary/OZ-permit FP (Counters-based consumption).
 NONCE_CONSUMED = re.compile(r"nonce\w*\s*(?:\[[^\]]*\])?\s*(?:\+\+|--|\+=|-=|=(?!=))|"
                             r"\b(?:used|_used|seen|executed|consumed|invalidated)\w*\s*\[[^\]]+\]\s*=(?!=)|"
+                            r"_?nonce\w*\s*(?:\[[^\]]*\])?\s*\.\s*increment|\b_useNonce\b|\b_useCheckedNonce\b|"
                             r"invalidateNonce|\.consume\s*\(", re.I)
 
 
