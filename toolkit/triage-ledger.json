@@ -1,6 +1,28 @@
 {
   "entries": [
     {
+      "sig": "Ample (Ample Earn \u2014 layer3xyz/ample-earn)|(fanout)|fanout|fanout triage: -",
+      "target": "Ample (Ample Earn \u2014 layer3xyz/ample-earn)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "known",
+      "reason": "[UNREACHABLE/defillama-gamefi-wave] Source is a genuine dead-end: layer3xyz/ample-earn is private, no npm mirror, no contract addresses in the static site (dApp behind Cloudflare), and the Pashov PDF carries no deployed address or chain \u2014 so I can't reach .sol",
+      "date": "2026-06-13"
+    },
+    {
+      "sig": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)|(fanout)|fanout|fanout triage: -",
+      "target": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live, funded (~$1.02M USDC NAV), original (non-fork) async ERC-4626/EIP-7540-style vault on ETH mainnet with a concrete permissionless economic lead: withdrawals lock NO share price at request time, so the 7-day-cooldown que",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "acre|solidity/contracts/stBTC.sol|supply|function burnReceipt(uint256 amount) -> repayDebt()",
       "target": "acre",
       "file": "solidity/contracts/stBTC.sol",
@@ -32,6 +54,17 @@
       "verdict": "fp",
       "reason": "Ungated setWhitelist/pauseAlchemist/setCeiling (stale 'admin only' NatSpec, empty body) -> looks like 1-call infinite mint. BUT AlEth.sol is a TEST MOCK (header: 'modified for V3 invariant testing'); deployed token = CrossChainCanonicalAlchemicTokenV3 extends audited AlchemicTokenV2Base (role-gated). Mock not deployed -> FP.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "avalon-superearn|(fanout)|fanout|fanout triage: -",
+      "target": "avalon-superearn",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "known",
+      "reason": "[UNREACHABLE/defillama-gamefi-wave] Cannot reach any Solidity: the SuperEarn ETH vault proxy, its implementation (0xf613...5a3c), and its ProxyAdmin are all unverified on Etherscan and Sourcify (closed-source), and there is no public contracts repo. Even if so",
+      "date": "2026-06-13"
     },
     {
       "sig": "cap|contracts/delegation/Delegation.sol|ac|function distributeRewards(address _agent, address _asset)",
@@ -331,6 +364,28 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "eva-markets (EVA Protocol)|(fanout)|fanout|fanout triage: -",
+      "target": "eva-markets (EVA Protocol)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live (~$6M TVL on mainnet), non-fork, novel async-ERC4626 wrapping Wildcat isolated-credit + custom LayerZero OFT with a bespoke 1:1 virtual-assets/shares accounting model and a yield-skim mint path -- genuinely interesting ",
+      "date": "2026-06-13"
+    },
+    {
+      "sig": "flip-battle (adrians12345/flip-battle)|(fanout)|fanout|fanout triage: -",
+      "target": "flip-battle (adrians12345/flip-battle)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/defillama-gamefi-wave] The code has genuine critical logic bugs (missing access control + value-credit-without-token-transfer), but LIVE-FIRST fails hard: single-commit junk/SEO repo (README is an auto-generated \"download the game\" page whose links point",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "heavy-helms|src/game/modes/TournamentGame.sol|weakrand|function _getEnhancedRandomness(uint256 futureBlock)",
       "target": "heavy-helms",
       "file": "src/game/modes/TournamentGame.sol",
@@ -340,6 +395,28 @@
       "verdict": "real",
       "reason": "RNG outcome grinding: commit-reveal seed mixes reveal-tx entropy (block.timestamp/number/gasleft/tx.origin) on top of blockhash(futureBlock); reveal via permissionless tryStartTournament/tryStartGauntlet -> participant grinds outcome off-chain, biases selection+bracket+winners. Same in GauntletGame:1560. Medium. GPL no-bounty -> responsible disclosure, egor sends.",
       "date": "2026-06-11"
+    },
+    {
+      "sig": "hyperbeat-liquid-bank (USD+ / beatUSD neobank)|(fanout)|fanout|fanout triage: -",
+      "target": "hyperbeat-liquid-bank (USD+ / beatUSD neobank)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/defillama-gamefi-wave] Live and value-bearing, but the reachable core (Orchestrator, Pricer) is an audited Veda BoringVault fork that is entirely keeper/role-gated -- no user-callable economic surface there. The genuinely higher-EV user money-paths (With",
+      "date": "2026-06-13"
+    },
+    {
+      "sig": "lazy (LazyUSD Vault \u2014 getlazy.xyz)|(fanout)|fanout|fanout triage: -",
+      "target": "lazy (LazyUSD Vault \u2014 getlazy.xyz)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live ~$1M USDC, greenfield, no third-party audit, full source reachable \u2014 genuinely attractive. BUT two dampeners: (1) the dominant risk is by-design centralization \u2014 RoleManager.owner == operator == multisig == treasury == ",
+      "date": "2026-06-13"
     },
     {
       "sig": "ledgity|src/protocol-v1/LToken.sol|reentrancy|function processBigQueuedRequest(uint256) onlyFund whenNotPaused",
@@ -430,6 +507,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "mantle-index-four (MI4) \u2014 Securitize DSToken|(fanout)|fanout|fanout triage: -",
+      "target": "mantle-index-four (MI4) \u2014 Securitize DSToken",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "known",
+      "reason": "[SKIP/defillama-gamefi-wave] Prior DORMANT was a FALSE NEGATIVE -- activity.py had no Mantle RPC ('no RPC for chain mantle') and read 0. With --rpc https://rpc.mantle.xyz the proxy is ACTIVE and value-bearing: totalSupply=1,351,623.7 MI4 (6dec), impl code 19KB",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "mellow|src/managers/ShareManager.sol|supply|function mintAllocatedShares(address account, uint256 value) external",
       "target": "mellow",
       "file": "src/managers/ShareManager.sol",
@@ -449,6 +537,17 @@
       "snippet": "interestNumerator aggregated interest vs per-trove interestOwed (custom layer on Liquity v1)",
       "verdict": "wontfix",
       "reason": "Deep L4 2026-06-13 (fan-out #2, $29M Cantina-audited Liquity fork): the custom interest-accrual layer (the one real drift surface) is HARDENED -- update-before-change discipline verified across ALL trove-mutating paths (open:626/adjust:769/close:945/refinance:1021/liquidate:662) calling updateSystem(AndTrove)Interest FIRST before any interestNumerator change. No system-debt-vs-sum-of-trove divergence reproduces. Other leads de-risked (oracle=system predeploy, sigs skim-clean, PCV gated). IE/hardened, not disclosed. 2/2 deep-dived fan-out candidates hardened -> reachable space is hardened-dominated.",
+      "date": "2026-06-13"
+    },
+    {
+      "sig": "mezo-borrow (MUSD CDP / mezo-org/musd)|(fanout)|fanout|fanout triage: -",
+      "target": "mezo-borrow (MUSD CDP / mezo-org/musd)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live, ~$29M, but a Cantina-audited Liquity/Threshold fork -> forky + audited, so temper expectations. NOT verbatim: real custom drift = interest-accrual layer (InterestRateManager/InterestRateMath/Trove.interestOwed) bolted ",
       "date": "2026-06-13"
     },
     {
@@ -595,6 +694,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "punks-terminal|(fanout)|fanout|fanout triage: -",
+      "target": "punks-terminal",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live, novel, fund-holding system (Yuga/Lightyear \"Stash\": per-user ERC-1967 escrow that holds ETH/WETH/Punks and fulfills off-chain-signed, nonce+Merkle-gated CryptoPunk bids where ANYONE can be the MEV filler). Greenfield w",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
       "target": "reserve",
       "file": "contracts/p1/BasketHandler.sol",
@@ -670,6 +780,17 @@
       "verdict": "fp",
       "reason": "burn/burnFrom are 'restricted' (OZ AccessManager AccessManagedUpgradeable) -> gated. recon missed the modifier -> fix#32 (added restricted to WARD_MOD). 47 access FPs -> 0.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "solo-ascend (heichenya/solo-ascend)|(fanout)|fanout|fanout triage: -",
+      "target": "solo-ascend (heichenya/solo-ascend)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/defillama-gamefi-wave] Rich, non-fork GameFi (hero forging, Chainlink VRF, ERC-6551 TBA, Treasury, hook system) with a genuine weak-RNG lead \u2014 but it is pre-launch: deployed ONLY to Base Sepolia testnet with zero heroes minted, dust-only ETH, no events, ",
+      "date": "2026-06-13"
     },
     {
       "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeTokens(...)",
@@ -826,6 +947,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "strato|(fanout)|fanout|fanout triage: -",
+      "target": "strato",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "known",
+      "reason": "[UNREACHABLE/defillama-gamefi-wave] Live, real, $14M+ gold-backed CDP stablecoin -- a juicy target -- but its Solidity source is genuinely unreachable: STRATO is a permissioned SolidVM L1 (no EVM bytecode), source is closed (not on GitHub) and exposed only beh",
+      "date": "2026-06-13"
+    },
+    {
       "sig": "syntropia|src/v0.5.0/Vault.sol|drift|",
       "target": "syntropia",
       "file": "src/v0.5.0/Vault.sol",
@@ -835,6 +967,17 @@
       "verdict": "known",
       "reason": "Verbatim Lagoon v0.5.0 fork (3rd one; forkdrift fingerprint+diff). No custom yield-aggregator drift. Missing v0.5.1 whitelist patch is MOOT: all 3 vaults isActivated=false (permissionless on-chain). CLEAN. Reachability via DefiLlama-Adapters core addrs.",
       "date": "2026-06-10"
+    },
+    {
+      "sig": "the-lobster-pot (archlab-space/the-lobster-pot)|(fanout)|fanout|fanout triage: -",
+      "target": "the-lobster-pot (archlab-space/the-lobster-pot)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/defillama-gamefi-wave] Reached full source; it is rich, novel, lead-dense custom GameFi accounting (UUPS GameCore + Election monarchy, bespoke tax/reward/voter math -- not a fork, no audit). BUT it is deployed only on Monad TESTNET (mainnet = NO-CODE) wi",
+      "date": "2026-06-13"
     },
     {
       "sig": "usual-eth0|token/Usual.sol|target|",
@@ -868,6 +1011,17 @@
       "verdict": "known",
       "reason": "VanEck VBILL = Securitize DS Protocol (audited multi-tenant tokenized-securities platform). recon mint/burn = library-internal (auth in DSToken caller); 'liquidation' leads = compliance forced-seize (not lending). Audited platform deploy, low EV.",
       "date": "2026-06-10"
+    },
+    {
+      "sig": "venus-flux (XVS governance token)|(fanout)|fanout|fanout triage: -",
+      "target": "venus-flux (XVS governance token)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "known",
+      "reason": "[SKIP/defillama-gamefi-wave] The address is the Venus governance token XVS (name=\"Venus\", symbol=\"XVS\"), exactly the gov-token/XVS trap the note warned about -- NOT the lending core that DefiLlama's $10M TVL refers to. Source is a verbatim Compound Comp.sol de",
+      "date": "2026-06-13"
     },
     {
       "sig": "wolfgame|Barn.sol|unchecked|wool.transfer return ignored",

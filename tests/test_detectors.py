@@ -593,6 +593,21 @@ check("duplicate" in calibrate.ACCEPTED_LIKE and "disputed" in calibrate.REJECTE
       "calibrate: a duplicate is a real finding (accepted-like); a disputed one is rejected-like")
 check(calibrate.SEV_RANK["high"] > calibrate.SEV_RANK["medium"] > calibrate.SEV_RANK["low"],
       "calibrate.SEV_RANK: severity ordering (for awarded-vs-claimed drift)")
+
+print("== fanout_log (persist fan-out triage: typed table + ledger-suppress) ==")
+import fanout_log  # noqa: E402
+check(fanout_log.REC_TO_VERDICT["DIG"] == "todo" and fanout_log.REC_TO_VERDICT["DIG-CAREFUL"] == "todo"
+      and fanout_log.REC_TO_VERDICT["SKIP"] == "known" and fanout_log.REC_TO_VERDICT["PARK"] == "wontfix"
+      and fanout_log.REC_TO_VERDICT["UNREACHABLE"] == "known",
+      "fanout_log.REC_TO_VERDICT: DIG/DIG-CAREFUL->todo (deep-dive queue); SKIP/UNREACHABLE->known + PARK->wontfix (suppress)")
+_fv = fanout_log.parse_verdicts({"result": [{"name": "a", "recommendation": "DIG"}, {"bad": 1}, {"name": "b", "recommendation": "SKIP"}]})
+check(len(_fv) == 2 and _fv[0]["name"] == "a",
+      "fanout_log.parse_verdicts: unwraps {result:[...]}, drops entries with no name")
+check(fanout_log.parse_verdicts([{"name": "x", "recommendation": "PARK"}])[0]["name"] == "x",
+      "fanout_log.parse_verdicts: accepts a bare list too")
+check(fanout_log.leads_str({"top_leads": [{"title": "reentrancy in claim"}, {"title": "oracle stale"}]}).count(";") == 1
+      and fanout_log.leads_str({"top_leads": []}) == "-",
+      "fanout_log.leads_str: joins lead titles (pipe-safe), '-' when none")
 check(not flagged(recon.det_honeypot_lever, "contract C{function setBlacklist(address a) external { _bl[a] = true; }}"),
       "det_honeypot_lever guard: ungated lever (no owner gate) NOT flagged")
 check(not flagged(recon.det_honeypot_lever, "contract C{function setFee(uint x) external onlyOwner { fee = x; }}"),

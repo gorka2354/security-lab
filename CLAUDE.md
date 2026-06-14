@@ -24,8 +24,10 @@
   Phase-0/1 гейт: code+own-totalSupply+active+value? totalSupply==0 -> EMPTY/not-live; иначе park/skip — ДО
   чтения И как обязательный pre-disclosure Gate-0 в VERIFY.md), `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
-  ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor). Динамический слой
-  локально — WSL-лейн (`toolkit/WSL-LANE.md`).
+  ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`
+  (ПЕРСИСТ fan-out-невода: типизированная таблица `hunts/_fanout/<date>-<label>.md` по type+chain +
+  ledger-suppress dead-ends + DIG в todo-очередь; вердикты TRIAGE-level = гипотезы, deep-dive потом руками).
+  Динамический слой локально — WSL-лейн (`toolkit/WSL-LANE.md`).
 - **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
 ## Правила
