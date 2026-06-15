@@ -85,10 +85,26 @@ Single `DEFAULT_ADMIN_ROLE` key is the root of trust for BOTH the NAV signature 
   suggests so), the liquid-withdraw straddle is fully live. Needs an on-chain keeper-sequencing check to settle.
 - **No public bug bounty** (DefiLlama "audits" link = the Beosin PDF only; no Immunefi).
 
+## Current criticality — on-chain measured (the death.fun "real vs theoretical" discipline) → LOW / LATENT
+Live reads on Base (2026-06-15), TD `0x469bbd88…`, helper `0xBfE36e36…`, vault `0x5772a02f…`:
+- `rebaseNonce = 12` (the rebase IS used), `netAsset == totalSupply == 122,119 TD` (books currently consistent).
+- **~99.9% of TD is staked** (stTD supply 120,535 ; sTD holds 121,992 TD) — phantom yield would dilute existing stakers.
+- **DECISIVE: MainVault liquid USDC = `calculateLiquidity() = 1,750,742` = ~$1.75** (`nftQueueUSDC = 0`; ~all the
+  ~$122k backing is deployed into off-Base strategies). The **buggy LIQUID path can move at most the vault's liquid
+  USDC** — any larger withdrawal routes to the NFT path, which is **compensated (no bug)**. So the **max phantom
+  yield exploitable RIGHT NOW ≈ $1.75.**
+- **Verdict on criticality:** High **by class** (mints unbacked yield, breaks solvency) but **near-zero / LATENT in
+  practice today** — the protocol keeps almost no liquid USDC on Base, so the uncompensated path can't move
+  meaningful value. The exploitable magnitude == the liquid USDC buffer in MainVault. It becomes materially
+  dangerous ONLY if Tizi ever holds a large liquid buffer on Base (e.g. right after a big deposit, before the
+  manager deploys it) AND the snapshot→rebase has a window (likely, given async multi-bridge NAV assembly) — then a
+  whale stTD holder front-runs `updateYield` with a large liquid withdrawal up to the buffer size.
+
 ## Verdict
 A genuinely rich, novel mechanism, and the **async-snapshot rebase contamination (#1)** is a real, PoC-proven,
 deployed-code accounting-integrity bug that Beosin's audit did **not** cover — the strongest finding of the dive.
-Disposition: LIVE + plausibly-novel + PoC-backed, but (a) exploitability gated on a keeper-sequencing assumption to
-verify on-chain, and (b) **no bounty program** → the white-hat move is **responsible goodwill disclosure** to the
-Tizi team (egor sends), framed with the PoC + the honest operational caveat. The lasting win is the **engine gain**:
-a new pattern class + seed + the honest detector lesson + a reusable cross-chain-accounting comprehension model.
+Disposition: LIVE + plausibly-novel + PoC-backed, **but currently LOW/LATENT** (capped at ~$1.75 of liquid USDC) +
+**no bounty program**. The right white-hat move is a calm **responsible goodwill heads-up** to the Tizi team (egor
+sends) — framed honestly (real bug, PoC, but low current impact + the activation conditions), not a "critical"
+alarm. The lasting win is the **engine gain**: a new pattern class + seed + the honest detector lesson + a reusable
+cross-chain-accounting comprehension model.
