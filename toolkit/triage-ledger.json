@@ -507,6 +507,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "cambria-duelarena|src/duelarena/DuelArenaBattle.sol:346|signature|",
+      "target": "cambria-duelarena",
+      "file": "src/duelarena/DuelArenaBattle.sol:346",
+      "line": 346,
+      "detector": "signature",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Cambria DuelArena (wager PvP, Abstract 0x5F8aBF7F, 585k battles = mature). Thoroughly checked, CLEAN: (1) self-battle blocked initBattle BattleSelfForbidden; (2) claim/withdraw/nullify mutually exclusive via claimed/hasWithdrawn/matched flags; (3) signature purpose-confusion blocked -- judge 0x1D28 != withdrawJudge 0xB0e7 (separate keys), claimProceeds requires signer==judge, withdrawStake signer==withdrawJudge; EIP-712 abi.encode (no encodePacked collision), domain binds chainid+contract, battleId+account bound, claimed-guard = no replay/double-claim. Code smell: DuelArenaEscrow.withdraw does NOT delete _deposits[payee][battleId] (re-withdraw latent) but defended by the flags + self-battle block. Honest negative on a mature high-volume wager contract.",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "cap|contracts/delegation/Delegation.sol|ac|function distributeRewards(address _agent, address _asset)",
       "target": "cap",
       "file": "contracts/delegation/Delegation.sol",
