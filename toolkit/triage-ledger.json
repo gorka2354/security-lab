@@ -1240,7 +1240,7 @@
       "detector": "other",
       "snippet": "",
       "verdict": "todo",
-      "reason": "Split-brain rebase contamination, LIVE on Base + PoC-proven + Beosin-missed (plausibly novel). CRITICALITY NOW = LOW/LATENT: on-chain MainVault liquid USDC = calculateLiquidity()=$1.75 (nftQueueUSDC=0, ~all backing in off-Base strategies) -> the buggy LIQUID path is capped at the liquid buffer (~$1.75); larger withdrawals route to the compensated NFT path. ~99.9% TD staked, rebaseNonce=12. High by class, near-zero in practice today; activates only with a large liquid buffer on Base + a snapshot-rebase window. No bounty -> goodwill heads-up. PoC tizi-poc/.",
+      "reason": "Split-brain rebase contamination, LIVE+PoC+Beosin-missed (plausibly novel). CRITICALITY NOW = INERT: liquid USDC buffer static $1.75 for >=7d (archive-RPC: $1.75 now/1d/7d, $0 at 30d, $480 at 90d when supply=500); buggy liquid path capped at the buffer; TD supply near-flat 30d (deposits stalled); only recent activity = admin rebase (2026-06-11). High by class, no live exploit surface now; activates only on a large new deposit front-run vs rebase. No bounty -> calm goodwill heads-up. PoC tizi-poc/.",
       "date": "2026-06-15"
     },
     {

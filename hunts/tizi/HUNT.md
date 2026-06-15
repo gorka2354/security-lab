@@ -93,12 +93,16 @@ Live reads on Base (2026-06-15), TD `0x469bbd88…`, helper `0xBfE36e36…`, vau
   ~$122k backing is deployed into off-Base strategies). The **buggy LIQUID path can move at most the vault's liquid
   USDC** — any larger withdrawal routes to the NFT path, which is **compensated (no bug)**. So the **max phantom
   yield exploitable RIGHT NOW ≈ $1.75.**
-- **Verdict on criticality:** High **by class** (mints unbacked yield, breaks solvency) but **near-zero / LATENT in
-  practice today** — the protocol keeps almost no liquid USDC on Base, so the uncompensated path can't move
-  meaningful value. The exploitable magnitude == the liquid USDC buffer in MainVault. It becomes materially
-  dangerous ONLY if Tizi ever holds a large liquid buffer on Base (e.g. right after a big deposit, before the
-  manager deploys it) AND the snapshot→rebase has a window (likely, given async multi-bridge NAV assembly) — then a
-  whale stTD holder front-runs `updateYield` with a large liquid withdrawal up to the buffer size.
+- **The liquid buffer is STATIC and the protocol is near-stalled** (archive-RPC history of `USDC.balanceOf(vault)`):
+  `$1.75` now == 1d ago == 7d ago (frozen for a week); `$0` at 30d; `$480` at 90d when supply was only 500 TD. TD
+  supply grew 500→120,471 (90d→30d) then near-flat 120,471→122,119 over the last 30d (+253 in 7d). So deposit/withdraw
+  flow that would move the liquid buffer has essentially **stopped**; the only recent activity is the admin's periodic
+  rebase (last 2026-06-11). The buggy liquid path therefore has **no live surface right now** — there is nothing to
+  withdraw liquidly beyond $1.75 and the buffer isn't moving.
+- **Verdict on criticality:** High **by class** (mints unbacked yield, breaks solvency) but **INERT in practice today**
+  — capped at the ~$1.75 liquid buffer, which has been static for a week while deposits are near-dead. It would only
+  activate on a LARGE new deposit (a momentary liquid spike before the manager deploys it) front-run against a rebase
+  — not happening organically in the current stalled state.
 
 ## Verdict
 A genuinely rich, novel mechanism, and the **async-snapshot rebase contamination (#1)** is a real, PoC-proven,
