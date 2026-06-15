@@ -240,7 +240,8 @@ check(_menu_groups == {"CORE", "ECONOMIC (DeFi)", "GAMEFI / NFT (egor's edge)", 
       "INVARIANT_MENU has the 4 sector groups (incl the new BRIDGE / CROSS-CHAIN)")
 _all_seeds = " || ".join(s for _, seeds in hypothesize.INVARIANT_MENU for s in seeds)
 for _kw in ["caller-supplied-authority", "stale-solvency-check", "read-only-reentrancy", "flashloan-governance",
-            "self-liquidation-as-profit", "reward-on-no-op", "minted <= proven-locked", "spoofed-callee-return"]:
+            "self-liquidation-as-profit", "reward-on-no-op", "minted <= proven-locked", "spoofed-callee-return",
+            "split-brain accounting"]:
     check(_kw in _all_seeds, f"INVARIANT_MENU carries the '{_kw}' reasoning-tier seed")
 
 print("== fetch_source (live-first: etherscan source parsing, no network) ==")
@@ -682,6 +683,7 @@ check(not flagged(recon.det_caller_supplied_authority, "contract C{function pull
       "det_caller_supplied_authority guard: bare-param `from` (allowance-gated router) NOT flagged")
 check(not flagged(recon.det_caller_supplied_authority, "library L{function executeSupply(ExecuteSupplyParams memory params) external { IERC20(params.asset).safeTransferFrom(params.user, aToken, params.amount); }}"),
       "det_caller_supplied_authority guard: Aave-fork `memory` struct (.user bound upstream) NOT flagged")
+
 
 print("== calibrate (feedback loop: finding-outcome precision + verdict recall) ==")
 import calibrate  # noqa: E402

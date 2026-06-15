@@ -259,6 +259,16 @@ INVARIANT_MENU = [
         "inline-RFQ shape -- prove the rest here). The ERC-1271 SIGNER/verifier is the same trap: it must be a "
         "trusted/stored address, never a caller-supplied param -- else the attacker passes a yes-contract and any "
         "signature passes (MureDistribution; det_signature catches only the struct-field verifier, not bare params)",
+        "split-brain accounting: a conserved quantity (backing/netAsset/supply/index) must have ONE reconciled "
+        "writer, not two that diverge -- a live accumulator (X += userFlow) vs a wholesale overwrite from an "
+        "OFF-CHAIN-snapshotted aggregate (X = snapshot) double-counts any flow between the snapshot block and the "
+        "apply block; a STRONG bridge-adapter (nonce+deadline+source-bind) vs a WEAK one writing the same state is "
+        "only as safe as the weakest; an OFT/bridge _credit that calls ERC20._mint bypasses the protocol's own "
+        "backing accumulator. Tizi (first-hand): a LIQUID withdrawal front-running updateYield mints +w phantom "
+        "yield to stTD while real USDC backing drops (the NFT path is correctly compensated, the liquid path is "
+        "not). Invariant: settlement reconciles intervening flow, OR derive the var (never track it in parallel). "
+        "[research/patterns/accounting/split-brain-accounting.md -- T2/T3: no clean T0 detector, interest-index "
+        "recompute is the same regex shape]",
     ]),
     ("ECONOMIC (DeFi)", [
         "backing-conservation: SUM(ALL liabilities incl borrow/PM) <= backing, across EVERY settle path (Monetrix M-01)",

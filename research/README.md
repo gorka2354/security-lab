@@ -54,13 +54,14 @@ research/
 |---|---|---|---|---|
 | ✅ | accounting | [erc4626-inflation](patterns/accounting/erc4626-inflation.md) | T2 | donation/first-depositor + vault-as-oracle. *dStake (first-hand), Venus, Inertia.* |
 | ✅ | accounting | [reward-accounting](patterns/accounting/reward-accounting.md) | T2/T3 | wave/queue double-claim, dust, timing. *CU LibRewards = the correct design (first-hand).* |
+| ✅ | accounting | [split-brain-accounting](patterns/accounting/split-brain-accounting.md) | T2/T3 | one conserved var, ≥2 unreconciled writers (live `+=` vs off-chain-snapshot overwrite · weakest bridge-adapter · OFT bypasses the backing accumulator). *Tizi netAsset: liquid-withdrawal front-run mints phantom yield (first-hand deep-dive). Tried a detector → FP-flooded on interest-index recompute → reasoning seed.* |
 | ✅ | pricing | [oracle-manipulation](patterns/pricing/oracle-manipulation.md) | T2/T3 | spot-vs-TWAP, AMM-reserve, read-only-reentrancy. *Likwid truncatedReserves = the mitigation.* |
 | ✅ | pricing | [index-manipulation](patterns/pricing/index-manipulation.md) | T2/T3 | Aave-fork `liquidityIndex` inflation on empty markets. *dTRINITY $257k (first-hand).* |
 | ✅ | liquidation | [liquidation-math](patterns/liquidation/liquidation-math.md) | T2/T3 | bad-debt socialization, self-liquidation, threshold, rounding direction. *TermMax/CU (first-hand).* |
 | ✅ | signatures | [cross-chain-and-aa](patterns/signatures/cross-chain-and-aa.md) | T1/T2 | mutable-chainId replay (zkMarkets); extcodesize/EIP-1271 on zkSync. *det_l2_footgun.* |
 | ✅ | **mining** | [**defihacklabs-pattern-mining**](patterns/defihacklabs-pattern-mining.md) | T0-T3 | **751 real hacks → 53 patterns** (cross-year taxonomy + invariant-seeds + detector-backlog). *spot-oracle/token-reserve-manip/donation/business-logic dominate every year.* |
 
-### Harvest status — the T1-catchable slice is wired into `recon.py` (38 detectors, 346 tests, leads-not-verdicts)
+### Harvest status — the T1-catchable slice is wired into `recon.py` (38 detectors, 351 tests, leads-not-verdicts)
 | Pattern | Detector (recon.py) | What it flags |
 |---|---|---|
 | erc4626-inflation | `det_erc4626` **+fix#20** | no offset/dead-shares; **enriched** when `totalAssets()` is balance-based (dStake flavor). |

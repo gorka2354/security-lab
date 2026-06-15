@@ -1233,6 +1233,17 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "tizi|contracts/TiziDollar.sol:174|other|",
+      "target": "tizi",
+      "file": "contracts/TiziDollar.sol:174",
+      "line": 174,
+      "detector": "other",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "DEEP-DIVE: async-snapshot rebase contamination (split-brain accounting). netAsset live-accumulated (mint/burn) AND wholesale-overwritten in updateYield from off-chain NAV snapshot; a LIQUID withdrawal front-running updateYield mints +w phantom yield to stTD while real backing drops (NFT path compensated via nftQueueUSDC, liquid path NOT). Permissionless, code-confirmed. REPO-ONLY -> confirm deploy+bounty before disclosure. Also: Axelar weakest-adapter replay, OFT-decoupled supply. New pattern class split-brain-accounting + hypothesize seed.",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "usual-eth0|token/Usual.sol|target|",
       "target": "usual-eth0",
       "file": "token/Usual.sol",

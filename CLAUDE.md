@@ -70,7 +70,7 @@
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).
-- **349 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
+- **351 golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
   `shadow.py --corpus defihacklabs` меряет ЧЕСТНЫЙ recall на РЕАЛЬНЫХ victim-контрактах (deployed verified source): HIT 3/4=75%
   на T0-покрываемом+reachable срезе (token-классы ловятся), остальное — reasoning-tier / version-drift / unverified.
   (Примеры: `det_self_transfer`/`det_pair_reserve_mutation` — TP на ВЫТЯНУТОМ on-chain коде BY/LPC/GPU + 0 FP на 8 клонах
