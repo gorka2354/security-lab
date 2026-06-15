@@ -68,9 +68,27 @@ Single `DEFAULT_ADMIN_ROLE` key is the root of trust for BOTH the NAV signature 
   recompute — same regex shape; missed Tizi's two-step overwrite). Demoted to the reasoning seed. (4th recurrence
   this build of "clean conceptual pattern = reasoning-tier, not T0".)
 
+## Phase-0 LIVE-FIRST (post-dive) — CONFIRMED LIVE + novelty cross-checked
+- **Deployed + live on Base:** TiziDollar TD = `0x469bbd88eEA8A2D9a5C6c82d9890Cf60962C27e6` (chain 8453, DefiLlama
+  TVL-tracked), **totalSupply ≈ 122,119 TD (~$122k)**. The **deployed `updateYield` has the EXACT split-brain
+  formula** line-for-line (`newNetAsset = calculateTotalChainValues() - nftAmount*1e12`, `:174`; `netAsset += / -=`,
+  `:119/133`; `netAsset = newNetAsset`, `:198`). The finding is in LIVE code, not just the repo.
+- **Audited by Beosin** (10 findings: 1 High / 2 Med / 5 Low / 2 Info). Beosin DID catch several of my SECONDARY
+  findings: Tizi-08 "Negative Strategy Value" = my int256 sign-flip/underflow (Fixed); Tizi-05 "Linear Address Check
+  Gas Exhaustion" = my unbounded-loop griefing (Ack); Tizi-07 "Signature Replay" (Fixed); Tizi-03 "Centralized Risk"
+  = my admin-trust class. **My CENTERPIECE (async-snapshot rebase contamination → phantom POSITIVE yield from a
+  liquid withdrawal) is NOT among the 10** (Tizi-01 "Yield Loss Handling" is the NEGATIVE-rebase loss-burn order, a
+  different issue), and the split-brain formula survives in deployed code → **plausibly novel.**
+- **HONEST CAVEAT (exploitability):** the attack needs a window between the Base `strategiesStats` snapshot and
+  `updateYield`. If the keeper runs strategiesStats(Base)+updateYield ATOMICALLY, the Base-USDC component is fresh
+  and only stale sub-chain NAV remains exploitable; if they are separate txns (the multi-bridge NAV assembly
+  suggests so), the liquid-withdraw straddle is fully live. Needs an on-chain keeper-sequencing check to settle.
+- **No public bug bounty** (DefiLlama "audits" link = the Beosin PDF only; no Immunefi).
+
 ## Verdict
-A genuinely rich, novel mechanism. The **async-snapshot rebase contamination (#1)** is a real, permissionless,
-code-confirmed accounting-integrity bug — the strongest external finding of the dive. But Tizi is **REPO-ONLY**
-(no confirmed mainnet deploy / no bounty in repo) → LIVE-FIRST: confirm deploy + an in-scope program on Base before
-any disclosure. The lasting win is the **engine gain**: a new pattern class + seed + the honest detector lesson +
-a reusable cross-chain-accounting comprehension model.
+A genuinely rich, novel mechanism, and the **async-snapshot rebase contamination (#1)** is a real, PoC-proven,
+deployed-code accounting-integrity bug that Beosin's audit did **not** cover — the strongest finding of the dive.
+Disposition: LIVE + plausibly-novel + PoC-backed, but (a) exploitability gated on a keeper-sequencing assumption to
+verify on-chain, and (b) **no bounty program** → the white-hat move is **responsible goodwill disclosure** to the
+Tizi team (egor sends), framed with the PoC + the honest operational caveat. The lasting win is the **engine gain**:
+a new pattern class + seed + the honest detector lesson + a reusable cross-chain-accounting comprehension model.

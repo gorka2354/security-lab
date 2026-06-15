@@ -1240,7 +1240,7 @@
       "detector": "other",
       "snippet": "",
       "verdict": "todo",
-      "reason": "DEEP-DIVE: async-snapshot rebase contamination (split-brain accounting). netAsset live-accumulated (mint/burn) AND wholesale-overwritten in updateYield from off-chain NAV snapshot; a LIQUID withdrawal front-running updateYield mints +w phantom yield to stTD while real backing drops (NFT path compensated via nftQueueUSDC, liquid path NOT). Permissionless, code-confirmed. REPO-ONLY -> confirm deploy+bounty before disclosure. Also: Axelar weakest-adapter replay, OFT-decoupled supply. New pattern class split-brain-accounting + hypothesize seed.",
+      "reason": "CONFIRMED LIVE on Base (TD 0x469bbd88..., ~122k TD supply); deployed updateYield has the EXACT split-brain formula. Beosin audit (10 findings) did NOT cover the async-snapshot rebase contamination (my centerpiece) -> plausibly novel; it DID cover my secondaries (Tizi-08 int256 underflow, Tizi-05 gas-exhaustion, Tizi-07 sig-replay). Caveat: exploitability gated on keeper sequencing (strategiesStats-Base vs updateYield atomic?). No bounty -> goodwill disclosure. PoC: tizi-poc/ (3/3).",
       "date": "2026-06-15"
     },
     {
