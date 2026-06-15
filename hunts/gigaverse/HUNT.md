@@ -72,7 +72,12 @@ Discord/contact) with the PoC + the honest bounded-severity framing. Recommended
 hashed-struct (EIP-712 with explicit field types incl. array lengths) or `abi.encode` (length-prefixed) instead of
 `abi.encodePacked`, and add `require(itemIds.length == itemAmounts.length)` + chainid/address(this) in the digest.
 
-## Engine win (step 3) — the lasting deliverable regardless of disclosure
-Harvest `det_signature` to catch this class (det debt above): `keccak256(abi.encodePacked(...))` over >=2 adjacent
-dynamic arrays used as a SIGNED message = a hash-collision primitive. T0/T1-catchable → a clean detector + golden,
-TP-grounded on this exact live Gigaverse code.
+## Engine win (step 3) — DONE
+Sharpened `det_encodepacked`: it used to flag ALL `keccak256(abi.encodePacked(2+ args))` at low `[.]` ("verify the
+types"), so this real collision was buried as generic noise. Now it parses the encodePacked args, looks up each in
+the enclosing function's params, and **bumps to `[!]` HIGH when >=2 ADJACENT args are dynamic PARAMS (array/bytes/
+string)** — the actual collision primitive — while all-fixed (permit-shape) stays `[.]`. A BARE-identifier gate
+(`arr[i]`/`a.b`/`f(x)`/literals are not the whole array) kills the Merkle-element FP (`encodePacked(leaves[0],
+leaves[1])`). **TP-grounded on this exact live Gigaverse code** (`ImportExportSystem.sol:100` -> `[!]`); **0 FP** on
+7 signature-heavy clones (stakewise/notional/reserve/euler/dreusd/cap/magicswap). golden 351->353. The detector
+would now surface this exact bug class at high signal on the next target.

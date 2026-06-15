@@ -926,32 +926,64 @@ def det_precision(text, rel):
 ENCODE_PACKED = re.compile(r"abi\.encodePacked\s*\(")
 
 
+def _is_dynamic_param(arg, scope):
+    """True if `arg` is declared as a DYNAMIC type (array `T[]`, `bytes`, or `string`) in the scope (the enclosing
+    function's params) -> it packs with no length prefix in abi.encodePacked. A constant/literal/fixed arg is False."""
+    if not arg:
+        return False
+    a = re.escape(arg)
+    return bool(re.search(r"\b\w+\s*\[\s*\]\s*(?:calldata|memory|storage)?\s+" + a + r"\b", scope)      # T[] name
+                or re.search(r"\b(?:bytes|string)\s+(?:calldata|memory|storage)?\s*" + a + r"\b", scope))  # bytes/string name
+
+
 def det_encodepacked(text, rel):
-    """keccak256(abi.encodePacked(a, b, ...)) with 2+ args can HASH-COLLIDE when two ADJACENT args are
-    dynamic: encodePacked("a","bc") == encodePacked("ab","c"). All-fixed-size args (uint/address/bytes32)
-    are safe -- so this is a 'verify the types' lead. Use abi.encode (or a separator) for dynamic args."""
+    """keccak256(abi.encodePacked(a, b, ...)) HASH-COLLIDES when two ADJACENT args are dynamic:
+    encodePacked([A,B],[C]) == encodePacked([A],[B,C]) -> the same hash/signature accepts a re-partitioned
+    input. [!] when >=2 ADJACENT args are dynamic PARAMS (array/bytes/string) -- the real collision primitive
+    (Gigaverse ImportExportSystem `itemIds||itemAmounts` signed export -> item over-mint). [.] otherwise (a
+    'verify the types' lead). All-fixed args (uint/address/bytes32) and a single dynamic arg are safe."""
     out = []
-    for i, line in enumerate(text.splitlines(), 1):
-        s = line.strip()
-        if not s or s.startswith(("//", "*", "/*")):
+    for m in ENCODE_PACKED.finditer(text):
+        semi = text.rfind(";", 0, m.start())
+        brace = text.rfind("{", 0, m.start())
+        stmt = text[max(semi, brace) + 1:m.start()]               # the assignment/expression up to encodePacked
+        if "keccak256" not in stmt and "sha256" not in stmt:       # only HASHED encodePacked collides meaningfully
             continue
-        m = ENCODE_PACKED.search(s)
-        if not m or not ("keccak256" in s or "sha256" in s):
-            continue
-        depth, commas = 1, 0
-        for ch in s[m.end():]:
+        depth, k, buf, parts = 1, m.end(), "", []                  # depth-1 split of the encodePacked args
+        while k < len(text) and depth > 0:
+            ch = text[k]
             if ch == "(":
-                depth += 1
+                depth += 1; buf += ch
             elif ch == ")":
                 depth -= 1
                 if depth == 0:
                     break
+                buf += ch
             elif ch == "," and depth == 1:
-                commas += 1
-        if commas >= 1:  # 2+ args
-            out.append((rel, i, s[:90],
-                        "abi.encodePacked(2+ args) in a hash -> verify no two ADJACENT dynamic "
-                        "(string/bytes/array) args (hash collision); use abi.encode if so", 1))
+                parts.append(buf); buf = ""
+            else:
+                buf += ch
+            k += 1
+        parts.append(buf)
+        if len(parts) < 2:
+            continue
+        # only a BARE identifier (the whole array/bytes) is dynamic; `arr[i]` (one element), `a.b`, `f(x)`,
+        # and literals are NOT -- this kills the `encodePacked(leaves[0], leaves[1])` Merkle-element FP.
+        args = [(re.match(r"\s*([A-Za-z_]\w*)\s*$", p) or [None, ""])[1] for p in parts]
+        fs = text.rfind("function ", 0, m.start())
+        scope = text[fs:m.start()] if fs >= 0 else text[:m.start()]
+        dyn = [_is_dynamic_param(a, scope) for a in args]
+        ln = lineno(text, m.start())
+        if any(dyn[i] and dyn[i + 1] for i in range(len(dyn) - 1)):  # 2+ ADJACENT dynamic params = the collision
+            out.append((rel, ln, "keccak256(abi.encodePacked(...,DYN,DYN,...))",
+                        "2+ ADJACENT DYNAMIC args (array/bytes/string PARAMS) in a hashed/signed abi.encodePacked -> "
+                        "the boundary is ambiguous: a player re-partitions the input to the SAME hash -> signature/"
+                        "commitment collision (Gigaverse ImportExport itemIds||itemAmounts -> item over-mint). Use "
+                        "abi.encode (length-prefixed) or EIP-712 typed data.", 0))
+        else:
+            out.append((rel, ln, "keccak256(abi.encodePacked(2+ args))",
+                        "abi.encodePacked(2+ args) in a hash -> verify no two ADJACENT dynamic (string/bytes/array) "
+                        "args (hash collision); use abi.encode if so", 1))
     return out
 
 

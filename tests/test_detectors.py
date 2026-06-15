@@ -551,6 +551,13 @@ check(not flagged(recon.det_encodepacked, "contract C{function f(string a) exter
       "det_encodepacked guard: single-arg encodePacked NOT flagged (no collision)")
 check(not flagged(recon.det_encodepacked, "contract C{function f(string a,string b) external { x = abi.encodePacked(a, b); }}"),
       "det_encodepacked guard: encodePacked NOT in a hash context NOT flagged")
+# precision harvest (Gigaverse): 2+ ADJACENT DYNAMIC array params -> HIGH [!]; all-fixed args stay low [.]
+_ep_hi = recon.det_encodepacked("contract C{function exp(address p,uint256[] calldata ids,uint256[] calldata amts,uint256 n) external { bytes32 h=keccak256(abi.encodePacked(p,ids,amts,n)); }}", "x.sol")
+check(bool(_ep_hi) and _ep_hi[0][4] == 0,
+      "det_encodepacked: 2+ ADJACENT dynamic array params in a hash -> HIGH [!] (Gigaverse ImportExport collision)")
+_ep_lo = recon.det_encodepacked("contract C{function permit(address owner,address spender,uint256 value,uint256 nonce) external { bytes32 h=keccak256(abi.encodePacked(owner,spender,value,nonce)); }}", "x.sol")
+check(bool(_ep_lo) and _ep_lo[0][4] == 1,
+      "det_encodepacked: all-fixed args (permit-shape) stay low [.] (no adjacent dynamic -> no collision)")
 check(flagged(recon.det_feeontransfer, "contract C{function deposit(uint a) external { token.transferFrom(msg.sender, address(this), a); bal[msg.sender]+=a; }}"),
       "det_feeontransfer: transferFrom to address(this) + no balance-delta flagged")
 check(not flagged(recon.det_feeontransfer, "contract C{function deposit(uint a) external { uint b0=token.balanceOf(address(this)); token.transferFrom(msg.sender,address(this),a); uint d=token.balanceOf(address(this))-b0; bal[msg.sender]+=d; }}"),
