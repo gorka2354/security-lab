@@ -12,6 +12,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "AccountSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "AccountSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "wontfix",
+      "reason": "[PARK/gigaverse-systems] ",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "Alvara|(fanout)|fanout|fanout triage: basket-fund (claimed) \u2014 actually a single-file ERC20 token stub",
       "target": "Alvara",
       "file": "(fanout)",
@@ -54,6 +65,39 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "GigaJuiceSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "GigaJuiceSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/gigaverse-systems] ",
+      "date": "2026-06-15"
+    },
+    {
+      "sig": "ImportExportSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "ImportExportSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/gigaverse-systems] ",
+      "date": "2026-06-15"
+    },
+    {
+      "sig": "ItemMarketSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "ItemMarketSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "wontfix",
+      "reason": "[PARK/gigaverse-systems] ",
+      "date": "2026-06-15"
     },
     {
       "sig": "K613|(fanout)|fanout|fanout triage: staking / rewards-distributor / token-sale (mislabeled as lending)",
@@ -122,6 +166,17 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "PetRacingSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "PetRacingSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "wontfix",
+      "reason": "[PARK/gigaverse-systems] ",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)|(fanout)|fanout|fanout triage: -",
       "target": "R25 / Lazy Protocol -- LazyUSDVault (rcPC USDC async vault)",
       "file": "(fanout)",
@@ -133,6 +188,28 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "RandomSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "RandomSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "wontfix",
+      "reason": "[PARK/gigaverse-systems] ",
+      "date": "2026-06-15"
+    },
+    {
+      "sig": "RedeemSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "RedeemSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "todo",
+      "reason": "[DIG/gigaverse-systems] ",
+      "date": "2026-06-15"
+    },
+    {
       "sig": "Tizi|(fanout)|fanout|fanout triage: yield-aggregator (cross-chain USDC-backed stablecoin TD + ERC4626 stTD staking, hub-and-spoke on Base)",
       "target": "Tizi",
       "file": "(fanout)",
@@ -142,6 +219,17 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "VendorSystem|(fanout)|fanout|fanout triage: gamefi",
+      "target": "VendorSystem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: gamefi",
+      "verdict": "wontfix",
+      "reason": "[PARK/gigaverse-systems] ",
+      "date": "2026-06-15"
     },
     {
       "sig": "acre|solidity/contracts/stBTC.sol|supply|function burnReceipt(uint256 amount) -> repayDebt()",
@@ -559,6 +647,39 @@
       "snippet": "fanout triage: prediction",
       "verdict": "wontfix",
       "reason": "[PARK/abstract] The only gacha-resolvable LIVE contract is Weapon721 (S2, ACTIVE, totalSupply=14580) -- a clean 240-line Solady/ERC721A NFT: mint() gated by _ROLE_0, manualMint() onlyOwner, rarity written externally via setMetadata (_ROLE_0). NO on-chain RNG i",
+      "date": "2026-06-15"
+    },
+    {
+      "sig": "gigaverse|ImportExportSystem.sol:100|signature|",
+      "target": "gigaverse",
+      "file": "ImportExportSystem.sol:100",
+      "line": 100,
+      "detector": "signature",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "PoC-PROVEN: abi.encodePacked(player,itemIds,itemAmounts,nonce) signature collision -- two adjacent unbounded uint256[] re-partition to the SAME digest, and _exportItemsFromGame has NO ids.length==amts.length check (loops ids.length, indexes amts[i]) -> a backend export sig for [100,717],[5,3] is replayable as [100],[717,5,3] -> mints 717 of item #100 (143x over-mint). gigaverse-poc/ 2/2. LIVE on Abstract (0xE1De5a..., 133KB, active). Gate: confirm signer signs len>=2 batches. Also: sig omits chainid/address (cross-deploy replay, Med); RedeemSystem unbound-dealId (Med, on-chain confirmed deals 2vs3 0.80vs0.95 USDC). Detector debt: det_signature missed isValidSignatureNow + encodePacked-adjacent-arrays.",
+      "date": "2026-06-15"
+    },
+    {
+      "sig": "gigaverse-PetRacingSystem-0x0BA76CFC|src/gigaverse/petRacing/PetRacingSystem.sol|gamefi-rng-outcome|",
+      "target": "gigaverse-PetRacingSystem-0x0BA76CFC",
+      "file": "src/gigaverse/petRacing/PetRacingSystem.sol",
+      "line": 558,
+      "detector": "gamefi-rng-outcome",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Abstract 2741 LIVE racing RPG. Race ranking + jackpot randomSeed fully OFF-CHAIN via trusted RACE_RESOLVER_ROLE (docstring L206-209 + RaceTypes L38-44). No player RNG-grind/revert-on-loss/VRF-retry (player never supplies entropy nor calls resolveRace). Economics solvency-safe: eligibleJackpot pre-cut snapshot + winnableBps<=100% (no underflow), withdraw respects getTotalLiabilities, claims CEI+nonReentrant+claimed-marker. Residual = resolver trust = documented/accepted centralization (not a finding). recon claimReward-ungated + 3x reward-accounting flags = FP (entrant-bound pull, marker before transfer).",
+      "date": "2026-06-15"
+    },
+    {
+      "sig": "gigaverse-RandomSystem-2741-0x7b5b22e9|src/gigaverse/randomSystem/RandomSystem.sol|det_weak_random|",
+      "target": "gigaverse-RandomSystem-2741-0x7b5b22e9",
+      "file": "src/gigaverse/randomSystem/RandomSystem.sol",
+      "line": 64,
+      "detector": "det_weak_random",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "RNG=off-chain ProofOfPlay VRF (VRFSystem 0xbdc8b6eb->0x629a6b9f), not block-based. Not grindable: request/keeper-delivery are separate txs (no observe-and-revert); requestId single-use (delete callbacks[id]+InvalidRequestId)->no re-roll; randomNumberCallback gated to VRF proxy; deliverRandomNumber gated VRF_SYSTEM_ROLE (40/40 live). getVrfSystemAddress non-zero->NO zero/PublicRandomSystem fallback. deliverSignedRandomNumber permissionless but needs VRF_SYSTEM_ROLE EIP712 sig (unused on-chain). Residual: storage-only callback reveal-gap lives in CONSUMER systems (out of scope here). PARK.",
       "date": "2026-06-15"
     },
     {
