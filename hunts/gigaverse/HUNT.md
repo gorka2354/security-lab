@@ -36,11 +36,21 @@ Faithful verbatim reimplementation of the digest + the no-equal-length mint loop
   signs only the legit split; the attacker's re-split verifies with that signature and mints **717 of item #100**, **0 of #717**.
 - `test_LegitSplit_MintsIntended` (control): the legit split mints exactly 5 of #100, 3 of #717.
 
-### Exploitability gate (honest)
-Conditional on the **backend signer ever signing a multi-item (len>=2) export** — natural for an inventory game,
-but to be CONFIRMED by decoding a real `exportItemsFromGame` tx from the live signer. A len-1 export can only
-re-split to an empty array (no mint) → inert. Also: the signed digest omits `chainid`/`address(this)` (a second,
-Medium cross-deployment-replay lead). Severity: **High if the signer signs len>=2 batches** (item over-mint on a live game).
+### Exploitability gate — CONFIRMED on-chain + HONEST bounded severity
+Decoded 3 real `exportItemsFromGame` (selector `0x59b43fc6`) txs from the live signer (Etherscan-v2 txlist + raw
+`eth_getTransactionByHash`):
+- tx `0x842f79…`: **itemIds=[4,21,76,83,7], itemAmounts=[72,19,18,3,33]** — a real **len-5 batch** ✓
+- tx `0xe36b48…`: `[616],[700]` · tx `0x686fdf…`: `[615],[2000]` (len-1)
+So the **gate is CONFIRMED**: the signer signs len>=2 batches → the collision is exploitable on the live contract.
+
+**Honest impact bound:** the attacker can only RE-SHUFFLE the SIGNED words (cannot conjure a new large value) — they
+re-partition to concentrate the batch's largest word as the amount of a chosen item. For the real len-5 batch, the
+attack `ids=[4,21,76,83], amts=[7,72,19,18,3,33]` mints **72 of item #21 (vs the intended 19, +279%)** and drops #7.
+Max amount on any one item == the largest word in that signed batch (here 83; single-item exports showed 700 / 2000,
+so a multi-item batch pairing a large amount with a rare item could mint up to that of the rare item). So this is a
+**confirmed Medium** — item mis-assignment / bounded over-mint of a live, tradeable item economy (Gigaverse Items /
+ROMS / Giglings have OpenSea markets) — NOT a catastrophic unbounded mint (the illustrative 717x needs a large word
+in the batch). Second lead: the digest also omits `chainid`/`address(this)` → cross-deployment replay (Medium).
 
 ## Secondary (on-chain CONFIRMED, Medium) — RedeemSystem unbound-dealId reward inflation
 `RedeemSystem` `0xE855...`: the backend sig binds `(player,itemId,amount,nonce)` but NOT `dealId`. On-chain deals 2
@@ -52,7 +62,17 @@ recon's `det_signature` MISSED both: it keys on raw `ecrecover` and did not flag
 nor the **`keccak256(abi.encodePacked(...))` with >=2 adjacent dynamic arrays** hash-collision pattern. Both are
 clean T0/T1 extensions worth harvesting (unlike split-brain, this IS regex-catchable).
 
-## Verdict / disposition
-A real, PoC-proven, code-level item-over-mint on a LIVE, ACTIVE, a16z/Proof-of-Play-backed game — the strongest
-GameFi find of the session. Disposition: confirm the len>=2 signer behavior on-chain, then (Gigaverse/Proof of Play
-likely run a bug-bounty — CHECK scope) draft a responsible disclosure with the PoC. egor sends. White-hat, read-only.
+## Verdict / disposition (steps 1-2 done)
+A real, PoC-proven (3/3), **gate-CONFIRMED** (live len-5 export batches signed) item mis-assignment / bounded
+over-mint on a LIVE, ACTIVE, a16z/Proof-of-Play-backed game — the strongest GameFi find of the session. Honest
+severity: **Medium** (impact bounded by the signed batch's word magnitudes; tradeable item economy). **Scope: NO
+public bug-bounty** (no Immunefi listing, no SECURITY.md on proofofplay/gigaverse-games/GLHFers, no disclosure page
+in docs) → no reward; the white-hat move is a **goodwill responsible disclosure** to the team (egor sends via their
+Discord/contact) with the PoC + the honest bounded-severity framing. Recommended fix: bind the signature to a
+hashed-struct (EIP-712 with explicit field types incl. array lengths) or `abi.encode` (length-prefixed) instead of
+`abi.encodePacked`, and add `require(itemIds.length == itemAmounts.length)` + chainid/address(this) in the digest.
+
+## Engine win (step 3) — the lasting deliverable regardless of disclosure
+Harvest `det_signature` to catch this class (det debt above): `keccak256(abi.encodePacked(...))` over >=2 adjacent
+dynamic arrays used as a SIGNED message = a hash-collision primitive. T0/T1-catchable → a clean detector + golden,
+TP-grounded on this exact live Gigaverse code.

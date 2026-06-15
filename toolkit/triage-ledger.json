@@ -657,7 +657,7 @@
       "detector": "signature",
       "snippet": "",
       "verdict": "todo",
-      "reason": "PoC-PROVEN: abi.encodePacked(player,itemIds,itemAmounts,nonce) signature collision -- two adjacent unbounded uint256[] re-partition to the SAME digest, and _exportItemsFromGame has NO ids.length==amts.length check (loops ids.length, indexes amts[i]) -> a backend export sig for [100,717],[5,3] is replayable as [100],[717,5,3] -> mints 717 of item #100 (143x over-mint). gigaverse-poc/ 2/2. LIVE on Abstract (0xE1De5a..., 133KB, active). Gate: confirm signer signs len>=2 batches. Also: sig omits chainid/address (cross-deploy replay, Med); RedeemSystem unbound-dealId (Med, on-chain confirmed deals 2vs3 0.80vs0.95 USDC). Detector debt: det_signature missed isValidSignatureNow + encodePacked-adjacent-arrays.",
+      "reason": "PoC-PROVEN + GATE CONFIRMED on-chain: encodePacked(player,ids,amts,nonce) collision; _exportItemsFromGame has no len-equality check. Decoded real export txs (sel 0x59b43fc6): tx 0x842f79 = LEN-5 batch [4,21,76,83,7],[72,19,18,3,33] -> signer signs len>=2 -> exploitable. HONEST severity Medium: attacker only re-shuffles SIGNED words (concentrate largest word onto a chosen item, e.g. 72 of #21 vs 19); bounded by batch word magnitudes (700/2000 seen in single exports). Tradeable items (OpenSea). NO bounty (no Immunefi/SECURITY.md) -> goodwill disclosure. gigaverse-poc/ 3/3. Detector debt: det_signature misses encodePacked-adjacent-arrays + isValidSignatureNow.",
       "date": "2026-06-15"
     },
     {
