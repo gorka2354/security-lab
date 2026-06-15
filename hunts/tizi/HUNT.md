@@ -26,6 +26,12 @@ simultaneously dropped by w** (double solvency hit). Repeatable each rebase; an 
 `nftQueueUSDC += w` term — only the **liquid** path lacks the compensator. (`TiziDollar.sol:119/133/172-198`.)
 WHO: any stTD holder watching the admin's `updateYield` in the mempool. Severity: **High if deployed + mempool-visible.**
 
+**PROVEN (Foundry PoC, `tizi-poc/`):** a faithful verbatim-arithmetic reimplementation of `updateYield` + the
+two withdrawal paths. `forge test`: start solvent (1000 USDC / 1000 TD) → attacker liquid-withdraws 100 TD before
+`updateYield` → **100 TD phantom yield minted to stTD, backing = 900 USDC, supply = 1000 TD → INSOLVENT**. The
+NFT-path control mints **zero** phantom (compensated). Fuzz (256 runs): phantom == the withdrawn `w` exactly, and
+backing drops by exactly `w`. 3/3 pass. → "confirmed by reading" is now "proven by running".
+
 ### 2. weakest-adapter NAV replay — High (conditional on Axelar live)
 `MainTokenStats.updateFromStructs` is reachable from `MainTokenLayerZero._lzReceive` (nonce + deadline +
 `targetContract==this`) **and** `MainTokenAxelar._execute` (NO nonce, NO deadline, NO source check) **and**
