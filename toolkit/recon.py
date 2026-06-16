@@ -647,33 +647,57 @@ def det_unchecked(text, rel):
     return out
 
 
-# ── Detector 10: ERC4626 first-depositor inflation ──
+# ── Detector 10: ERC4626 first-depositor inflation (+ bespoke share-vault flavor, ThetaNuts class) ──
+# A deposit side `assets * totalSupply / backing` paired with a redeem side `backing * amount /
+# totalSupply` is the SAME first-depositor/donation inflation surface even with NO ERC4626 interface
+# (ThetaNuts legacy Index Vault, $2.1M, 2026-06). Require BOTH shapes so pure staking reward math
+# (`reward * 1e18 / totalSupply` alone, no `* totalSupply /` side) does not trip it. The `\)?` lets
+# the parenthesised forms `(assets * totalSupply) / x` / `(backing() * amount) / totalSupply` match.
+SHARE_MINT_SHAPE = re.compile(r"\*\s*totalSupply\s*\)?\s*/")
+SHARE_REDEEM_SHAPE = re.compile(r"\*\s*\w+\s*\)?\s*/\s*totalSupply\b")
+
+
 def det_erc4626(text, rel):
     """ERC4626 vaults can be hit by the first-depositor 'inflation attack': the
     attacker mints 1 wei of shares, donates assets to skew the share price, and
     later deposits round down to 0 shares (stolen). Mitigations: override
     _decimalsOffset() (OZ virtual shares) or seed dead shares / a minimum. Flag
-    vaults with none -> verify by hand."""
-    if not re.search(r"\bERC4626\b", text):
+    vaults with none -> verify by hand. ALSO catches the BESPOKE (pre-ERC4626, no
+    interface) flavor -- the ThetaNuts legacy Index Vault $2.1M class -- which the
+    literal-ERC4626 gate used to miss."""
+    iface = bool(re.search(r"\bERC4626\b", text))
+    bespoke = bool(SHARE_MINT_SHAPE.search(text) and SHARE_REDEEM_SHAPE.search(text))
+    if not (iface or bespoke):
         return []
     protected = bool(re.search(
-        r"_decimalsOffset|MINIMUM_(SHARES|LIQUIDITY|DEPOSIT)|"
+        r"_decimalsOffset|MINIMUM_(SHARES|LIQUIDITY|DEPOSIT)|virtual_?(shares|assets)|"
         r"_mint\s*\(\s*(address\(0|0x0|0xdead|DEAD|address\(this)", text, re.I))
     if protected:
         return []
-    m = re.search(r"\bcontract\s+(\w+)", text)
+    # require the name be followed by `is` or `{` so prose like "the contract is unverified" in a
+    # comment doesn't get picked up as the contract name.
+    m = re.search(r"\bcontract\s+(\w+)\s*(?:is\b|\{)", text) or re.search(r"\bcontract\s+(\w+)", text)
     name = m.group(1) if m else "?"
-    # fix#20: totalAssets() reading balanceOf(address(this)) (no internal accounting) means a
-    # DIRECT donation moves the share price -> the dStake flavor; sharper than the generic lead.
+    # fix#20: totalAssets()/backing() reading balanceOf(address(this)) (no internal accounting) means a
+    # DIRECT donation moves the share price -> the dStake/ThetaNuts flavor; sharper than the generic lead.
     balance_based = bool(re.search(
-        r"function\s+totalAssets\b[\s\S]{0,240}?\.balanceOf\s*\(\s*address\s*\(\s*this", text))
-    note = ("ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
-            "first-depositor inflation attack? (verify by hand)")
-    if balance_based:
-        note = ("ERC4626 vault: no _decimalsOffset/dead-shares AND totalAssets() is balance-based "
-                "(.balanceOf(this)) -> a direct donation moves the share price (dStake flavor); "
-                "verify the empty-vault window (fix#20)")
-    return [(rel, lineno(text, m.start()) if m else 1, f"contract {name} (ERC4626)", note, 0)]
+        r"function\s+(totalAssets|backing)\b[\s\S]{0,240}?\.balanceOf\s*\(\s*address\s*\(\s*this", text))
+    if iface:
+        note = ("ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
+                "first-depositor inflation attack? (verify by hand)")
+        if balance_based:
+            note = ("ERC4626 vault: no _decimalsOffset/dead-shares AND totalAssets() is balance-based "
+                    "(.balanceOf(this)) -> a direct donation moves the share price (dStake flavor); "
+                    "verify the empty-vault window (fix#20)")
+        label = f"contract {name} (ERC4626)"
+    else:
+        note = ("bespoke share vault: deposit `assets*totalSupply/backing` + redeem "
+                "`backing*amount/totalSupply`, NO dead-shares/min-supply guard -> round-to-zero deposit "
+                "+ inflated redeem (ThetaNuts legacy Index Vault $2.1M class); verify donation/empty-vault window")
+        if balance_based:
+            note += " [backing is balance-based -> a flash-loan donation moves the share price]"
+        label = f"contract {name} (bespoke share vault)"
+    return [(rel, lineno(text, m.start()) if m else 1, label, note, 0)]
 
 
 # ── Detector: custom-vault share-price rounding (Thetanuts $2.1M, non-ERC4626) ──

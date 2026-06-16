@@ -492,6 +492,20 @@ check(not flagged(recon.det_erc4626, "contract V is ERC4626 { function _decimals
       "ERC4626 with _decimalsOffset NOT flagged (mitigation)")
 check(flagged(recon.det_erc4626, "contract V is ERC4626 { function totalAssets() public view returns(uint){ return _internalBal; } }"),
       "unprotected ERC4626 with internal-accounting totalAssets still flagged (generic note)")
+# bespoke (no-interface) share vault -- the ThetaNuts legacy Index Vault $2.1M class (2026-06)
+_tn = recon.det_erc4626(
+    "contract IndexVault { uint256 totalSupply; function backing() public view returns(uint){return t.balanceOf(address(this));}"
+    " function deposit(uint256 a) external { uint256 s = (a * totalSupply) / backing(); }"
+    " function redeem(uint256 amt) external { uint256 p = (backing() * amt) / totalSupply; } }", "src/IndexVault.sol")
+check(bool(_tn) and "ThetaNuts" in _tn[0][3] and "balance-based" in _tn[0][3],
+      "bespoke share vault (deposit *totalSupply/backing + redeem *amt/totalSupply, no guard, balance-based) -> flagged (ThetaNuts class)")
+check(not flagged(recon.det_erc4626,
+      "contract Staking { uint256 totalSupply; function rewardPerToken() public view returns(uint){ return stored + (rate * 1e18 / totalSupply); } }"),
+      "staking reward math (only the / totalSupply side, no * totalSupply / mint side) NOT flagged (no bespoke-vault FP)")
+check(not flagged(recon.det_erc4626,
+      "contract V { uint256 totalSupply; uint256 constant MINIMUM_SHARES=1e3; function deposit(uint256 a) external { uint256 s=(a*totalSupply)/backing(); }"
+      " function redeem(uint256 amt) external { uint256 p=(backing()*amt)/totalSupply; } }"),
+      "bespoke share vault WITH MINIMUM_SHARES dead-shares guard NOT flagged (mitigation)")
 
 print("== det_reward (pattern 03: double-claim / late marker) ==")
 check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),
