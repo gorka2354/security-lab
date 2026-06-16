@@ -275,7 +275,11 @@ INVARIANT_MENU = [
         "accrual-before-param-change: setRate/setFee/setRewardRate calls accrue()/sync() FIRST (else retroactive over/under-distribution)",
         "withdrawal-queue rate lock: rate at request-time == rate at fulfillment-time (else arb; Lagoon/RockSolid)",
         "liquidation: liquidator_profit>0 at the threshold (else silent bad debt); bad-debt socialized BEFORE the liquidator bonus is paid (ordering)",
-        "first/last-mover: first depositor can't inflate share price (virtual shares); last exiter not bricked by rounding (Ledgity)",
+        "first/last-mover share inflation: first depositor can't inflate share price (virtual/dead shares); a deposit "
+        "can't round to ZERO shares (silent loss); backing read as balanceOf(this)/address(this).balance is "
+        "donation-skewable (flashloan/selfdestruct) -- REACHABLE even when the proportional mint/redeem math is hidden "
+        "behind a mulDiv/convertToShares helper or split across functions (the variants det_erc4626's syntactic shape "
+        "MISSES); last exiter not bricked by rounding (Ledgity / ThetaNuts $2.1M legacy Index Vault)",
         "price-source consistency: liquidation and settlement use the SAME price (no mark-vs-index split); fee-path parity (no cheaper bypass)",
         "stale-solvency-check: health is recomputed on FRESH POST-mutation state after EVERY borrow/withdraw/decrease -- debt <= collateral*LTV must hold AFTER the change, not on a pre-mutation snapshot (Sharwa/Unilend/MIMSpell, 2025's dominant class)",
         "read-only-reentrancy: a consumer reading get_virtual_price/getRate/getUserAccountData while the SOURCE pool is mid-callback gets a desynced price -- use the pool's reentrancy-safe view / VaultReentrancyLib (Sturdy/Conic/dForce/Sentiment)",
