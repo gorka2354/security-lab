@@ -15,6 +15,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "toolkit"))
 import recon  # noqa: E402
 import ledger  # noqa: E402
+import reach_bytecode  # noqa: E402
 
 _p, _f = 0, 0
 
@@ -516,6 +517,15 @@ _eth = recon.det_erc4626(
       " function redeem(uint256 amt) external { uint256 p=address(this).balance*amt/totalSupply; } }", "src/V.sol")
 check(bool(_eth) and "native-ETH" in _eth[0][3],
       "NATIVE-ETH vault (address(this).balance, not an ERC20) flagged + native-ETH donation note (asset-agnostic)")
+# reach_bytecode (unverified-fallback): opcode-aware PUSH4 selector extraction -- the ThetaNuts reach response
+print("== reach_bytecode (unverified-fallback selector extraction) ==")
+# DUP1 PUSH4 b6b55f25 EQ PUSH2 0042 JUMPI, then a PUSH32 whose 32-byte immediate CONTAINS a
+# look-alike PUSH4 -> the opcode-aware walk must skip it (a naive regex would double-count).
+_disp = "0x8063b6b55f251461004257" + "7f63b6b55f25" + "00" * 27
+check(reach_bytecode.extract_selectors(_disp) == ["b6b55f25"],
+      "reach_bytecode.extract_selectors: finds the real PUSH4 dispatcher selector, skips the PUSH32 immediate")
+check(reach_bytecode.STRONG_VAULT.search("deposit(uint256)") and not reach_bytecode.STRONG_VAULT.search("mint(uint256)"),
+      "reach_bytecode: deposit = strong share-conversion surface, mint alone = not (plain mintable token)")
 
 print("== det_reward (pattern 03: double-claim / late marker) ==")
 check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),

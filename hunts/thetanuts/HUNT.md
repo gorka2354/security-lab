@@ -45,7 +45,20 @@ keeps pure staking math (`reward*1e18/totalSupply` alone) from tripping it. TP-g
 reconstruction (fires `[!]`), **0 FP across the 29-target fetched corpus**, golden 353->356
 (TP + staking-negative + guarded-negative). Now: IF we reach a similar bespoke vault's source, we flag it.
 
+## Reach-extender harvest (`toolkit/reach_bytecode.py`) -- partially closes the dominant gate
+The reach gap (Gate 1) is the harder one, so I built the first response: when `fetch_source` returns "no verified
+source", `reach_bytecode.py` reads the deployed BYTECODE (`eth_getCode`, works for ANY address), recovers the
+function-dispatcher SELECTORS (opcode-aware PUSH4 walk), resolves them to signatures (4byte.directory; openchain if
+reachable; an offline ERC20/4626 map), and triages the surface (vault/share? mint/redeem? owner-drain?).
+**Ground-truth on the actual unverified victim `0xC2C3AE0a`:** recovered **36/50 signatures** from raw bytecode --
+`deposit/withdraw/initWithdraw/epoch` (withdrawal queue), `mint/claim/mintFee`, `rebalance/vaults/totalWeight/sync`,
+Aave integration (`getLendingPool/setAaveAddressProvider`) -- and correctly fired **`[!] UNVERIFIED but
+VAULT-SHAPED -> share-inflation review warranted`**. So ThetaNuts would NO LONGER be invisible: the triage surfaces
+it. `fetch_source` now prints the `reach_bytecode` fallback hint on any unverified miss. golden 358->360.
+
 ## Takeaway
 The engine had the right INSTINCT (this class was already a detector) but was **too narrowly keyed** to the
-ERC4626 interface, and -- more fundamentally -- **couldn't reach** an unverified deprecated deployment. The
-detector gap is closed; the reach gap (unverified live legacy code) is the harder, named-but-open blind spot.
+ERC4626 interface (detector gap -- closed) and **couldn't reach** an unverified deprecated deployment (reach gap --
+now PARTIALLY closed: `reach_bytecode` recovers the function SURFACE + triages vault-shape from bytecode). The
+remaining open frontier is bytecode **MATH** detection (the round-to-zero itself) -- that needs decompilation
+(heimdall/Dedaub), the next layer up.

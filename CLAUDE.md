@@ -96,6 +96,10 @@
   алертит на свежий контест ДАЖЕ при закрытом Claude → хантим первыми). Сектор расширен на GameFi/гэмблинг/лотереи/предикшн.
 - **REACH:** `fetch_source.py` (verified-source по адресу через **Etherscan-v2** — ключ в env (setx, persistent) →
   ВСЕ 64 chains вкл. Abstract/Mantle/Sonic/HyperEVM/zkSync) + **DefiLlama-Adapters** как источник CORE-адресов.
+  `reach_bytecode.py` — **UNVERIFIED-fallback** (урок ThetaNuts): source нет → тянем `eth_getCode`, восстанавливаем
+  селекторы из диспетчера (opcode-aware) → резолв в сигнатуры (4byte; openchain если доступен; offline-карта ERC20/4626)
+  → триаж surface (vault/share? mint/redeem? owner-drain?). Ground-truth: восстановил 36/50 сигнатур ThetaNuts из
+  голого байткода → `[!] vault-shaped`. ПОТОЛОК: видим surface, не math (round-to-zero нужен decompile).
 - **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф
   дрейфа + audited-ли? → роутер (drift / out-of-scope / economic / greenfield). LIVE-FIRST.
 - **DETECT:** `recon.py` (**45 детекторов**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс, `det_self_transfer`/

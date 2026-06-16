@@ -152,6 +152,8 @@ def main():
     if not files:
         print(f"[!] no verified source for {address} on chain {a.chain} "
               f"({'set ETHERSCAN_API_KEY for full coverage' if not key else 'unverified / not on Sourcify'})")
+        print(f"    -> reach fallback (ThetaNuts lesson): python toolkit/reach_bytecode.py {address} {a.chain}"
+              f"  # recover the function surface from BYTECODE + triage vault/share shape")
         return
 
     nsol = 0
