@@ -9,13 +9,13 @@ pragma solidity ^0.8.20;
 ///   - deposit/mint:  shares = assets * totalSupply / backing          ("the deposit formula
 ///                    evaluated to 0 due to rounding during integer division" -> SlowMist)
 ///   - backing is BALANCE-BASED (vault's own backing-token balance) -> donatable via flash loan
-///   - NO minimum-supply / dead-shares / virtual-offset guard (the ERC4626 mitigations)
+///   - NO minimum-supply / dead-shares / virtual-offset guard (the standard share-vault mitigations)
 ///
 /// Net: an attacker who is the (near-)sole holder donates a flash-loaned amount to spike `backing`,
 /// which (a) makes a victim's deposit round to ZERO shares (their assets are absorbed) and
 /// (b) inflates the attacker's redeem payout to the whole pool. Repeated mint/redeem cycles,
-/// amplified by flash loans, drain it. This is the SAME economic class as the ERC4626
-/// first-depositor inflation attack -- but in a BESPOKE pre-ERC4626 index vault with NO `ERC4626`
+/// amplified by flash loans, drain it. This is the SAME economic class as the standard
+/// first-depositor inflation attack -- but in a BESPOKE index vault with NO standard vault
 /// interface anywhere, which is exactly why a detector keyed on the literal type misses it.
 contract IndexVaultModel {
     IERC20 public immutable backingToken; // e.g. USDC
@@ -55,49 +55,6 @@ contract IndexVaultModel {
     function redeem(uint256 amount) external returns (uint256 payout) {
         require(balanceOf[msg.sender] >= amount, "bal");
         payout = (backing() * amount) / totalSupply; // confirmed formula
-        totalSupply -= amount;
-        balanceOf[msg.sender] -= amount;
-        require(backingToken.transfer(msg.sender, payout), "send");
-    }
-}
-
-/// Same vault WITH the standard mitigation (dead-shares minimum) -> the attack fails. Control.
-contract IndexVaultGuarded {
-    IERC20 public immutable backingToken;
-    uint256 public totalSupply;
-    mapping(address => uint256) public balanceOf;
-    uint256 constant MINIMUM_SHARES = 1e3; // seeded dead shares burned to address(0) on bootstrap
-
-    constructor(IERC20 _backing) {
-        backingToken = _backing;
-    }
-
-    function backing() public view returns (uint256) {
-        return backingToken.balanceOf(address(this));
-    }
-
-    function deposit(uint256 assets) external returns (uint256 shares) {
-        uint256 back = backing();
-        if (totalSupply == 0) {
-            shares = assets;
-            // FIX: burn MINIMUM_SHARES to address(0) so totalSupply can never be driven to 1 and
-            // `back` can't be donation-skewed past the dead-share floor.
-            require(shares > MINIMUM_SHARES, "min");
-            balanceOf[address(0)] += MINIMUM_SHARES;
-            totalSupply += MINIMUM_SHARES;
-            shares -= MINIMUM_SHARES;
-        } else {
-            shares = (assets * totalSupply) / back;
-            require(shares > 0, "zero-shares"); // FIX: reject round-to-zero deposits
-        }
-        require(backingToken.transferFrom(msg.sender, address(this), assets), "pay");
-        totalSupply += shares;
-        balanceOf[msg.sender] += shares;
-    }
-
-    function redeem(uint256 amount) external returns (uint256 payout) {
-        require(balanceOf[msg.sender] >= amount, "bal");
-        payout = (backing() * amount) / totalSupply;
         totalSupply -= amount;
         balanceOf[msg.sender] -= amount;
         require(backingToken.transfer(msg.sender, payout), "send");
