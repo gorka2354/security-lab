@@ -506,6 +506,16 @@ check(not flagged(recon.det_erc4626,
       "contract V { uint256 totalSupply; uint256 constant MINIMUM_SHARES=1e3; function deposit(uint256 a) external { uint256 s=(a*totalSupply)/backing(); }"
       " function redeem(uint256 amt) external { uint256 p=(backing()*amt)/totalSupply; } }"),
       "bespoke share vault WITH MINIMUM_SHARES dead-shares guard NOT flagged (mitigation)")
+# universality: keys on the share MATH SHAPE, not a single var name or asset type
+check(flagged(recon.det_erc4626,
+      "contract V { uint256 totalShares; function deposit(uint256 a) external { uint256 s=a*totalShares/backing(); }"
+      " function redeem(uint256 amt) external { uint256 p=backing()*amt/totalShares; } }"),
+      "bespoke vault with RENAMED supply var (totalShares) still flagged (shape, not name)")
+_eth = recon.det_erc4626(
+      "contract V { uint256 totalSupply; function deposit() external payable { uint256 s=msg.value*totalSupply/address(this).balance; }"
+      " function redeem(uint256 amt) external { uint256 p=address(this).balance*amt/totalSupply; } }", "src/V.sol")
+check(bool(_eth) and "native-ETH" in _eth[0][3],
+      "NATIVE-ETH vault (address(this).balance, not an ERC20) flagged + native-ETH donation note (asset-agnostic)")
 
 print("== det_reward (pattern 03: double-claim / late marker) ==")
 check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),

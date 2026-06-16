@@ -653,8 +653,11 @@ def det_unchecked(text, rel):
 # (ThetaNuts legacy Index Vault, $2.1M, 2026-06). Require BOTH shapes so pure staking reward math
 # (`reward * 1e18 / totalSupply` alone, no `* totalSupply /` side) does not trip it. The `\)?` lets
 # the parenthesised forms `(assets * totalSupply) / x` / `(backing() * amount) / totalSupply` match.
-SHARE_MINT_SHAPE = re.compile(r"\*\s*totalSupply\s*\)?\s*/")
-SHARE_REDEEM_SHAPE = re.compile(r"\*\s*\w+\s*\)?\s*/\s*totalSupply\b")
+# share-supply var synonyms: totalSupply / _totalSupply / totalShares / _totalShares -> the detector
+# keys on the share MATH SHAPE, not a single variable name, so renamed-supply vaults still match.
+_SS = r"_?total(?:Supply|Shares)"
+SHARE_MINT_SHAPE = re.compile(r"\*\s*" + _SS + r"\s*\)?\s*/")
+SHARE_REDEEM_SHAPE = re.compile(r"\*\s*\w+\s*\)?\s*/\s*" + _SS + r"\b")
 
 
 def det_erc4626(text, rel):
@@ -682,6 +685,7 @@ def det_erc4626(text, rel):
     # DIRECT donation moves the share price -> the dStake/ThetaNuts flavor; sharper than the generic lead.
     balance_based = bool(re.search(
         r"function\s+(totalAssets|backing)\b[\s\S]{0,240}?\.balanceOf\s*\(\s*address\s*\(\s*this", text))
+    native_eth = bool(re.search(r"address\s*\(\s*this\s*\)\s*\.balance\b", text))
     if iface:
         note = ("ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
                 "first-depositor inflation attack? (verify by hand)")
@@ -696,6 +700,8 @@ def det_erc4626(text, rel):
                 "+ inflated redeem (ThetaNuts legacy Index Vault $2.1M class); verify donation/empty-vault window")
         if balance_based:
             note += " [backing is balance-based -> a flash-loan donation moves the share price]"
+        elif native_eth:
+            note += " [backing is native-ETH balance (address(this).balance) -> a force-send/selfdestruct donation moves the share price]"
         label = f"contract {name} (bespoke share vault)"
     return [(rel, lineno(text, m.start()) if m else 1, label, note, 0)]
 
