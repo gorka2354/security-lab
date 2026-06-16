@@ -22,21 +22,29 @@ Usage: python decompile_match.py <decompiled.txt>
 import re
 import sys
 
-# proportional share-conversion `<backing> * <amount> / totalSupply` (redeem/claim inflation form).
-SHARE_CONV = re.compile(r"\*\s*\w+\s*\)?\s*/\s*_?total(?:Supply|Shares)\b")
+# totalSupply as panoramix NAMES it, OR as heimdall leaves it (the 18160ddd selector, since
+# selector-resolution names functions, not the storage read). Both decompilers, one matcher.
+_TS = r"(?:_?total(?:Supply|Shares)|(?:unresolved_)?18160ddd)"
+# redeem/claim inflation form `<backing> * <amount> / totalSupply` (panoramix ThetaNuts shape):
+SHARE_CONV_REDEEM = re.compile(r"\*\s*\w+\s*\)?\s*/\s*\(?\s*" + _TS + r"\b")
+# deposit form `<assets> * totalSupply / <backing>` (heimdall surfaces this on modern bytecode):
+SHARE_CONV_DEPOSIT = re.compile(r"\*\s*\(?\s*" + _TS + r"\s*\)?\s*/")
 # the dead-shares / min-supply / virtual-offset mitigations det_erc4626 also looks for.
 GUARD = re.compile(r"MINIMUM_(SHARES|LIQUIDITY|DEPOSIT)|_decimalsOffset|dead.?shares|virtual_?shares", re.I)
 
 
 def match_share_inflation(text):
-    """Return the list of (line_no, source_line) where a `* x / totalSupply` share-conversion appears."""
+    """Return (hits, guarded): hits = (line_no, source_line) where a proportional share-conversion
+    `<backing> * <amount> / totalSupply` OR `<assets> * totalSupply / <backing>` appears, with
+    totalSupply in either the panoramix NAME form or the heimdall 18160ddd SELECTOR form."""
     text = re.sub(r"\x1b\[[0-9;]*m", "", text)  # strip ANSI colour codes from panoramix dumps
     lines = text.splitlines()
-    hits = []
-    for m in SHARE_CONV.finditer(text):
-        ln = text.count("\n", 0, m.start())
-        hits.append((ln + 1, lines[ln].strip()[:110]))
-    return hits, bool(GUARD.search(text))
+    hits = set()
+    for pat in (SHARE_CONV_REDEEM, SHARE_CONV_DEPOSIT):
+        for m in pat.finditer(text):
+            ln = text.count("\n", 0, m.start())
+            hits.add((ln + 1, lines[ln].strip()[:110]))
+    return sorted(hits), bool(GUARD.search(text))
 
 
 def main():

@@ -46,3 +46,4 @@ monitor/*-seen.json
 # decompile/bytecode scratch dumps (derived, regenerable)
 hunts/**/_*.txt
 hunts/**/_*.hex
+hunts/**/_*/

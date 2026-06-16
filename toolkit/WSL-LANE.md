@@ -102,7 +102,32 @@ chokes on modern Solidity dispatchers (0.8.x metadata) -> `_fallback`-only, but 
 / totalSupply` survives. Frontier still open: bytecode whose `totalSupply` panoramix can't name -> a
 slot-based pass (which `storN` is the supply counter, incremented on mint?) is the next layer.
 
-> [!] **heimdall is network-blocked on this box (2026-06-16).** bifrost native-Windows wants cargo (no Rust/MSVC); WSL has NO outbound network (bifrost downloads nothing); the github RELEASE-ASSET CDN (release-assets.githubusercontent.com) is blocked even though the github API answers. To get heimdall: download `heimdall-linux-amd64` via a real browser, drop it in the repo, `chmod +x` it in WSL. Until then panoramix (WSL) is the decompiler -- fine for older bytecode, weak on modern 0.8.x.
+## heimdall -- the MODERN-bytecode decompiler (Ubuntu-24.04, manual binary, 2026-06-16)
+heimdall can't auto-install here (native Windows = no cargo/MSVC; WSL = no outbound net; github
+release-asset CDN blocked) -> egor downloaded `heimdall-linux-amd64` by browser. **Version<->glibc
+matters:** heimdall 0.9.x is built on Ubuntu 24.04 (needs GLIBC_2.39); the original WSL "Ubuntu" is
+22.04 (glibc 2.35) -> `GLIBC_2.39 not found`. Either use heimdall 0.8.x (built on 22.04) OR a 24.04
+distro. egor added an **`Ubuntu-24.04`** distro (glibc 2.39) where heimdall 0.9.2 runs.
+```sh
+# install (in the 24.04 distro): copy the browser-downloaded binary, chmod
+wsl -d Ubuntu-24.04 bash -c 'cp "/mnt/c/Users/pesto/Downloads/.../heimdall-linux-amd64" ~/heimdall && chmod +x ~/heimdall && ~/heimdall --version'
+# decompile a local bytecode file OFFLINE (no RPC), Solidity output to a /mnt/c dir:
+wsl -d Ubuntu-24.04 bash -c '~/heimdall decompile "/mnt/c/.../code.hex" --include-sol --skip-resolving -d -o "/mnt/c/.../out"'
+python toolkit/decompile_match.py <out>/decompiled.sol          # WINDOWS matcher (handles both decompilers)
+```
+**heimdall vs panoramix:** heimdall decompiles MODERN Solidity (0.8.x) where panoramix gives
+`_fallback`-only -- proven on the 0.8.35 PoC (panoramix: `_fallback`; heimdall: full bodies, share
+math recovered). Its output leaves totalSupply as the **`unresolved_18160ddd` selector** (selector
+resolution names functions, not the storage read), so `decompile_match.py` now matches BOTH the
+panoramix NAME form (`/ totalSupply`) and the heimdall SELECTOR form (`* unresolved_18160ddd /`).
+Use `--skip-resolving` for offline runs (the distro may have no net). So: panoramix for older
+bytecode (names totalSupply), heimdall for modern (selector form) -- the matcher spans both.
+
+> [!] **SAFETY -- egor's project lives in BOTH `Ubuntu` (default) AND `Ubuntu-24.04`.** Always target
+> the decompile with `-d Ubuntu-24.04` (NOT the default, which is the old `Ubuntu`). Do NOT
+> apt-install, kill processes, run long/parallel jobs (shared host CPU vs his running update), or
+> touch any project dir. heimdall is an isolated `~/heimdall` binary; decompile reads bytecode from
+> and writes output to `/mnt/c/...security-lab` ONLY. egor will delete the old `Ubuntu` distro himself.
 
 ## Proven decompile (2026-06-16, the ThetaNuts frontier)
 - `reach_bytecode.py 0xC2C3AE0a` (Windows) -> recovered **36/50 signatures** from raw unverified bytecode

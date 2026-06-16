@@ -540,6 +540,11 @@ check(bool(_h2) and _g2,
 _h3, _g3 = decompile_match.match_share_inflation("def transfer(address _to, uint256 _v):\n  balanceOf[_to] += _v\n")
 check(not _h3,
       "decompile_match: a plain transfer (no `/ totalSupply`) -> no share-inflation hit")
+# heimdall form: totalSupply left as its 18160ddd selector (selector-resolution names fns, not storage)
+_hd, _hgd = decompile_match.match_share_inflation(
+    "function Unresolved_b6b55f25(uint256 arg0) public {\n  require(unresolved_18160ddd == ((arg0 * unresolved_18160ddd) / var_d));\n}")
+check(bool(_hd) and not _hgd,
+      "decompile_match: heimdall selector form (`arg * unresolved_18160ddd / var`) -> share-inflation hit (modern-bytecode path)")
 
 print("== det_reward (pattern 03: double-claim / late marker) ==")
 check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),
