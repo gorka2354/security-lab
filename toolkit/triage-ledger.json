@@ -1112,6 +1112,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "mantle-index-four-fund|IDSOmnibusWalletController.sol|erc4626|",
+      "target": "mantle-index-four-fund",
+      "file": "IDSOmnibusWalletController.sol",
+      "line": 41,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Mantle Index Four Fund (Securitize RWA, 0x671642Ac proxy -> impl 0xcd4c287c, Mantle chain 5000, TVL $114.9M, audits=0). Sourced via scout (deployed-unaudited). VERDICT: CLEAN for share-inflation -- it's a Securitize DS-protocol PERMISSIONED RWA token (IDSOmnibusWalletController: Whitelist x11 + KYC + canTransfer gates). deposit/withdraw are CUSTODIAL omnibus-wallet ops gated by KYC/whitelist; NAV/pricing is OFF-CHAIN (regulated issuer) -> NO permissionless on-chain share math to inflate. recon det_erc4626=0 (correct). Even any math bug = non-exploitable permissionlessly (KYC gate, cf. death.fun callability lesson). RWA = inherently low permissionless surface; not a det_erc4626 fit.",
+      "date": "2026-06-16"
+    },
+    {
       "sig": "mellow|src/managers/ShareManager.sol|supply|function mintAllocatedShares(address account, uint256 value) external",
       "target": "mellow",
       "file": "src/managers/ShareManager.sol",

@@ -102,6 +102,8 @@ chokes on modern Solidity dispatchers (0.8.x metadata) -> `_fallback`-only, but 
 / totalSupply` survives. Frontier still open: bytecode whose `totalSupply` panoramix can't name -> a
 slot-based pass (which `storN` is the supply counter, incremented on mint?) is the next layer.
 
+> [!] **heimdall is network-blocked on this box (2026-06-16).** bifrost native-Windows wants cargo (no Rust/MSVC); WSL has NO outbound network (bifrost downloads nothing); the github RELEASE-ASSET CDN (release-assets.githubusercontent.com) is blocked even though the github API answers. To get heimdall: download `heimdall-linux-amd64` via a real browser, drop it in the repo, `chmod +x` it in WSL. Until then panoramix (WSL) is the decompiler -- fine for older bytecode, weak on modern 0.8.x.
+
 ## Proven decompile (2026-06-16, the ThetaNuts frontier)
 - `reach_bytecode.py 0xC2C3AE0a` (Windows) -> recovered **36/50 signatures** from raw unverified bytecode
   (deposit/withdraw/mint/claim/rebalance/vaults/Aave) -> `[!] UNVERIFIED but VAULT-SHAPED`.
