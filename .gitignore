@@ -43,3 +43,6 @@ monitor/
 # radar/monitor runtime state (auto-generated; kept out of history to avoid churn commits)
 hunts/_radar/
 monitor/*-seen.json
+# decompile/bytecode scratch dumps (derived, regenerable)
+hunts/**/_*.txt
+hunts/**/_*.hex

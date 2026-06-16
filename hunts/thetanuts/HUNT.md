@@ -56,9 +56,21 @@ Aave integration (`getLendingPool/setAaveAddressProvider`) -- and correctly fire
 VAULT-SHAPED -> share-inflation review warranted`**. So ThetaNuts would NO LONGER be invisible: the triage surfaces
 it. `fetch_source` now prints the `reach_bytecode` fallback hint on any unverified miss. golden 358->360.
 
+## Decompile layer (`toolkit/decompile_match.py`) -- the MATH, recovered from bytecode
+Went the next layer up: DECOMPILE the unverified bytecode and detect the round-to-zero MATH itself.
+Decompilation (panoramix) needs Unix signals + does NOT run natively on Windows -> the **WSL lane**
+(`toolkit/WSL-LANE.md`; do NOT `pip install panoramix` on the Windows Python -- it drags in a web3 beta that
+breaks the toolkit). End-to-end on the real victim `0xC2C3AE0a`: panoramix (WSL) decompiled the 12.5KB
+bytecode -> 71KB pseudocode with `totalSupply` RESOLVED BY NAME, and `decompile_match.py` flagged
+**18 proportional `vaults[..].field_256 * _mintAmount / totalSupply` sites, NO dead-shares guard ->
+round-to-zero / inflated redeem (ThetaNuts class)**. det_erc4626 (source) needs both share shapes; decompiled
+output only carries the `/ totalSupply` redeem shape, so this is a panoramix-tuned matcher (golden-tested).
+
 ## Takeaway
 The engine had the right INSTINCT (this class was already a detector) but was **too narrowly keyed** to the
-ERC4626 interface (detector gap -- closed) and **couldn't reach** an unverified deprecated deployment (reach gap --
-now PARTIALLY closed: `reach_bytecode` recovers the function SURFACE + triages vault-shape from bytecode). The
-remaining open frontier is bytecode **MATH** detection (the round-to-zero itself) -- that needs decompilation
-(heimdall/Dedaub), the next layer up.
+ERC4626 interface (detector gap -- closed) and **couldn't reach** an unverified deprecated deployment (reach gap).
+Both layers of the reach gap are now addressed: `reach_bytecode` recovers the SURFACE (Windows), and the WSL
+decompile lane + `decompile_match` recovers the MATH. An unverified live contract like ThetaNuts is now triaged
+from bytecode all the way to the share-inflation finding. Remaining frontier: panoramix is old (chokes on modern
+0.8.x dispatchers) and needs `totalSupply` named -> a slot-based pass (heimdall, or "which storN is the supply
+counter") is the next refinement.

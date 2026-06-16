@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "toolkit"))
 import recon  # noqa: E402
 import ledger  # noqa: E402
 import reach_bytecode  # noqa: E402
+import decompile_match  # noqa: E402
 
 _p, _f = 0, 0
 
@@ -526,6 +527,19 @@ check(reach_bytecode.extract_selectors(_disp) == ["b6b55f25"],
       "reach_bytecode.extract_selectors: finds the real PUSH4 dispatcher selector, skips the PUSH32 immediate")
 check(reach_bytecode.STRONG_VAULT.search("deposit(uint256)") and not reach_bytecode.STRONG_VAULT.search("mint(uint256)"),
       "reach_bytecode: deposit = strong share-conversion surface, mint alone = not (plain mintable token)")
+# decompile_match (frontier): share-inflation math on DECOMPILED pseudocode (panoramix form) -- grounded
+# on the real ThetaNuts dump where the conversion renders as `<backing> * <amount> / totalSupply`.
+print("== decompile_match (share-inflation math on decompiled bytecode) ==")
+_dc_pos = "def claim(uint256 _amt):\n  vaults[stor9[idx]].field_256 * _amt / totalSupply\n  stor1 += _amt\n"
+_h, _g = decompile_match.match_share_inflation(_dc_pos)
+check(bool(_h) and not _g,
+      "decompile_match: `field * amount / totalSupply` on decompiled output -> share-inflation hit (panoramix form)")
+_h2, _g2 = decompile_match.match_share_inflation(_dc_pos + "uint256 MINIMUM_SHARES = 1000\n")
+check(bool(_h2) and _g2,
+      "decompile_match: same conversion WITH a MINIMUM_SHARES dead-shares guard -> flagged as mitigated")
+_h3, _g3 = decompile_match.match_share_inflation("def transfer(address _to, uint256 _v):\n  balanceOf[_to] += _v\n")
+check(not _h3,
+      "decompile_match: a plain transfer (no `/ totalSupply`) -> no share-inflation hit")
 
 print("== det_reward (pattern 03: double-claim / late marker) ==")
 check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),

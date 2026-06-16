@@ -75,6 +75,42 @@ echidna . --config echidna.yaml --contract <TestContract>              # their p
 on medusa's deploy model. That's the whole point of `scaffold.py --engine chimera`: ONE portable harness +
 matching `echidna.yaml` + `medusa.json`, so both engines run the same `property_*`.
 
+## Decompilation -- the UNVERIFIED-code lane (`reach_bytecode.py` -> panoramix -> `decompile_match.py`)
+
+The ThetaNuts response: when `fetch_source` returns "no verified source", recover the bytecode and go
+deeper. `reach_bytecode.py` (pure-Python, runs ON WINDOWS) recovers the function SURFACE from `eth_getCode`.
+To get the MATH you must DECOMPILE -- and panoramix needs `signal.SIGALRM`/`setitimer` (Unix-only) so it
+does NOT run natively on Windows. It runs in WSL.
+
+> [!] **Do NOT `pip install panoramix-decompiler` on the Windows Python.** It pulls `web3==6.0.0b8` (an old
+> beta) into the --user site, which SHADOWS the working global web3 and crashes on `import pkg_resources`
+> (gone in 3.12) -> breaks `activity._selector` -> the golden suite goes red. If it happened:
+> `pip uninstall -y panoramix-decompiler web3` restores the global web3 (6.20.0). Keep panoramix in WSL ONLY.
+
+```sh
+# in WSL: install panoramix once (Python 3.10 there has SIGALRM; isolate it, don't pollute)
+wsl python3 -m pip install --user panoramix-decompiler
+# RPCs are blocked from this box, so feed bytecode via a file (fetch it on Windows with Etherscan):
+python toolkit/reach_bytecode.py <addr> <chain>          # WINDOWS: surface triage -> [!] vault-shaped?
+#   (reach_bytecode writes the code; or: python -c "...get_code(addr)->_x.hex")
+wsl bash -c "cd /mnt/c/.../security-lab && python3 toolkit/_decompile_probe.py <code.hex> - <out.txt>"
+python toolkit/decompile_match.py <out.txt>              # WINDOWS: share-inflation matcher on the pseudocode
+```
+`decompile_match.py` is pure-regex (runs on Windows on the resulting text). panoramix is OLD (~2020): it
+chokes on modern Solidity dispatchers (0.8.x metadata) -> `_fallback`-only, but decompiles OLDER bytecode
+(ThetaNuts' era) well -- and it RESOLVES `totalSupply` by name, so the share-conversion `<backing> * <amt>
+/ totalSupply` survives. Frontier still open: bytecode whose `totalSupply` panoramix can't name -> a
+slot-based pass (which `storN` is the supply counter, incremented on mint?) is the next layer.
+
+## Proven decompile (2026-06-16, the ThetaNuts frontier)
+- `reach_bytecode.py 0xC2C3AE0a` (Windows) -> recovered **36/50 signatures** from raw unverified bytecode
+  (deposit/withdraw/mint/claim/rebalance/vaults/Aave) -> `[!] UNVERIFIED but VAULT-SHAPED`.
+- panoramix in WSL decompiled the 12,494-byte ThetaNuts -> 71KB pseudocode, `totalSupply` named.
+- `decompile_match.py` on the dump -> **`[!] 18 proportional `backing * amount / totalSupply` sites, NO
+  dead-shares guard -> round-to-zero / inflated redeem (ThetaNuts class)`**. End-to-end: an UNVERIFIED live
+  contract triaged from bytecode all the way to the share-inflation math. Modern-Solidity PoC bytecode
+  (0.8.35) decompiled to `_fallback` only -> panoramix's age is the limit, not the approach.
+
 ## Proven (2026-06-10)
 - `slither HalmosDemo.sol` -> analyzed (101 detectors); `analyze.py ~/seclab-demo` -> L1 recon + L2 slither +
   corroboration section, all in WSL.
