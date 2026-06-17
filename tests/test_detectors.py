@@ -545,6 +545,11 @@ _hd, _hgd = decompile_match.match_share_inflation(
     "function Unresolved_b6b55f25(uint256 arg0) public {\n  require(unresolved_18160ddd == ((arg0 * unresolved_18160ddd) / var_d));\n}")
 check(bool(_hd) and not _hgd,
       "decompile_match: heimdall selector form (`arg * unresolved_18160ddd / var`) -> share-inflation hit (modern-bytecode path)")
+# reach_bytecode: EraVM (zkSync/Abstract) bytecode detection -- our EVM tools (selector-scan, heimdall,
+# panoramix) don't apply there; detect it instead of silently mis-parsing (the Onchain Heroes lesson).
+check(reach_bytecode.is_eravm("0x00020000000000020000b") and not reach_bytecode.is_eravm("0x6080604052348015")
+      and not reach_bytecode.is_eravm("0x"),
+      "reach_bytecode.is_eravm: 0x00.. = zkSync EraVM (non-EVM); 0x6080.. = EVM; 0x = empty")
 
 print("== det_reward (pattern 03: double-claim / late marker) ==")
 check(flagged(recon.det_reward, "contract C{function claimRewards() external { token.transfer(msg.sender, amt); }}", "claimRewards"),

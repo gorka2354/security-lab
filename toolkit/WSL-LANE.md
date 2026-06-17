@@ -138,6 +138,18 @@ bytecode (names totalSupply), heimdall for modern (selector form) -- the matcher
   contract triaged from bytecode all the way to the share-inflation math. Modern-Solidity PoC bytecode
   (0.8.35) decompiled to `_fallback` only -> panoramix's age is the limit, not the approach.
 
+## EVM-ONLY limit -- zkSync/EraVM chains (Abstract!) are not decompilable here (2026-06-17)
+The whole bytecode lane -- `reach_bytecode.py`'s selector scan AND the decompilers (heimdall, panoramix)
+-- is **EVM-only**. **Abstract (chain 2741) is a zkSync Elastic Chain**: contracts compile via `zksolc`
+to **EraVM** bytecode, a different ISA. `eth_getCode` there returns EraVM (starts with `0x00..` version
+words, e.g. `0x00020000...`), NOT EVM (`0x6080604052..`). Symptoms when you forget: `reach_bytecode` finds
+**0 selectors** (looks like a proxy but isn't), and heimdall says "discovered no function selectors".
+`reach_bytecode.is_eravm()` now detects this and bails with a clear message. So on Abstract / zkSync Era /
+Sophon / any EraVM chain, an **UNVERIFIED contract is a dead end for this lane** -- you need verified source
+(Etherscan stores zksolc source fine) or a dedicated EraVM tool. Learned on Onchain Heroes' `weaponRemixer`
+impl (`0x7c49bc99`, unverified, 31KB EraVM -> heimdall produced nothing). Verified Abstract contracts have an
+`era` compiler marker in their source metadata.
+
 ## Proven (2026-06-10)
 - `slither HalmosDemo.sol` -> analyzed (101 detectors); `analyze.py ~/seclab-demo` -> L1 recon + L2 slither +
   corroboration section, all in WSL.

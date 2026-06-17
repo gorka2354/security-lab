@@ -64,6 +64,12 @@ WEAK_VAULT = re.compile(r"\b(mint|claim|stake|unstake)\w*\s*\(", re.I)
 SUPPLY_SURFACE = re.compile(r"\b(totalSupply|totalAssets|balanceOf)\s*\(", re.I)
 
 
+def is_eravm(code):
+    """zkSync EraVM bytecode (Abstract 2741, zkSync Era 324, Sophon...) starts with a 0x00 version
+    word; EVM runtime starts with the Solidity preamble 0x6080.. -> a 0x00 first byte = non-EVM."""
+    return bool(code) and code.startswith("0x") and len(code) > 4 and code[2:4] == "00"
+
+
 def get_code(addr, chain="1"):
     key = os.environ.get("ETHERSCAN_API_KEY", "")
     url = f"{ETHERSCAN}?chainid={chain}&module=proxy&action=eth_getCode&address={addr}&apikey={key}"
@@ -132,6 +138,15 @@ def main():
     code = get_code(addr, chain)
     if not code or code == "0x":
         print(f"[!] {addr}: no bytecode (EOA / self-destructed)")
+        return
+    # EVM runtime starts with the Solidity preamble (PUSH1 0x80 -> 0x6080...); zkSync EraVM bytecode
+    # (Abstract chain 2741, zkSync Era 324, Sophon, Sonic-zk...) starts with 0x00.. version words and
+    # is NOT EVM -> the PUSH4 selector scan AND the EVM decompilers (heimdall/panoramix) do NOT apply.
+    if is_eravm(code):
+        print(f"[reach_bytecode] {addr} chain {chain}: {(len(code) - 2) // 2} bytes -- NON-EVM bytecode "
+              f"(zkSync EraVM? e.g. Abstract/zkSync-Era/Sophon). The EVM selector scan + EVM decompilers "
+              f"(heimdall/panoramix) do NOT apply here; an UNVERIFIED contract on a zk-chain can't be reached "
+              f"this way -> need verified source or a dedicated EraVM/zkEVM tool.")
         return
     print(f"[reach_bytecode] {addr} chain {chain}: {(len(code) - 2) // 2} bytes")
     sels = extract_selectors(code)
