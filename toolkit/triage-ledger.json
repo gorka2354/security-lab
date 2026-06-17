@@ -1464,6 +1464,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "spaceship-aviator-crash|SpaceshipGame.sol|ac|",
+      "target": "spaceship-aviator-crash",
+      "file": "SpaceshipGame.sol",
+      "line": 247,
+      "detector": "access",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Spaceship/Aviator crash game (chipsonchips, GitHub, fresh; Base/Celo; TRAINING rep). Custodial crash game = death.fun pattern. CLEAN for permissionless: placeBetFor/cashOutFor are onlyServerOperator (operator-trusted, not permissionless), the player-callable surface deposit/withdraw is CEI + nonReentrant + balance-checked (only own balance), totalPlayerBalances stays == sum(playerBalances) (paired updates), house = balanceOf - totalPlayerBalances, withdrawHouseProfits GUARDS player funds (amount>houseBalance revert -> owner cannot rug deposits), snapshotRound attests rounds via merkle root. The risk is the TRUST model (off-chain operator computes crash/payouts, no on-chain provably-fair), not a contract bug. Training lesson: recognize custodial/operator-gated -> check deposit/withdraw + owner-rug instead; a clean verdict on a simple game is a valid rep.",
+      "date": "2026-06-17"
+    },
+    {
       "sig": "stakelink|contracts/core/base/RewardsPoolController.sol|sibling|function distributeTokens(...)",
       "target": "stakelink",
       "file": "contracts/core/base/RewardsPoolController.sol",
