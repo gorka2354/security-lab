@@ -18,7 +18,9 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 36 детекторов), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
+  `recon.py` (L1, 39 детекторов; вкл. `det_trust_anchor` — verifier с одним signer/measurement без кворума,
+  Taiko/Raiko layer-B), `secrets.py` (SECRETS-лейн: закоммиченные ключи/креды в дереве + истории git —
+  Taiko/Raiko layer-A; история через `git log -G`, нужен полный клон), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
   Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может

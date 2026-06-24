@@ -37,6 +37,10 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
 - By address: `python toolkit/fetch_source.py <addr> --chain <id> --proxy` (verified on-chain impl). The
   DefiLlama `address` is often the GOV TOKEN -> use the adapter's CORE addr, or the protocol's GitHub repo.
 - By repo: `git clone --depth 1 <repo> hunts/_volume/<key>`.
+- **SECRETS lane (Taiko/Raiko layer-A):** `python toolkit/secrets.py <repo>` — committed keys/credentials in
+  the working tree AND git HISTORY (the leaked key usually lives in OLD commits, removed from HEAD). For
+  history, clone WITHOUT `--depth 1` (or `git -C <repo> fetch --unshallow`). Pairs with recon's
+  `det_trust_anchor` (layer-B, the on-chain missing-quorum blast radius). A live in-scope key -> disclose.
 - **Confirm DEPLOYED + in-scope + a real bounty** before prioritising. Not deployed -> fix-but-don't-prioritise.
 - **ACTIVITY GATE (do this BEFORE the deep read, not after — heavy-helms lesson):**
   `python toolkit/activity.py <core-addr>[,...] --chain <id|name> [--counter "theBugPathCounter()"]`.

@@ -40,9 +40,13 @@ quorum. Remove either layer and there is no exploit.
 > WHO: anyone holding the key. WHAT: forged withdrawal. HOW MUCH: the whole vault (~$1.7M realized).
 
 ## Engine upgrades (turn this miss into detectors — the self-improvement loop)
-1. **New `secrets` lane in Phase 1 REACH** (cheap, catches all of class A): gitleaks/trufflehog over the
-   repo + FULL git history. Triggers: `*.pem`, `enclave-key`, `BEGIN * PRIVATE KEY`, keystore, mnemonic,
-   high-entropy blobs. NOTE: `orchestrate` clones `--depth 1` — secret-hunting needs a full clone.
+1. **`secrets` lane — DONE (`toolkit/secrets.py`, wired into Phase 1 REACH).** Pure-python (no dep; folds in
+   gitleaks if present). Scans the working tree AND **git history** (`git log -G<prefilter>` so git only emits
+   matching commits — cheap on a monorepo). Triggers: PEM private-key blocks, `*.pem/.key/.p12`, `enclave-key`,
+   keystore JSON, AWS keys, secret-assigned literals, hex-key-near-context. Verified: catches a key committed
+   then **removed from HEAD** (the Taiko scenario). Calibrations from real code: skip `*.example/sample/template`
+   (the Anvil test key in `taiko-mono/.env.example` was a FP); skip env-indirection/placeholders; a bare bytes32
+   hash with no key-context is not a key. NOTE: needs a FULL clone (`--depth 1` has no history).
 2. **New pattern `off-chain trust anchor`** (see `patterns/trust-anchor/off-chain-signer-authority.md`):
    for ANY verifier (SGX / zk / oracle / multisig) the L4 read MUST ask — single root key? threshold/
    quorum? revocation? rotation? `det` idea: flag a verifier contract with one configurable signer/

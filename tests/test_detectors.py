@@ -185,6 +185,26 @@ check(_ta_rev and _ta_rev[0][4] == 0 and "reactive revocation" in (_ta_rev[0][3]
 check(not flagged(recon.det_trust_anchor, "contract C{function setFee(uint x) external onlyOwner { fee=x; }}"),
       "det_trust_anchor: an ordinary contract with no trust-anchor vocabulary -> NOT flagged")
 
+print("== secrets lane (Taiko layer-A: committed keys, incl. git history) ==")
+import secrets as _secrets  # noqa: E402
+check(bool(_secrets.scan_text("-----BEGIN RSA PRIVATE KEY-----\nMIIx\n-----END RSA PRIVATE KEY-----", "k.pem")),
+      "secrets: PEM private-key block flagged")
+check(any(l[2].startswith("AWS") for l in _secrets.scan_text("aws=AKIAIOSFODNN7EXAMPLE", "c")),
+      "secrets: AWS access key id flagged")
+check(bool(_secrets.scan_text('apiKey = "sk_live_9f8e7d6c5b4a3210"', "c")),
+      "secrets: a real secret literal flagged")
+check(not _secrets.scan_text("apiKey = process.env.API_KEY", "c")
+      and not _secrets.scan_text('password = "your-password-here"', "c"),
+      "secrets: env-indirection + placeholder are NOT flagged (FP gate)")
+check(not _secrets.scan_text("bytes32 h = 0x" + "a" * 64 + ";", "c"),
+      "secrets: a bare bytes32 hash (no key-context) is NOT flagged (the bytes32 FP gate)")
+check(any("PRIVATE KEY" not in l[3] and l[4] == 0 for l in _secrets.scan_filename("config/enclave-key.pem")),
+      "secrets: a .pem filename is a [!] lead by path alone")
+check(not _secrets.scan_filename(".env.example") and not _secrets.scan_filename("src/Vault.sol"),
+      "secrets: .env.example + ordinary source files are NOT flagged")
+check(_secrets.redact("AKIAIOSFODNN7EXAMPLE").startswith("AKIA") and "20 chars" in _secrets.redact("AKIAIOSFODNN7EXAMPLE"),
+      "secrets: redact() masks the middle (proves the hit without re-leaking it)")
+
 print("== INLINE_AUTH regex ==")
 check(bool(recon.INLINE_AUTH.search("requireGovernanceOnly();")), "INLINE_AUTH matches requireGovernanceOnly")
 check(bool(recon.INLINE_AUTH.search("_verifySignatures(a,b,c)")), "INLINE_AUTH matches _verifySignatures")
