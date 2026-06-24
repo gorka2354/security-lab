@@ -35,3 +35,6 @@ scout-worklist.json
 
 # contest-watch runtime state (machine-local: seen-state, alert log, last-scan log)
 monitor/
+
+# macOS
+.DS_Store
