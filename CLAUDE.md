@@ -29,7 +29,8 @@
   ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`
   (ПЕРСИСТ fan-out-невода: типизированная таблица `hunts/_fanout/<date>-<label>.md` по type+chain +
   ledger-suppress dead-ends + DIG в todo-очередь; вердикты TRIAGE-level = гипотезы, deep-dive потом руками).
-  Динамический слой локально — WSL-лейн (`toolkit/WSL-LANE.md`).
+  Динамический слой локально — WSL-лейн (`toolkit/WSL-LANE.md`). Работа с Mac — `toolkit/MAC-LANE.md`
+  (CDN github блокируется: ставь Foundry+solc через brew, `forge test --use /opt/homebrew/bin/solc --offline`).
 - **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
 ## Правила
