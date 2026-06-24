@@ -1479,8 +1479,9 @@ TRUST_REVOKE = re.compile(
 def det_trust_anchor(text, rel):
     """A verifier/registrar whose authority reduces to ONE stored trust anchor (an SGX MrSigner/MrEnclave,
     a verifying key, a single trusted signer/prover) matched in a verify/register/attest fn, with NO M-of-N
-    quorum and NO revocation/rotation in the file -> whoever obtains that one key forges valid proofs and the
-    chain accepts them (Taiko/Raiko 2026, ~$1.7M). T3 trust-model LEAD: the regex sees the missing quorum, NOT
+    quorum -> whoever obtains that one key forges valid proofs and the chain accepts them (Taiko/Raiko 2026,
+    ~$1.7M). A reactive revocation alone does NOT downgrade it (Taiko HAD deleteInstances and was still
+    drained); only a quorum bounds a leaked key. T3 trust-model LEAD: the regex sees the missing quorum, NOT
     the off-chain key leak -> pair with the secrets lane (gitleaks) + confirm by hand. See
     research/patterns/trust-anchor/off-chain-signer-authority.md."""
     if not TRUST_ANCHOR_TERM.search(text):
@@ -1500,13 +1501,16 @@ def det_trust_anchor(text, rel):
         if ln in seen:
             continue
         seen.add(ln)
-        miss = "no M-of-N quorum" + ("" if has_revoke else " and no revocation/rotation")
+        # Revocation does NOT downgrade: Taiko HAD deleteInstances and was still drained -- a reactive
+        # revoke can't stop a forged registration before an operator notices. Only an M-of-N quorum
+        # (absent here) bounds a leaked key, so a no-quorum anchor stays [!] regardless of revocation.
+        miss = ("no M-of-N quorum (the file has a reactive revocation path, but that can't stop a forged "
+                "registration before it's noticed)" if has_revoke else "no M-of-N quorum and no revocation/rotation")
         out.append((rel, ln, f"function {name}(...)",
                     "verifier/registrar accepts a proof/instance by matching a SINGLE stored trust anchor (SGX "
                     "measurement / verifying key / trusted signer-prover) with " + miss + " -> whoever obtains that "
                     "one key forges valid proofs the chain accepts (Taiko/Raiko key-leak class, ~$1.7M). Require an "
-                    "M-of-N multi-prover quorum + on-chain revocation; and secret-scan the repo/CI for the key (it "
-                    "lives off-chain).", 1 if has_revoke else 0))
+                    "M-of-N multi-prover quorum; and secret-scan the repo/CI for the key (it lives off-chain).", 0))
     return out
 
 

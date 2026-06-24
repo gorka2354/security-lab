@@ -27,12 +27,17 @@ obtains that key (leak, CI, backup) forges valid proofs and the contract treats 
   leaks?"** Is there an M-of-N quorum? a revocation path? rotation? a timelock on changing the anchor?
 - Pair it with the OFF-CHAIN check: is that key anywhere in the repo / git history / CI? (-> secrets lane).
 
-## 4. Detector idea (static, T0/T1) — det_trust_anchor
-- T0/T1 can flag a verifier with ONE configurable signer/measurement and no quorum constant (no `threshold`,
-  no `>= N` signer count, single stored address compared in `verifyProof`/registration).
-- **Honest limit:** this is a *lead*, not a verdict — a single-signer verifier is often intentional design;
-  the real bug needs the off-chain custody question (§3) + the missing-quorum confirmation (§5). T0 cannot
-  see the leaked key; pair it with the secrets lane.
+## 4. Detector — det_trust_anchor (IMPLEMENTED, recon #39)
+- Flags a verify/register/attest fn whose body touches a trust-anchor term (MrSigner/MrEnclave/enclave/
+  attestation/sgx/trustedSigner-Key-Instance-Prover/verifyingKey/instanceId) when the file has NO quorum
+  constant (threshold/quorum/signaturesRequired/minSigners/M-of-N). Quorum present -> suppressed.
+- **Revocation does NOT downgrade** (the Taiko calibration): `deleteInstances` existed and the chain was
+  still drained, because a reactive revoke can't stop a forged registration before it's noticed. Stays `[!]`
+  whenever quorum is missing; revocation only annotates the note.
+- Suppression gates read **comment-stripped code** so a stray `// TODO add quorum` can't hide a real bug.
+- **Validated on real `taikoxyz/taiko-mono`:** 4 `[!]` on SgxVerifier (registerInstance/verifyProof = the
+  exploited fns), 0 on the 7 sibling ZK/compose verifiers. **Honest limit:** a *lead*, not a verdict — T0
+  can't see the off-chain key leak; pair with the secrets lane + the §3 custody question.
 
 ## 5. Hypothesis / invariant (T2/T3)
 - **Hypothesis (hypothesize.py):** "this verifier's authority reduces to a single key/measurement with no
@@ -42,6 +47,7 @@ obtains that key (leak, CI, backup) forges valid proofs and the contract treats 
   rejected).
 
 ## 6. Mitigations to RECOGNIZE (avoid FP)
-- M-of-N multi-prover quorum (no single instance finalizes) — the gold standard; lead is dead.
-- On-chain revocation + rotation of the trust anchor behind a timelock/governance.
+- M-of-N multi-prover quorum (no single instance finalizes) — the ONLY real kill; lead is dead.
+- Reactive revocation alone is NOT a kill (Taiko had `deleteInstances`, drained anyway) — it can't stop a
+  forged registration before an operator notices. Downgrade only if revocation is paired with a quorum.
 - Key never in repo (HSM / sealed enclave provisioning) — kills layer A; verify before assuming.

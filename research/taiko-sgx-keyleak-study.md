@@ -49,6 +49,19 @@ quorum. Remove either layer and there is no exploit.
    measurement and no quorum.
 3. Wire it to existing `det_signature` + the centralization read.
 
+## Validation (2026-06-24) — det_trust_anchor vs the REAL taiko-mono
+Implemented `det_trust_anchor` (recon #39) and ran it on the actual `taikoxyz/taiko-mono`
+(`packages/protocol/contracts/layer1/verifiers/`), not just our fixture:
+- **It fires on the real `SgxVerifier.sol`: 4 `[!]` leads — on `registerInstance` (L113) and `verifyProof`
+  (L127), the exact functions the attacker abused**, plus `addInstances`/`_addInstances`.
+- **Precision:** across all 8 layer1 verifiers (Risc0 / SP1 / Compose / SgxAndZk / AnyTwo / Any / IProof /
+  Sgx) it produced **4 leads total, ALL in SgxVerifier.sol** — 0 on the ZK verifiers and the M-of-N compose
+  verifiers. The quorum-suppression + anchor-vocabulary scoping holds on real code.
+- **Calibration lesson the real code taught us:** Taiko HAD an on-chain revocation path (`deleteInstances`)
+  and was drained anyway. So revocation must NOT downgrade severity — a reactive revoke can't stop a forged
+  registration before an operator notices. Only an M-of-N **quorum** (absent) bounds a leaked key. Detector
+  now stays `[!]` whenever quorum is missing, regardless of revocation (revocation only annotates the note).
+
 ## Sources
 - thirdweb blog — Taiko Bridge Exploit explained
 - spotedcrypto / cryptotimes / coindesk / nftplazas — $1.7M, SGX key leak, June 2026

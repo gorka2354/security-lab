@@ -179,8 +179,9 @@ check(recon.det_trust_anchor(_TA_POS, "src/V.sol")[0][4] == 0,
 check(not flagged(recon.det_trust_anchor, "uint threshold; " + _TA_POS),
       "det_trust_anchor: a quorum/threshold marker bounds the leak -> NOT flagged (gate the FP)")
 _TA_REV = "contract V{bytes32 mrSigner; mapping(address=>bool) ti; function registerInstance(bytes32 m,address i) external { require(m==mrSigner); ti[i]=true; } function revokeInstance(address i) external { ti[i]=false; }}"
-check(recon.det_trust_anchor(_TA_REV, "src/V.sol") and recon.det_trust_anchor(_TA_REV, "src/V.sol")[0][4] == 1,
-      "det_trust_anchor: revocation present -> still a lead but downgraded to [.] (1)")
+_ta_rev = recon.det_trust_anchor(_TA_REV, "src/V.sol")
+check(_ta_rev and _ta_rev[0][4] == 0 and "reactive revocation" in (_ta_rev[0][3] or ""),
+      "det_trust_anchor: revocation present -> STILL [!] (0), note flags it reactive (Taiko had deleteInstances, drained anyway)")
 check(not flagged(recon.det_trust_anchor, "contract C{function setFee(uint x) external onlyOwner { fee=x; }}"),
       "det_trust_anchor: an ordinary contract with no trust-anchor vocabulary -> NOT flagged")
 
