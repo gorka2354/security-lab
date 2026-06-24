@@ -32,7 +32,25 @@ LEARNING run — read public source + static detectors only; nothing live touche
 2. secrets: **test-vector / fixture key material is not a leak** — downgrade test paths (recon _TESTRE parallel).
 Both shipped with regression tests (suite 368 passed).
 
-## Next (if pursued as a real hunt)
-- forkdrift.py diff ZKFair vs Polygon CDK canon -> hunt only the custom mods (the audited core is moot).
-- Greenfield-ish, egor's edge: `zkfair-transaction-mining-contract` + `zkfair-staking-contracts`.
-- Confirm a bounty exists before any disclosure.
+## LIVE-FIRST / activity (asked: is there value at stake?)
+- DefiLlama API (authoritative): chain TVL ~**$77.4k** now (~$89k 6mo ago) — slow decline, near-abandoned.
+- Verdict: tiny value + NO confirmed bounty -> EV ~0 for a paid hunt. Methodology/learning pass only.
+
+## Drift hunt — gas-token decimal scaling (the custom mod, Phase 4/5)
+ZKFair's distinctive drift vs Polygon CDK: a non-18 ERC20 gas token (USDC 6dec) <-> L2 native (18dec) via
+`gasTokenDecimalDiffFactor` (=1e12), added in `ecc10ef` to `PolygonZkEVMBridge.sol`.
+- bridgeAsset (source-side): L1->L2 `leafAmount *= factor`; L2->L1 `leafAmount /= factor` + `==0 -> AmountTooSmall`.
+- claimAsset (dest-side): uses the leaf `amount` AS-IS (`call{value: amount}` / mint) — NO re-scale.
+- **VERDICT: no finding.** Round-trip is balanced (X USDC -> X*1e12 native -> X USDC); claim doesn't re-scale,
+  so no over-withdraw / no locked!=minted break. Only leak = **dust truncation** on L2->L1 (< 1e12 wei native,
+  <$1e-6) -> gate F (dust). Non-finding, and EV ~0 on a dead chain anyway.
+
+## Engine-gap insights (the real value of this pass)
+1. **recon has NO detector for decimal-scaling truncation** — `x /= decimalFactor` is a LONE division (not
+   divide-before-multiply, so det_precision misses it) that loses dust and, in some bridge/wrapper shapes,
+   can break a locked==minted invariant. Candidate: `det_decimal_scale` (flag `*=`/`/=` by a *DecimalDiff/
+   decimals factor in a bridge/mint/claim path; ask the round-trip invariant). BACKLOG.
+2. **forkdrift BASES lacks Polygon CDK** — `fingerprint` didn't recognize an obvious CDK fork (CDKValidium/
+   PolygonZkEVMBridge/CDKDataCommittee/FflonkVerifier). Add a CDK signature to BASES. BACKLOG.
+
+## Status: PARKED (dead chain, no bounty). Real value captured = 2 engine-gap backlog items above.
