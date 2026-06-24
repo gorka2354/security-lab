@@ -26,6 +26,10 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
   for closed-source, get core addrs from the DefiLlama adapter (`projects/<module>/index.js`).
 - In-scope + paid: `python toolkit/scout.py --source immunefi`.
 - GameFi/gamble (egor's edge): scout covers Gambling/Luck Games/Lottery/Betting now; or a fresh game launch he names.
+- DEPRECATED-but-funded (the Thetanuts class scout/contest STRUCTURALLY miss — de-listed, no bounty):
+  `python toolkit/legacy.py check <addr>[,...] --chain <id>` (or `from-deployer <deployer>` w/ ETHERSCAN_API_KEY)
+  -> LEGACY-FUNDED = residual value + no recent activity = forgotten contract, classic bug shapes
+  (det_vault_share_math/det_erc4626). Inverse of activity.py. Skips EIP-7702 EOAs.
 - Ledger suppresses already-hunted; pick the top un-suppressed, our-zone, reachable candidate.
 - **REACHABILITY FIRST (dogfood lesson):** Phase 1 stalls on closed-source/obscure-chain protocols (Ample =
   no DefiLlama addr, no public repo, JS site, Base/Monad/Katana). Before committing to a candidate, confirm

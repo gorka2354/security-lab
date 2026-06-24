@@ -16,7 +16,9 @@ floor to ~0 cost). Attack = repeated **mint-and-redeem cycles amplified by a fla
    inflation to ANY custom vault. This is the empty/near-empty-vault share-price attack.
 2. **Target class:** a **deprecated-but-still-funded** contract — migrated away from, unaudited-since, still
    on-chain, still holding value, still callable. "Deprecated" != "safe." A SOURCING lane: old vaults with
-   residual TVL are high-EV (forgotten, often un-monitored, classic bug shapes).
+   residual TVL are high-EV (forgotten, often un-monitored, classic bug shapes). **BUILT: `toolkit/legacy.py`**
+   (inverse of activity.py: finds dormant+funded; `check`/`from-deployer`; keyless RPC; skips EIP-7702 EOAs —
+   a FP caught on its first live run). scout/contest_monitor structurally miss this (DefiLlama de-lists dead protocols).
 
 ## Could OUR engine have caught the bug? — honest verdict (before this study)
 - `det_erc4626`: **MISS.** Gated on the literal `ERC4626` string; the Index Vault is custom/pre-4626. And it

@@ -27,7 +27,9 @@
   Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может
   false-0 -> Etherscan-v2 txlist authoritative override (death.fun урок); park/skip — ДО чтения И как
   обязательный pre-disclosure Gate-0 в VERIFY.md. ПЕРЕД severity: txlist-liveness + per-function usage +
-  custodial-caller check), `calibrate.py` (FEEDBACK-LOOP:
+  custodial-caller check), `legacy.py` (СОРСИНГ deprecated-но-с-деньгами контрактов — инверсия activity:
+  ищет dormant+funded = Thetanuts-класс; `check`/`from-deployer`, keyless RPC, скип EIP-7702 EOA),
+  `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
   ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`
   (ПЕРСИСТ fan-out-невода: типизированная таблица `hunts/_fanout/<date>-<label>.md` по type+chain +

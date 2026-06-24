@@ -225,6 +225,20 @@ check(not _secrets.scan_filename(".env.example") and not _secrets.scan_filename(
 check(_secrets.redact("AKIAIOSFODNN7EXAMPLE").startswith("AKIA") and "20 chars" in _secrets.redact("AKIAIOSFODNN7EXAMPLE"),
       "secrets: redact() masks the middle (proves the hit without re-leaking it)")
 
+print("== legacy lane (Thetanuts: deprecated-but-funded sourcing) ==")
+import legacy as _legacy  # noqa: E402
+check(_legacy.classify_legacy(5000, 0, 10**18, None, 5000, 0)[0] == "LEGACY-FUNDED",
+      "legacy: value (eth/supply) + NO recent activity -> LEGACY-FUNDED (the Thetanuts target class)")
+check(_legacy.classify_legacy(5000, 12, 10**18, None, 5000, 30)[0] == "ACTIVE-FUNDED",
+      "legacy: value + recent activity -> ACTIVE-FUNDED (live, not the legacy class)")
+check(_legacy.classify_legacy(5000, 0, 0, 0, 0, 0)[0] == "EMPTY",
+      "legacy: deployed but 0 value -> EMPTY (nothing at stake)")
+check(_legacy.classify_legacy(0, 0, 0, None, None, None)[0] == "NO-CODE"
+      and _legacy.classify_legacy(-1, 0, 0, None, None, None)[0] == "UNKNOWN",
+      "legacy: code==0 -> NO-CODE; code<0 (rpc null) -> UNKNOWN (never a false verdict)")
+check(_legacy.is_7702("0xef0100" + "ab" * 20) and not _legacy.is_7702("0x60806040"),
+      "legacy: is_7702 detects the 23-byte 0xef0100 delegation (a wallet, not a contract); real bytecode is not 7702")
+
 print("== INLINE_AUTH regex ==")
 check(bool(recon.INLINE_AUTH.search("requireGovernanceOnly();")), "INLINE_AUTH matches requireGovernanceOnly")
 check(bool(recon.INLINE_AUTH.search("_verifySignatures(a,b,c)")), "INLINE_AUTH matches _verifySignatures")
