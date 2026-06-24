@@ -184,6 +184,12 @@ check(_ta_rev and _ta_rev[0][4] == 0 and "reactive revocation" in (_ta_rev[0][3]
       "det_trust_anchor: revocation present -> STILL [!] (0), note flags it reactive (Taiko had deleteInstances, drained anyway)")
 check(not flagged(recon.det_trust_anchor, "contract C{function setFee(uint x) external onlyOwner { fee=x; }}"),
       "det_trust_anchor: an ordinary contract with no trust-anchor vocabulary -> NOT flagged")
+check(not flagged(recon.det_trust_anchor,
+      "contract FflonkVerifier{ address prover; function verifyProof(bytes calldata proof, uint[1] calldata pubSignals) public view returns (bool){ /* fflonk pairing snark */ return true; }}"),
+      "det_trust_anchor: a pure zk-SNARK verifier (fflonk/pairing/pubSignals, no TEE/signature) -> NOT flagged (verifying key is PUBLIC; ZKFair FflonkVerifier FP)")
+check(flagged(recon.det_trust_anchor,
+      "contract SgxVerifier{ function verifyProof(address prover, bytes calldata sig) external { require(trustedInstance[prover]); /* sgx attestation pairing */ }}", "verifyProof"),
+      "det_trust_anchor: a TEE verifier that also mentions pairing is STILL flagged (TEE/signature trust present -> leakable key)")
 
 print("== secrets lane (Taiko layer-A: committed keys, incl. git history) ==")
 import secrets as _secrets  # noqa: E402

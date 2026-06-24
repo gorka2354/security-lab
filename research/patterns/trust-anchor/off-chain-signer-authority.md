@@ -51,3 +51,8 @@ obtains that key (leak, CI, backup) forges valid proofs and the contract treats 
 - Reactive revocation alone is NOT a kill (Taiko had `deleteInstances`, drained anyway) — it can't stop a
   forged registration before an operator notices. Downgrade only if revocation is paired with a quorum.
 - Key never in repo (HSM / sealed enclave provisioning) — kills layer A; verify before assuming.
+- A pure zk-SNARK / zk verifier (Fflonk / Plonk / Groth16, pairing-based) is NOT this class: its single key
+  is the PUBLIC verifying key (trusted-setup toxic waste destroyed), not a leakable signing key — a proof
+  can't be forged by leaking a key. det_trust_anchor suppresses these (SNARK tokens + no TEE/signature
+  tokens). Only a TEE/attestation/signature verifier (leakable signing key/measurement) qualifies. (ZKFair
+  FflonkVerifier FP, 2026-06-24.)

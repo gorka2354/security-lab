@@ -57,6 +57,8 @@ _HISTORY_PREFILTER = (
 _SKIP_DIR = re.compile(r"(^|/)(\.git|node_modules|lib|out|artifacts|cache|dist|build|vendor|"
                        r"forge-std|openzeppelin|\.venv|venv|__pycache__)(/|$)")
 _EXAMPLE = re.compile(r"(?i)\.(example|sample|template|dist)$|\.env\.(example|sample|template)")
+# test/fixture paths hold throwaway keys (test-vectors, mocks) -> downgrade, don't cry wolf (recon _TESTRE parallel)
+_TEST_PATH = re.compile(r"(^|[:/])(tests?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?)([/]|$)", re.I)
 
 
 def git(repo, *args):
@@ -199,6 +201,10 @@ def main():
     if not gl_present:
         print("[.] gitleaks not installed (optional, deeper rules): brew install gitleaks")
 
+    # Downgrade test/fixture/test-vector paths (mirrors recon's _TESTRE): a key under test-vectors/ is
+    # fixture material (the ZKFair helpers.json + .env Anvil-key lesson), not a live leak -- keep the
+    # signal but drop it below [!] so it never cries wolf over real, production-path secrets.
+    leads = [(h[0], h[1], h[2], h[3], min(2, h[4] + 1)) if _TEST_PATH.search(h[0]) else h for h in leads]
     by_prio = sorted(leads, key=lambda h: h[4])
     if not by_prio:
         print("\n(no secrets surfaced) - clean, OR history unreachable (see above).")
@@ -207,7 +213,8 @@ def main():
     print(f"\n## Findings ({len(by_prio)})\n")
     for rel, ln, name, preview, prio in by_prio:
         loc = rel if ln == 0 else f"{rel}:{ln}"
-        print(f"- {mark[prio]} {name} - `{loc}`  ->  {preview}")
+        tag = "  (test/fixture path - likely not a live secret)" if _TEST_PATH.search(rel) else ""
+        print(f"- {mark[prio]} {name} - `{loc}`  ->  {preview}{tag}")
     print(f"\n---\nTotal: {len(by_prio)}. A live private key in-scope -> rotate-and-disclose path;"
           " pair with recon det_trust_anchor (the on-chain blast radius).")
 

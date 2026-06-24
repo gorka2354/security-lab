@@ -1474,6 +1474,12 @@ TRUST_QUORUM = re.compile(
 TRUST_REVOKE = re.compile(
     r"\brevoke\w*|\bremoveInstance\w*|\bdeleteInstance\w*|\bdisableInstance\w*|\brotat\w*|"
     r"\bdeprecat\w*|\bremoveProver\w*|\bremoveSigner\w*", re.I)
+# A zk-SNARK verifier's key is the PUBLIC verifying key (toxic-waste destroyed) -> NOT a leakable signing
+# key, so it is NOT this class (ZKFair FflonkVerifier FP). Distinguish from a TEE/signature verifier, whose
+# trust IS a leakable signing key/measurement.
+TRUST_SNARK = re.compile(r"fflonk|plonk|groth16|\bsnark|pairing|pubSignals|verifyingKey.*trusted\s*setup", re.I)
+TRUST_TEE = re.compile(r"mr[_]?signer|mr[_]?enclave|enclave|attestation|\bsgx|teeProof|ecrecover|"
+                       r"isValidSignature|trusted(?:Signer|Instance|Prover)", re.I)
 
 
 def det_trust_anchor(text, rel):
@@ -1486,6 +1492,8 @@ def det_trust_anchor(text, rel):
     research/patterns/trust-anchor/off-chain-signer-authority.md."""
     if not TRUST_ANCHOR_TERM.search(text):
         return []
+    if TRUST_SNARK.search(text) and not TRUST_TEE.search(text):
+        return []                                   # pure zk-SNARK verifier: the verifying key is PUBLIC, not a leakable signing key (FflonkVerifier FP)
     code = _strip_comments(text)                    # suppression must read CODE, not comments (a comment can't hide a bug)
     if TRUST_QUORUM.search(code):
         return []                                   # an M-of-N quorum bounds a single-key leak -> not this pattern
