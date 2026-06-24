@@ -191,6 +191,20 @@ check(flagged(recon.det_trust_anchor,
       "contract SgxVerifier{ function verifyProof(address prover, bytes calldata sig) external { require(trustedInstance[prover]); /* sgx attestation pairing */ }}", "verifyProof"),
       "det_trust_anchor: a TEE verifier that also mentions pairing is STILL flagged (TEE/signature trust present -> leakable key)")
 
+print("== det_vault_share_math (Thetanuts: custom-vault share-price rounding) ==")
+_VS = "contract V{uint totalSupply; uint backing; function redeem(uint amount) external { uint payout = backing * amount / totalSupply; totalSupply-=amount; }}"
+check(flagged(recon.det_vault_share_math, _VS),
+      "det_vault_share_math: custom vault `backing*amount/totalSupply` with no floor -> flagged")
+check(not flagged(recon.det_vault_share_math,
+      "contract V{uint constant MINIMUM_SHARES=1e3; uint totalSupply; uint backing; function redeem(uint amount) external { uint p = backing * amount / totalSupply; }}"),
+      "det_vault_share_math: a MINIMUM_SHARES permanent floor -> NOT flagged")
+check(not flagged(recon.det_vault_share_math,
+      "contract V is ERC4626{ uint totalSupply; uint backing; function redeem(uint a) external { uint p = backing * a / totalSupply; }}"),
+      "det_vault_share_math: an ERC4626 vault is ceded to det_erc4626 -> NOT flagged here")
+check(not flagged(recon.det_vault_share_math,
+      "contract C{function f(uint a,uint b,uint c) external pure returns(uint){ return a * b / c; }}"),
+      "det_vault_share_math: plain a*b/c (no totalSupply division, no vault fn) -> NOT flagged")
+
 print("== secrets lane (Taiko layer-A: committed keys, incl. git history) ==")
 import secrets as _secrets  # noqa: E402
 check(bool(_secrets.scan_text("-----BEGIN RSA PRIVATE KEY-----\nMIIx\n-----END RSA PRIVATE KEY-----", "k.pem")),

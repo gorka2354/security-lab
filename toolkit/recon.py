@@ -483,6 +483,46 @@ def det_erc4626(text, rel):
     return [(rel, lineno(text, m.start()) if m else 1, f"contract {name} (ERC4626)", note, 0)]
 
 
+# ── Detector: custom-vault share-price rounding (Thetanuts $2.1M, non-ERC4626) ──
+VAULT_FN = re.compile(r"function\s+\w*(?:redeem|withdraw|mint|deposit|convertTo|preview|claim|"
+                      r"pricePerShare|sharesToAssets|assetsToShares|burn)\w*", re.I)
+SHARE_DIV = re.compile(r"\*[\w.\[\]()\s]+?/\s*(?:total[_]?Supply|total[_]?Shares|_?totalSupply|_?totalShares)\b", re.I)
+# Real protection = a PERMANENT supply floor (minimum / dead-shares / virtual-shares), NOT a `totalSupply==0`
+# first-deposit case -- the Thetanuts bug was supply SHRINKING toward 0 via burns, which a zero-case never guards.
+SHARE_PROT = re.compile(r"MINIMUM_|_decimalsOffset|dead[_ ]?shares?|0xdead|virtual[_ ]?shares|"
+                        r"_mint\s*\(\s*(?:address\s*\(\s*0|0x0|address\s*\(\s*this)", re.I)
+
+
+def det_vault_share_math(text, rel):
+    """A custom vault prices shares as `X * amount / totalSupply` (or /totalShares) with NO low/zero-supply
+    protection -> when supply shrinks toward 0 (burns) the per-share backing explodes and redeem returns
+    inflated value, while mint rounds shares to ~0 (free) -> mint-and-redeem + flashloan drains it
+    (Thetanuts deprecated Index Vault, 2026-06, ~$2.1M). Generalizes det_erc4626's first-depositor inflation
+    to ANY custom (non-ERC4626) vault. Cedes the ERC4626 case to det_erc4626. Suppressed by a minimum /
+    dead-shares / virtual-shares / totalSupply==0 guard. T3 LEAD: verify the near-empty-supply window."""
+    if re.search(r"\bERC4626\b", _strip_comments(text)):
+        return []                                   # det_erc4626 owns the ERC4626 flavor (code, not a comment)
+    if not VAULT_FN.search(text) or not SHARE_DIV.search(text):
+        return []
+    if SHARE_PROT.search(text):
+        return []                                   # minimum / dead-shares / zero-guard closes the low-supply window
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):  # line-based + comment-skip (det_precision idiom)
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        code = s.split("//")[0]
+        if "*/" in code or "/*" in code:
+            continue
+        if SHARE_DIV.search(code):
+            out.append((rel, i, s[:80],
+                    "custom-vault share math (X * amount / totalSupply) with no minimum/dead-shares/zero-supply "
+                    "guard -> as totalSupply shrinks toward 0 the per-share backing explodes (redeem inflates) "
+                    "and mint rounds shares to ~0 (free) -> mint-and-redeem + flashloan drain (Thetanuts $2.1M). "
+                    "Verify the near-empty-supply window; add a minimum/dead-shares seed.", 0))
+    return out
+
+
 # ── Detector 7: L2 / native Account-Abstraction footguns (zkSync Era) ──
 L2_FOOTGUNS = [
     (r"\bextcodesize\b",
@@ -1546,6 +1586,9 @@ DETECTORS = [
      "Bare transfer/transferFrom return dropped -> USDT/ZRX fail silently; use SafeERC20."),
     ("ERC4626 inflation (first-depositor share-price attack)", det_erc4626,
      "Vault with no _decimalsOffset / dead-shares -> first depositor skews the share price."),
+    ("VAULT share-price rounding (custom/non-ERC4626, near-empty-supply manipulation)", det_vault_share_math,
+     "Thetanuts $2.1M (2026): a custom vault prices `X*amount/totalSupply` with no minimum/dead-shares/zero "
+     "guard -> shrinking supply inflates redeem + mint rounds to ~0 -> mint-and-redeem+flashloan drain. det_erc4626 misses non-4626."),
     ("REWARD / claim accounting (double-claim, late marker)", det_reward,
      "Pattern 03: reward payout with no claimed/rewardDebt marker write (or written after transfer)."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
@@ -1623,7 +1666,7 @@ def det_key(title):
     sibling title contains both)."""
     t = title.lower()
     for sub, k in (("sibling", "sibling"), ("access control leads", "access"),
-                   ("supply", "supply"), ("receiver-hook", "nftcallback"), ("reentrancy", "reentrancy"),
+                   ("share-price rounding", "vaultsharemath"), ("supply", "supply"), ("receiver-hook", "nftcallback"), ("reentrancy", "reentrancy"),
                    ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
