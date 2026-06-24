@@ -14,6 +14,7 @@ are reset/timed-out** (VPN/firewall). That breaks the two "official" install pat
 ```
 brew install foundry      # forge/cast/anvil -> /opt/homebrew/bin (already on PATH; no ~/.foundry/bin)
 brew install solidity     # system solc; brew's version matched the pinned 0.8.35 exactly
+pip3 install web3         # the activity.py selector-hashing path + test suite SystemExit(1) without it
 ```
 - No `export PATH="$HOME/.foundry/bin:$PATH"` needed on Mac — brew puts forge on PATH directly.
   (That CLAUDE.md note is Windows/WSL-only.)

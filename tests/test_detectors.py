@@ -170,6 +170,20 @@ check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(addr
 check(flagged(recon.det_oracle, "contract C{ function p() external { (,int a,,,)=feed.latestRoundData(); } }"),
       "latestRoundData with missing guards flagged")
 
+print("== det_trust_anchor (Taiko/Raiko SGX key-leak class) ==")
+_TA_POS = "contract V{bytes32 mrSigner; mapping(address=>bool) ti; function registerInstance(bytes32 m,address i) external { require(m==mrSigner); ti[i]=true; }}"
+check(flagged(recon.det_trust_anchor, _TA_POS, "registerInstance"),
+      "single-anchor registerInstance (mrSigner, no quorum/revoke) -> flagged")
+check(recon.det_trust_anchor(_TA_POS, "src/V.sol")[0][4] == 0,
+      "det_trust_anchor: no quorum + no revocation -> [!] high priority (0)")
+check(not flagged(recon.det_trust_anchor, "uint threshold; " + _TA_POS),
+      "det_trust_anchor: a quorum/threshold marker bounds the leak -> NOT flagged (gate the FP)")
+_TA_REV = "contract V{bytes32 mrSigner; mapping(address=>bool) ti; function registerInstance(bytes32 m,address i) external { require(m==mrSigner); ti[i]=true; } function revokeInstance(address i) external { ti[i]=false; }}"
+check(recon.det_trust_anchor(_TA_REV, "src/V.sol") and recon.det_trust_anchor(_TA_REV, "src/V.sol")[0][4] == 1,
+      "det_trust_anchor: revocation present -> still a lead but downgraded to [.] (1)")
+check(not flagged(recon.det_trust_anchor, "contract C{function setFee(uint x) external onlyOwner { fee=x; }}"),
+      "det_trust_anchor: an ordinary contract with no trust-anchor vocabulary -> NOT flagged")
+
 print("== INLINE_AUTH regex ==")
 check(bool(recon.INLINE_AUTH.search("requireGovernanceOnly();")), "INLINE_AUTH matches requireGovernanceOnly")
 check(bool(recon.INLINE_AUTH.search("_verifySignatures(a,b,c)")), "INLINE_AUTH matches _verifySignatures")

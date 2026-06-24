@@ -1451,6 +1451,65 @@ def det_caller_supplied_authority(text, rel):
     return out
 
 
+# ── Detector: off-chain trust anchor (single signer/measurement, no quorum/revocation) ──
+_COMMENT_RE = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+
+
+def _strip_comments(text):
+    """Blank out // line and /* */ block comments so a stray word in a comment (e.g. 'TODO: add quorum',
+    'no revocation yet') can't silently SUPPRESS a code-level gate -> a false-negative, the worst outcome.
+    Used only for boolean searches; offsets are not preserved (detection keeps using the raw text)."""
+    return _COMMENT_RE.sub(" ", text)
+
+
+TRUST_ANCHOR_TERM = re.compile(
+    r"\bmr[_]?signer\b|\bmr[_]?enclave\b|\benclave\w*|\battestation\w*|\bsgx\w*|\bteeProof\b|"
+    r"\btrusted(?:Signer|Key|Instance|Prover|Root)s?\b|\bverifyingKey\b|\bprover\w*|\binstanceId\b", re.I)
+TRUST_VERIFY_FN = re.compile(
+    r"function\s+(\w*(?:verifyProof|verifyAttestation|verify|register|addInstances?|setInstance|"
+    r"attest|enroll|proveBlock|submitProof)\w*)\s*\(", re.I)
+TRUST_QUORUM = re.compile(
+    r"\bthreshold\b|\bquorum\b|\bsignaturesRequired\b|\bminSigners?\b|\brequiredSignatures?\b|"
+    r"\bnumSigners?\b|\bM[\s_-]?of[\s_-]?N\b", re.I)
+TRUST_REVOKE = re.compile(
+    r"\brevoke\w*|\bremoveInstance\w*|\bdeleteInstance\w*|\bdisableInstance\w*|\brotat\w*|"
+    r"\bdeprecat\w*|\bremoveProver\w*|\bremoveSigner\w*", re.I)
+
+
+def det_trust_anchor(text, rel):
+    """A verifier/registrar whose authority reduces to ONE stored trust anchor (an SGX MrSigner/MrEnclave,
+    a verifying key, a single trusted signer/prover) matched in a verify/register/attest fn, with NO M-of-N
+    quorum and NO revocation/rotation in the file -> whoever obtains that one key forges valid proofs and the
+    chain accepts them (Taiko/Raiko 2026, ~$1.7M). T3 trust-model LEAD: the regex sees the missing quorum, NOT
+    the off-chain key leak -> pair with the secrets lane (gitleaks) + confirm by hand. See
+    research/patterns/trust-anchor/off-chain-signer-authority.md."""
+    if not TRUST_ANCHOR_TERM.search(text):
+        return []
+    code = _strip_comments(text)                    # suppression must read CODE, not comments (a comment can't hide a bug)
+    if TRUST_QUORUM.search(code):
+        return []                                   # an M-of-N quorum bounds a single-key leak -> not this pattern
+    has_revoke = bool(TRUST_REVOKE.search(code))
+    out, seen = [], set()
+    for m in TRUST_VERIFY_FN.finditer(text):
+        name = m.group(1)
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 400)]
+        if not TRUST_ANCHOR_TERM.search(body):
+            continue                                # the fn must actually touch the trust anchor
+        ln = lineno(text, m.start())
+        if ln in seen:
+            continue
+        seen.add(ln)
+        miss = "no M-of-N quorum" + ("" if has_revoke else " and no revocation/rotation")
+        out.append((rel, ln, f"function {name}(...)",
+                    "verifier/registrar accepts a proof/instance by matching a SINGLE stored trust anchor (SGX "
+                    "measurement / verifying key / trusted signer-prover) with " + miss + " -> whoever obtains that "
+                    "one key forges valid proofs the chain accepts (Taiko/Raiko key-leak class, ~$1.7M). Require an "
+                    "M-of-N multi-prover quorum + on-chain revocation; and secret-scan the repo/CI for the key (it "
+                    "lives off-chain).", 1 if has_revoke else 0))
+    return out
+
+
 DETECTORS = [
     ("DISABLED signals (commented-out invariant/check, security TODO)", det_disabled,
      "Heuristic 4: 'a verification that doesn't verify'. Real leads here twice."),
@@ -1540,6 +1599,9 @@ DETECTORS = [
     ("CALLER-SUPPLIED AUTHORITY (transferFrom source from calldata struct)", det_caller_supplied_authority,
      "DeFiHackLabs class E, #1 of 2026: transferFrom source is a decoded calldata field (order.maker) not bound to "
      "msg.sender / no signature -> caller debits any victim that approved this contract (TrustedVolumes/MAPProtocol/Ekubo)."),
+    ("TRUST-ANCHOR single signer/measurement (SGX/zk verifier, no quorum/revocation)", det_trust_anchor,
+     "Taiko/Raiko 2026 (~$1.7M): a verify/register/attest fn trusts ONE stored anchor (MrSigner/verifyingKey/"
+     "trustedSigner) with no M-of-N quorum + no revocation -> a leaked key forges valid proofs. Pair w/ secrets lane."),
 ]
 
 
@@ -1556,7 +1618,8 @@ def det_key(title):
                    ("reward-formula", "rewardformula"), ("reward", "reward"),
                    ("spot-amm", "spotoracle"), ("self-transfer", "selftransfer"),
                    ("pair-reserve", "pairreserve"), ("unprotected init", "uinit"),
-                   ("caller-supplied", "callerauth"), ("oracle", "oracle"),
+                   ("caller-supplied", "callerauth"), ("trust-anchor", "trustanchor"),
+                   ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),
