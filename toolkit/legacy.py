@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,24 +26,34 @@ import activity  # reuse probe / classify helpers / CHAIN_ALIAS  # noqa: E402
 import fetch_source as fs  # noqa: E402
 
 
-def classify_legacy(code_len, events, balance_wei, token_bal=None, supply=None, txcount=None):
-    """PURE inverse of activity.classify: the target class is DEPRECATED (no recent activity) yet still
-    FUNDED (residual ETH/token, or outstanding shares = backing). events<0 = the log query failed; txcount =
-    recent Etherscan txns (None if no key -> dormancy rests on events alone, weaker). Returns (verdict, rec, note)."""
+def classify_legacy(code_len, events, balance_wei, token_bal=None, supply=None, age_days=None, dormant_days=90):
+    """PURE inverse of activity.classify: the target class is DEPRECATED (no RECENT activity) yet still FUNDED
+    (residual ETH/token, or outstanding shares = backing). Dormancy is the AGE of the last tx, NOT a tx COUNT
+    -- an abandoned contract with 20 lifetime txns from 2021 still has count>0 (the live-run lesson). age_days
+    = days since the most recent tx (None if no key -> fall back to the event window, weaker). Returns (verdict, rec, note)."""
     if code_len < 0:
         return ("UNKNOWN", "RETRY", "eth_getCode returned null (RPC issue) -> retry, NOT 'no code'")
     if code_len == 0:
         return ("NO-CODE", "SKIP", "no bytecode (EOA / not deployed / wrong chain)")
     has_value = balance_wei > 0 or (token_bal or 0) > 0 or (supply or 0) > 0
-    active = (txcount or 0) > 0 or (events or 0) > 0
     if not has_value:
         return ("EMPTY", "SKIP",
                 "deployed but 0 ETH / 0 token / totalSupply==0 -> nothing at stake (drained or never funded)")
-    if active:
+    if age_days is not None:
+        dormant = age_days >= dormant_days                  # authoritative: time since the last tx
+    elif (events or 0) > 0:
+        dormant = False                                     # recent events -> active (no key for age)
+    elif events == 0:
+        dormant = True                                      # no events in window, no key -> tentative (weaker)
+    else:
+        return ("UNKNOWN", "RETRY", "no last-tx age (no key) AND the event query failed -> can't gate dormancy; set ETHERSCAN_API_KEY")
+    if not dormant:
+        age_str = f"last tx {age_days:.0f}d ago" if age_days is not None else "recent events"
         return ("ACTIVE-FUNDED", "normal-hunt",
-                "holds value AND has recent activity -> a LIVE target, not the legacy class; hunt via the normal lane")
+                f"holds value AND active ({age_str}) -> a LIVE target, not the legacy class; hunt via the normal lane")
+    age_str = f"last tx {age_days:.0f}d ago" if age_days is not None else "no recent events (no key -> weak signal)"
     return ("LEGACY-FUNDED", "READ IT",
-            "residual value + NO recent activity -> a DEPRECATED-but-funded contract (Thetanuts class): forgotten, "
+            f"residual value + DORMANT ({age_str}) -> a DEPRECATED-but-funded contract (Thetanuts class): forgotten, "
             "un-monitored, classic bug shapes. fetch_source -> recon (det_vault_share_math/det_erc4626) -> confirm value at stake.")
 
 
@@ -79,17 +90,39 @@ def is_7702(code_raw):
     return c.startswith("0xef0100") and len(c) == 2 + 23 * 2
 
 
-def assess(addr, chain, blocks, rpc):
+def last_tx_age_days(addr, chain, key=None):
+    """Days since the address's MOST RECENT tx (Etherscan-v2 txlist, sort=desc, the [0] timeStamp). The
+    authoritative dormancy signal -- a tx COUNT can't tell 'busy' from '20 txns, last one in 2021'. Returns
+    a float (days) or None (no key / no txns / call failed). Caveat: normal txlist; router/internal-only
+    activity isn't counted -> a legacy lead, confirm by hand."""
+    key = key or os.environ.get("ETHERSCAN_API_KEY")
+    if not key:
+        return None
+    url = ("https://api.etherscan.io/v2/api?chainid=%s&module=account&action=txlist&address=%s"
+           "&page=1&offset=1&sort=desc&apikey=%s" % (chain, addr, key))
+    try:
+        d = json.load(urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": "security-lab"}), timeout=25))
+        r = d.get("result")
+        if isinstance(r, list) and r:
+            return max(0.0, (time.time() - int(r[0]["timeStamp"])) / 86400.0)
+    except Exception:
+        return None
+    return None
+
+
+def assess(addr, chain, blocks, rpc, dormant_days=90):
     """Probe one address (reusing activity.probe) and apply the legacy classifier. Returns a dict row."""
     code_raw = fs._rpc(rpc, "eth_getCode", [addr, "latest"])
     if is_7702(code_raw):
         return {"addr": addr, "verdict": "EOA-7702", "rec": "SKIP", "code": 23, "events": 0,
-                "eth": 0.0, "supply": None, "dec": 18, "txc": None,
+                "eth": 0.0, "supply": None, "dec": 18, "age": None,
                 "note": "EIP-7702 delegated EOA (0xef0100 prefix) -> a wallet, not a deployed contract"}
     code_len, events, xfer, bal, tok, supply, dec, txc, _cval = activity.probe(addr, chain, blocks, rpc, None, None)
-    verdict, rec, note = classify_legacy(code_len, events, bal, tok, supply, txc)
+    age = last_tx_age_days(addr, chain)
+    verdict, rec, note = classify_legacy(code_len, events, bal, tok, supply, age, dormant_days)
     return {"addr": addr, "verdict": verdict, "rec": rec, "note": note, "code": code_len,
-            "events": events, "eth": bal / 1e18, "supply": supply, "dec": dec, "txc": txc}
+            "events": events, "eth": bal / 1e18, "supply": supply, "dec": dec, "age": age}
 
 
 def _print_row(r):
@@ -97,8 +130,8 @@ def _print_row(r):
     extra = ""
     if r["supply"] is not None:
         extra += f" totalSupply={r['supply'] / 10 ** r['dec']:,.2f}"
-    if r["txc"] is not None:
-        extra += f" txns(recent)={r['txc']}"
+    if r.get("age") is not None:
+        extra += f" lastTx={r['age']:.0f}d ago"
     print(f"[{r['verdict']:13}] {r['addr']}  ({r['rec']})")
     print(f"               code={r['code']}B  events={ev}  eth={r['eth']:.4f}{extra}")
     print(f"               {r['note']}")
@@ -110,6 +143,7 @@ def main():
     ap.add_argument("target", help="address(es) (comma-sep) for `check`, or a deployer address for `from-deployer`")
     ap.add_argument("--chain", default="1", help="chain id or name (eth/base/arb/op/linea/polygon/...)")
     ap.add_argument("--blocks", type=int, default=20000, help="event lookback window (wider than activity: legacy = low-frequency)")
+    ap.add_argument("--dormant-days", type=int, default=90, help="last-tx age (days) at/above which a funded contract is DORMANT")
     ap.add_argument("--rpc", help="override RPC url")
     args = ap.parse_args()
 
@@ -133,7 +167,7 @@ def main():
     hits = 0
     for a in addrs:
         try:
-            r = assess(a, chain, args.blocks, rpc)
+            r = assess(a, chain, args.blocks, rpc, args.dormant_days)
         except Exception as e:
             print(f"[ERROR        ] {a}  -- {str(e)[:60]}")
             continue

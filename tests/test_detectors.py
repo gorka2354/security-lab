@@ -227,15 +227,18 @@ check(_secrets.redact("AKIAIOSFODNN7EXAMPLE").startswith("AKIA") and "20 chars" 
 
 print("== legacy lane (Thetanuts: deprecated-but-funded sourcing) ==")
 import legacy as _legacy  # noqa: E402
-check(_legacy.classify_legacy(5000, 0, 10**18, None, 5000, 0)[0] == "LEGACY-FUNDED",
-      "legacy: value (eth/supply) + NO recent activity -> LEGACY-FUNDED (the Thetanuts target class)")
-check(_legacy.classify_legacy(5000, 12, 10**18, None, 5000, 30)[0] == "ACTIVE-FUNDED",
-      "legacy: value + recent activity -> ACTIVE-FUNDED (live, not the legacy class)")
-check(_legacy.classify_legacy(5000, 0, 0, 0, 0, 0)[0] == "EMPTY",
-      "legacy: deployed but 0 value -> EMPTY (nothing at stake)")
-check(_legacy.classify_legacy(0, 0, 0, None, None, None)[0] == "NO-CODE"
-      and _legacy.classify_legacy(-1, 0, 0, None, None, None)[0] == "UNKNOWN",
-      "legacy: code==0 -> NO-CODE; code<0 (rpc null) -> UNKNOWN (never a false verdict)")
+# dormancy is the AGE of the last tx, NOT a tx count (the live-run lesson: 20 lifetime txns from 2021 != active)
+check(_legacy.classify_legacy(5000, -1, 10**18, None, 5000, 400)[0] == "LEGACY-FUNDED",
+      "legacy: value + last tx 400d ago -> LEGACY-FUNDED (age drives it, even with events unknown)")
+check(_legacy.classify_legacy(5000, -1, 10**18, None, 5000, 10)[0] == "ACTIVE-FUNDED",
+      "legacy: value + last tx 10d ago -> ACTIVE-FUNDED (recent => live, not the legacy class)")
+check(_legacy.classify_legacy(5000, 0, 0, 0, 0, 400)[0] == "EMPTY",
+      "legacy: 0 value -> EMPTY regardless of age (nothing at stake)")
+check(_legacy.classify_legacy(5000, -1, 10**18, None, 5000, None)[0] == "UNKNOWN",
+      "legacy: no age (no key) AND event query failed -> UNKNOWN, never a false dormancy verdict")
+check(_legacy.classify_legacy(0, 0, 0, None, None, 400)[0] == "NO-CODE"
+      and _legacy.classify_legacy(-1, 0, 0, None, None, 400)[0] == "UNKNOWN",
+      "legacy: code==0 -> NO-CODE; code<0 (rpc null) -> UNKNOWN")
 check(_legacy.is_7702("0xef0100" + "ab" * 20) and not _legacy.is_7702("0x60806040"),
       "legacy: is_7702 detects the 23-byte 0xef0100 delegation (a wallet, not a contract); real bytecode is not 7702")
 
