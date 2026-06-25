@@ -20,11 +20,21 @@ contract that scout/contest_monitor structurally can't surface.
 - `code=45B` = an EIP-1167 minimal proxy (NOT a 7702 EOA -- a real contract) -> logic lives in the impl;
   resolve it (bytes 10..29 of the proxy code) before reading.
 
-## NOT a finding -- a sourcing lead. To pursue (next session):
-1. Resolve the 1167 impl -> `fetch_source.py` it -> `recon.py` (det_vault_share_math / det_erc4626 /
-   det_precision) on the share/redemption math; check the near-empty-supply window.
-2. Confirm REAL backing value (supply>0 != assets held) -> `activity.py --token` / read the vault's assets.
-3. Confirm SCOPE: Yearn is active w/ a bounty, but deprecated v1 may be out of scope -> verify before any disclosure.
+## Deep read (2026-06-25) -> RESOLVED: NO FINDING
+- Resolved the EIP-1167 impl: proxy code `363d3d373d3d3d363d73` + `a696a63cc78dffa1a63e9e50587c197387ff6c7e`
+  -> impl `0xa696a63cc78dffa1a63e9e50587c197387ff6c7e`. fetch_source -> **a Vyper contract**:
+  `# @version 0.2.11`, `@title Yearn Token Vault`, `@author yearn.finance`. yUSD is a **1167 clone of the
+  canonical Yearn V2 Vault.vy** -- one of the most-audited contracts in DeFi.
+- **Verdict: NO FINDING.** The Thetanuts class (custom share-math, no floor) does NOT apply: Yearn v2
+  `_issueSharesForAmount` handles `totalSupply==0`, gov-controlled, seeded. Gate H (publicly-known/audited)
+  + gate C (intentional). The recon hits (ecrecover L761, domain-sep L239) = the standard audited EIP-2612
+  permit. Sourcing lane did its job (real dormant-funded contract); VERIFY correctly killed it.
+
+## Engine gap this read surfaced (and FIXED) -- the real value
+- **recon was Solidity-only and gave a misleading all-clear on the Vyper impl** (false-clean = silent miss,
+  the worst outcome). Yearn v2 / Curve / many vaults are Vyper. Added `recon.is_vyper` -> recon now SKIPS +
+  loudly WARNS on Vyper files instead of emitting 0s that read as "safe." (+2 asserts, 380 passed.)
+- Backlog: real Vyper detector support (or a vyper->normalized pass) so the lane isn't blind to that ecosystem.
 
 ## Lane verdict
 legacy.py works end-to-end and surfaced a genuine LEGACY-FUNDED on the first migrated-protocol target -- the

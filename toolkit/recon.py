@@ -1703,6 +1703,16 @@ def detect_all(text, rel):
     return out
 
 
+_VYPER = re.compile(r"^\s*#\s*@version\b|^\s*@(external|internal|view|pure|payable|nonpayable)\b|^\s*def\s+\w+\s*\(", re.M)
+
+
+def is_vyper(text):
+    """recon's detectors are Solidity regexes; a Vyper file (Yearn v2 vaults, Curve, ...) would get a
+    misleading all-clear (false-clean = a silent miss -- the worst outcome). Detect it so main() WARNS
+    + skips instead of emitting 0s that read as 'safe'. Learned on the yUSD read (Yearn V2 Vault.vy)."""
+    return bool(_VYPER.search(text))
+
+
 def main():
     ap = argparse.ArgumentParser(description="Solidity lead-surfacer (vault heuristics)")
     ap.add_argument("repo", help="path to a cloned Solidity repo")
@@ -1712,18 +1722,26 @@ def main():
 
     files = list(iter_sol(args.repo))
     results = {title: [] for title, _, _ in DETECTORS}
+    vyper = []
     for path in files:
         rel = os.path.relpath(path, args.repo).replace("\\", "/")
         try:
             text = open(path, encoding="utf-8", errors="ignore").read()
         except Exception:
             continue
+        if is_vyper(text):
+            vyper.append(rel)
+            continue                       # Solidity detectors don't apply -> skip, NEVER emit a false-clean on Vyper
         for title, leads in detect_all(text, rel).items():
             results[title].extend(leads)
 
     out = [f"# Recon report: {os.path.basename(os.path.abspath(args.repo))}",
-           f"\nScanned {len(files)} .sol files. Triage only - verify every lead by hand.",
+           f"\nScanned {len(files) - len(vyper)} Solidity file(s). Triage only - verify every lead by hand.",
            "Priority: [!] high (review first), [.] medium, [ ] low.\n"]
+    if vyper:
+        out.append(f"[!] {len(vyper)} VYPER file(s) NOT scanned -- recon is Solidity-only, so this is NOT a clean "
+                   f"bill (false-clean = silent miss). Read by hand (Yearn v2 / Curve class): "
+                   + ", ".join(vyper[:8]) + (" ..." if len(vyper) > 8 else "") + "\n")
     total = 0
     for title, _, why in DETECTORS:
         # deprioritize test/mock/script files (noise for production hunting)

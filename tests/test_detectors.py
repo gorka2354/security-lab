@@ -242,6 +242,12 @@ check(_legacy.classify_legacy(0, 0, 0, None, None, 400)[0] == "NO-CODE"
 check(_legacy.is_7702("0xef0100" + "ab" * 20) and not _legacy.is_7702("0x60806040"),
       "legacy: is_7702 detects the 23-byte 0xef0100 delegation (a wallet, not a contract); real bytecode is not 7702")
 
+print("== recon Vyper guard (yUSD/Yearn-v2 lesson: never a false-clean on Vyper) ==")
+check(recon.is_vyper("# @version 0.2.11\n@external\ndef deposit(_amount: uint256) -> uint256:\n    pass"),
+      "recon.is_vyper: a Vyper contract (# @version / @external / def) is detected")
+check(not recon.is_vyper("pragma solidity ^0.8.20;\ncontract C{function f() external { x=1; } }"),
+      "recon.is_vyper: ordinary Solidity is NOT flagged as Vyper")
+
 print("== INLINE_AUTH regex ==")
 check(bool(recon.INLINE_AUTH.search("requireGovernanceOnly();")), "INLINE_AUTH matches requireGovernanceOnly")
 check(bool(recon.INLINE_AUTH.search("_verifySignatures(a,b,c)")), "INLINE_AUTH matches _verifySignatures")
