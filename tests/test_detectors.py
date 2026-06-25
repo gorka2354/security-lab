@@ -241,6 +241,13 @@ check(_legacy.classify_legacy(0, 0, 0, None, None, 400)[0] == "NO-CODE"
       "legacy: code==0 -> NO-CODE; code<0 (rpc null) -> UNKNOWN")
 check(_legacy.is_7702("0xef0100" + "ab" * 20) and not _legacy.is_7702("0x60806040"),
       "legacy: is_7702 detects the 23-byte 0xef0100 delegation (a wallet, not a contract); real bytecode is not 7702")
+_facrows = [{"type": "create", "from": "0xFAC", "contractAddress": "0xAAA"},
+            {"type": "create2", "from": "0xfac", "contractAddress": "0xBBB"},
+            {"type": "call", "from": "0xFAC", "contractAddress": ""},
+            {"type": "create", "from": "0xOTHER", "contractAddress": "0xCCC"},
+            {"type": "create", "from": "0xFAC", "contractAddress": "0xAAA"}]
+check(_legacy._creations_from_internal(_facrows, "0xfac") == ["0xAAA", "0xBBB"],
+      "legacy: from-factory parser -> only create/create2 BY the factory, de-duped (the clones txlist can't see)")
 
 print("== recon Vyper guard (yUSD/Yearn-v2 lesson: never a false-clean on Vyper) ==")
 check(recon.is_vyper("# @version 0.2.11\n@external\ndef deposit(_amount: uint256) -> uint256:\n    pass"),

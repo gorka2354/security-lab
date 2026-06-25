@@ -82,6 +82,39 @@ def deployer_contracts(deployer, chain, key=None, cap=200):
     return out
 
 
+def _creations_from_internal(rows, creator):
+    """PURE: the contractAddresses CREATED BY `creator` in a txlistinternal result -- internal txns of
+    type create/create2 whose `from` is the creator. This is how vault protocols spawn clones (factory
+    pattern), which the deployer-EOA txlist NEVER shows. Unit-testable."""
+    seen, out, cl = set(), [], (creator or "").lower()
+    for tx in rows or []:
+        ca = (tx.get("contractAddress") or "").strip()
+        if (tx.get("type") in ("create", "create2") and (tx.get("from") or "").lower() == cl
+                and ca and ca.lower() not in seen):
+            seen.add(ca.lower())
+            out.append(ca)
+    return out
+
+
+def factory_spawned(factory, chain, key=None, cap=10000):
+    """Contracts a FACTORY created (Etherscan-v2 txlistinternal, type create/create2). Closes the
+    from-deployer blind spot: most vaults are factory-clones, invisible to the EOA txlist. Needs a key."""
+    key = key or os.environ.get("ETHERSCAN_API_KEY")
+    if not key:
+        return None
+    url = ("https://api.etherscan.io/v2/api?chainid=%s&module=account&action=txlistinternal&address=%s"
+           "&startblock=0&endblock=99999999&page=1&offset=%d&sort=asc&apikey=%s" % (chain, factory, cap, key))
+    try:
+        d = json.load(urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": "security-lab"}), timeout=30))
+    except Exception:
+        return None
+    rows = d.get("result")
+    if not isinstance(rows, list):
+        return None
+    return _creations_from_internal(rows, factory)
+
+
 def is_7702(code_raw):
     """An EIP-7702 delegated EOA carries exactly 23 bytes of code: 0xef0100 + a 20-byte address. It is a
     WALLET, not a deployed contract -> never a legacy-contract target (caught on the first live run: a
@@ -139,8 +172,9 @@ def _print_row(r):
 
 def main():
     ap = argparse.ArgumentParser(description="Deprecated-but-funded sourcing lane (the Thetanuts class)")
-    ap.add_argument("mode", choices=["check", "from-deployer"], help="check addresses, or enumerate a deployer's contracts")
-    ap.add_argument("target", help="address(es) (comma-sep) for `check`, or a deployer address for `from-deployer`")
+    ap.add_argument("mode", choices=["check", "from-deployer", "from-factory"],
+                    help="check addresses, enumerate a deployer's EOA-creations, or a factory's spawned clones")
+    ap.add_argument("target", help="address(es) for `check`, or a deployer/factory address for the enumerate modes")
     ap.add_argument("--chain", default="1", help="chain id or name (eth/base/arb/op/linea/polygon/...)")
     ap.add_argument("--blocks", type=int, default=20000, help="event lookback window (wider than activity: legacy = low-frequency)")
     ap.add_argument("--dormant-days", type=int, default=90, help="last-tx age (days) at/above which a funded contract is DORMANT")
@@ -153,13 +187,15 @@ def main():
         print(f"[!] no RPC for chain {args.chain} -> pass --rpc")
         return 1
 
-    if args.mode == "from-deployer":
-        addrs = deployer_contracts(args.target, chain)
+    if args.mode in ("from-deployer", "from-factory"):
+        enum, kind = ((deployer_contracts, "created by deployer EOA") if args.mode == "from-deployer"
+                      else (factory_spawned, "spawned by factory"))
+        addrs = enum(args.target, chain)
         if addrs is None:
-            print("[!] from-deployer needs ETHERSCAN_API_KEY (export it) for the txlist creation-scan.")
+            print(f"[!] {args.mode} needs ETHERSCAN_API_KEY (export it) for the creation-scan.")
             print("    Workaround: paste the legacy addresses you already have into `check` (keyless).")
             return 1
-        print(f"# legacy scan: {len(addrs)} contract(s) created by {args.target}  chain={chain}\n")
+        print(f"# legacy scan: {len(addrs)} contract(s) {kind} {args.target}  chain={chain}\n")
     else:
         addrs = [a.strip() for a in args.target.split(",") if a.strip()]
         print(f"# legacy check  chain={chain}  window={args.blocks} blocks\n")
