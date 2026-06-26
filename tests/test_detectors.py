@@ -239,6 +239,8 @@ import legacy as _legacy  # noqa: E402
 # dormancy is the AGE of the last tx, NOT a tx count (the live-run lesson: 20 lifetime txns from 2021 != active)
 check(_legacy.classify_legacy(5000, -1, 10**18, None, 5000, 400)[0] == "LEGACY-FUNDED",
       "legacy: value + last tx 400d ago -> LEGACY-FUNDED (age drives it, even with events unknown)")
+check(_legacy.classify_legacy(5000, -1, 0, 5_000_000, None, 400)[0] == "LEGACY-FUNDED",
+      "legacy: HELD ERC20 (token_bal>0) + 0 ETH + dormant -> LEGACY-FUNDED (the Pepu-dig fix: bridges lock tokens, not ETH)")
 check(_legacy.classify_legacy(5000, -1, 10**18, None, 5000, 10)[0] == "ACTIVE-FUNDED",
       "legacy: value + last tx 10d ago -> ACTIVE-FUNDED (recent => live, not the legacy class)")
 check(_legacy.classify_legacy(5000, 0, 0, 0, 0, 400)[0] == "EMPTY",

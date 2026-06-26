@@ -144,18 +144,28 @@ def last_tx_age_days(addr, chain, key=None):
     return None
 
 
-def assess(addr, chain, blocks, rpc, dormant_days=90):
-    """Probe one address (reusing activity.probe) and apply the legacy classifier. Returns a dict row."""
+def assess(addr, chain, blocks, rpc, dormant_days=90, token=None):
+    """Probe one address (reusing activity.probe) and apply the legacy classifier. `token` = an ERC20 to also
+    count as HELD value -> a bridge/escrow holds LOCKED TOKENS, not ETH (the Pepu-dig lesson: without this a
+    token-holding bridge reads EMPTY = false-negative). Returns a dict row."""
     code_raw = fs._rpc(rpc, "eth_getCode", [addr, "latest"])
     if is_7702(code_raw):
         return {"addr": addr, "verdict": "EOA-7702", "rec": "SKIP", "code": 23, "events": 0,
-                "eth": 0.0, "supply": None, "dec": 18, "age": None,
+                "eth": 0.0, "supply": None, "dec": 18, "age": None, "tok": None,
                 "note": "EIP-7702 delegated EOA (0xef0100 prefix) -> a wallet, not a deployed contract"}
-    code_len, events, xfer, bal, tok, supply, dec, txc, _cval = activity.probe(addr, chain, blocks, rpc, None, None)
+    code_len, events, xfer, bal, tok, supply, dec, txc, _cval = activity.probe(addr, chain, blocks, rpc, token, None)
+    tokdec = 18
+    if token and tok:                                # the HELD token's own decimals (USDC=6) so display isn't mis-scaled
+        traw = fs._rpc(rpc, "eth_call", [{"to": token, "data": activity.DECIMALS}, "latest"])
+        try:
+            d2 = int(traw, 16)
+            tokdec = d2 if 0 < d2 <= 36 else 18
+        except Exception:
+            pass
     age = last_tx_age_days(addr, chain)
     verdict, rec, note = classify_legacy(code_len, events, bal, tok, supply, age, dormant_days)
-    return {"addr": addr, "verdict": verdict, "rec": rec, "note": note, "code": code_len,
-            "events": events, "eth": bal / 1e18, "supply": supply, "dec": dec, "age": age}
+    return {"addr": addr, "verdict": verdict, "rec": rec, "note": note, "code": code_len, "events": events,
+            "eth": bal / 1e18, "supply": supply, "dec": dec, "age": age, "tok": tok, "tokdec": tokdec}
 
 
 def _print_row(r):
@@ -163,6 +173,8 @@ def _print_row(r):
     extra = ""
     if r["supply"] is not None:
         extra += f" totalSupply={r['supply'] / 10 ** r['dec']:,.2f}"
+    if r.get("tok"):
+        extra += f" tokenHeld={r['tok'] / 10 ** r.get('tokdec', 18):,.2f}"
     if r.get("age") is not None:
         extra += f" lastTx={r['age']:.0f}d ago"
     print(f"[{r['verdict']:13}] {r['addr']}  ({r['rec']})")
@@ -204,6 +216,7 @@ def main():
     ap.add_argument("--chain", default="1", help="chain id or name (eth/base/arb/op/linea/polygon/...)")
     ap.add_argument("--blocks", type=int, default=20000, help="event lookback window (wider than activity: legacy = low-frequency)")
     ap.add_argument("--dormant-days", type=int, default=90, help="last-tx age (days) at/above which a funded contract is DORMANT")
+    ap.add_argument("--token", help="an ERC20 to also count as HELD value (a bridge/escrow locks tokens, not ETH)")
     ap.add_argument("--rpc", help="override RPC url")
     args = ap.parse_args()
 
@@ -232,7 +245,7 @@ def main():
     rows = []
     for a in addrs:
         try:
-            rows.append(assess(a, chain, args.blocks, rpc, args.dormant_days))
+            rows.append(assess(a, chain, args.blocks, rpc, args.dormant_days, args.token))
         except Exception as e:
             print(f"[ERROR        ] {a}  -- {str(e)[:60]}")
 
