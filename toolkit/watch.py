@@ -31,7 +31,9 @@ except Exception:
 
 
 def _get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "security-lab-watch/1.0"})
+    # browser UA: some bounty/contest hosts (Immunefi/Cloudflare) vary content or 403 a bot UA
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read().decode("utf-8", "replace")
 

@@ -1,0 +1,35 @@
+{
+  "_comment": "Parked leads: real bug hypotheses in DEPLOYED+funded code with NO in-scope bounty yet (white-hat blocks digging). watch.py FIREs (exit 2) when a bounty/contest for the protocol opens on Immunefi/Cantina/Code4rena/Sherlock -> then we dig the preserved lead FIRST. Detail: hunts/_parked/parked-leads.md. Run via toolkit/watch_all.sh (cron, every 4h).",
+  "findings": [
+    {
+      "id": "vena-finance-pyth-oracle",
+      "title": "Vena Finance (Aave-V3 fork, Fluent L2, ~$19.9M TVL) - PythAggregatorAdapter.latestAnswer() has NO price>0 / confidence-interval guard + divide-before-multiply; feeds AaveOracle for the whole money market.",
+      "fire_means": "A Vena/Fluent bounty or contest just opened. DIG NOW: hunts/_volume/vena-finance/src/PythAggregatorAdapter.sol:19-35 (missing price>0/conf), :34 (precision). First confirm per-asset oracle wiring (AaveOracle.getSourceOfAsset uses the WEAK PythAggregatorAdapter vs hardened PythProAggregatorAdapter). PoC: stale/zero Pyth push -> mispriced collateral -> over-borrow or wrongful liquidation. See hunts/_parked/parked-leads.md.",
+      "check": {
+        "type": "url_appears",
+        "needle": "(?i)\"vena",
+        "urls": [
+          "https://immunefi.com/bug-bounty/",
+          "https://cantina.xyz/api/v0/competitions?status=active&limit=50",
+          "https://code4rena.com/api/v1/audits",
+          "https://mainnet-contest.sherlock.xyz/contests"
+        ]
+      }
+    },
+    {
+      "id": "gaib-said-vault",
+      "title": "GAIB (AID synthetic dollar / sAID ERC-4626 staking vault, ~$126M TVL) - deposit-vs-exit valuation asymmetry on unrealizedLoss + operator solvency race in the bespoke FIFO unstake queue.",
+      "fire_means": "A GAIB bounty or contest just opened. DIG NOW: fetched/1_0x05b6bb5e57a52c7c5c9c063ea0e721ea2ccc732d/src/sAID.sol - totalAssets (:420) vs totalAssetsWithLoss (:514) / convertWithLoss (:538-547); deploy() lowers availableForUnstake not trackedAssets (:367); FIFO partial-fill head-advance (:301-349). PoC: differential deposit(no loss) vs redeem(with loss) to extract unbacked value. See hunts/_parked/parked-leads.md.",
+      "check": {
+        "type": "url_appears",
+        "needle": "(?i)\"gaib",
+        "urls": [
+          "https://immunefi.com/bug-bounty/",
+          "https://cantina.xyz/api/v0/competitions?status=active&limit=50",
+          "https://code4rena.com/api/v1/audits",
+          "https://mainnet-contest.sherlock.xyz/contests"
+        ]
+      }
+    }
+  ]
+}

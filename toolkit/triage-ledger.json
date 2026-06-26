@@ -45,6 +45,39 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "Antarctic Exchange (Antarctic / AX) \u2014 perp DEX on Arbitrum|(fanout)|fanout|fanout triage: perp,dex",
+      "target": "Antarctic Exchange (Antarctic / AX) \u2014 perp DEX on Arbitrum",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: perp,dex",
+      "verdict": "known",
+      "reason": "[SKIP/defillama-immunefi-wave] Reachability-first kill: the real core is off-chain proprietary (0-gas off-chain orderbook + zk-rollup batching), no verified on-chain source resolvable, no public repo, no DefiLlama adapter/address, audits=0, and no in-scope bou",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "Citrea Bridge (chainwayxyz/token-bridge) \u2014 LayerZero v2 OFT mint-and-burn bridge, BTC<->Ethereum|(fanout)|fanout|fanout triage: bridge",
+      "target": "Citrea Bridge (chainwayxyz/token-bridge) \u2014 LayerZero v2 OFT mint-and-burn bridge, BTC<->Ethereum",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: bridge",
+      "verdict": "known",
+      "reason": "[SKIP/defillama-immunefi-wave] DUPLICATE of existing hunt hunts/citrea-token-bridge/HUNT.md (2026-06-26): same protocol (Citrea Bridge), same repo (chainwayxyz/token-bridge), same scope (LayerZero v2 OFT BTC<->Ethereum, ~$4.7-4.8M, audits=0). Already reached (",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "Dango Bridge (left-curve / dango.exchange)|(fanout)|fanout|fanout triage: bridge,deposit",
+      "target": "Dango Bridge (left-curve / dango.exchange)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: bridge,deposit",
+      "verdict": "known",
+      "reason": "[SKIP/defillama-immunefi-wave] Reachable and live, but the Ethereum deposit/bridge surface is unmodified stock Hyperlane Warp Route (audited, immutable, covered by Hyperlane's own bounty/audits) with zero Dango-custom Solidity \u2014 nothing novel or in-scope to di",
+      "date": "2026-06-26"
+    },
+    {
       "sig": "Edel|(fanout)|fanout|fanout triage: LayerZero OFT cross-chain ERC20 token (NOT a lending/tokenized-stocks platform; TARGET description mismatches deployed code)",
       "target": "Edel",
       "file": "(fanout)",
@@ -65,6 +98,17 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "GAIB (AID synthetic dollar / sAID staked vault)|(fanout)|fanout|fanout triage: rwa,lending,yield (AI-infra GPU-backed RWA; AID synthetic dollar + sAID ERC-4626 staking vault)",
+      "target": "GAIB (AID synthetic dollar / sAID staked vault)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: rwa,lending,yield (AI-infra GPU-backed RWA; AID synthetic dollar + sAID ERC-4626 staking vault)",
+      "verdict": "wontfix",
+      "reason": "[PARK/defillama-immunefi-wave] Reachable + live + genuinely interesting greenfield custom vault with a concrete novel lead (deposit-vs-exit unrealizedLoss valuation asymmetry + operator solvency-race), BUT there is NO authorized in-scope bug-bounty or contest ",
+      "date": "2026-06-26"
     },
     {
       "sig": "GigaJuiceSystem|(fanout)|fanout|fanout triage: gamefi",
@@ -210,6 +254,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "SoDEX Bridge / SoSoValue SSI Protocol|(fanout)|fanout|fanout triage: bridge,dex,index",
+      "target": "SoDEX Bridge / SoSoValue SSI Protocol",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: bridge,dex,index",
+      "verdict": "known",
+      "reason": "[SKIP/defillama-immunefi-wave] Hardened-audited (6 audits / 4 phases, all resolved) + NO in-scope authorized bounty + candidate framing mismatch (defillama addr is the bridged OptimismMintableERC20 token, not a bridge core; the actual SoDEX orderbook/bridge co",
+      "date": "2026-06-26"
+    },
+    {
       "sig": "Tizi|(fanout)|fanout|fanout triage: yield-aggregator (cross-chain USDC-backed stablecoin TD + ERC4626 stTD staking, hub-and-spoke on Base)",
       "target": "Tizi",
       "file": "(fanout)",
@@ -219,6 +274,28 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/underreviewed-mixed-chains] ",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "Twyne (twyne-contracts-v1)|(fanout)|fanout|fanout triage: lending / credit-delegation (Euler EVC/EVK layer)",
+      "target": "Twyne (twyne-contracts-v1)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lending / credit-delegation (Euler EVC/EVK layer)",
+      "verdict": "todo",
+      "reason": "[DIG/defillama-immunefi-wave] Reachable (live verified source + public repo), live + in-scope on a NEW $50k Immunefi program, greenfield custom credit-delegation math (no audited base, no public v1 audit found), perfect zone fit (lending), and a dense novel at",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "Vena Finance (native money market of Fluent L2)|(fanout)|fanout|fanout triage: lending,credit",
+      "target": "Vena Finance (native money market of Fluent L2)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lending,credit",
+      "verdict": "wontfix",
+      "reason": "[PARK/defillama-immunefi-wave] Reachable + live + real Aave-fork oracle drift with a genuine plausible lead (PythAggregatorAdapter missing price>0/conf guard). BUT zero in-scope bounty/contest/audit-comp anywhere -> out-of-scope under white-hat rules, so not D",
+      "date": "2026-06-26"
     },
     {
       "sig": "VendorSystem|(fanout)|fanout|fanout triage: gamefi",
@@ -1365,6 +1442,72 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "twyne|src/TwyneFactory/BridgeHookTarget.sol|bridgehook-gate|",
+      "target": "twyne",
+      "file": "src/TwyneFactory/BridgeHookTarget.sol",
+      "line": 31,
+      "detector": "bridgehook-gate",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "clean: borrow/liquidate gated to isCollateralVault; flashloan/pulldebt disabled via fallback revert; liquidate only when totalAssets==0 (post-extliq bad-debt socialization, unfakeable)",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "twyne|src/operators/LeverageOperator.sol|operator-reentrancy-cei|",
+      "target": "twyne",
+      "file": "src/operators/LeverageOperator.sol",
+      "line": 122,
+      "detector": "operator-reentrancy-cei",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "recon FP: contract inherits ReentrancyGuardTransient; executeLeverage is nonReentrant; onMorphoFlashLoan gated msg.sender==MORPHO inside active transient guard; no persistent user state; fixed trusted swapper; SafeERC20",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "twyne|src/twyne/AaveV3CollateralVault.sol|oracle-staleness-price0|",
+      "target": "twyne",
+      "file": "src/twyne/AaveV3CollateralVault.sol",
+      "line": 185,
+      "detector": "oracle-staleness-price0",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "latestAnswer() used directly in health math w/o price>0/staleness, BUT wrapper.latestAnswer = getAssetPrice(wstETH)*_rate/RAY is byte-identical to AUDITED Aave stata-token oracle; _rate=Aave liquidity index (monotonic, non-manipulable by donation). staleness inherited from Aave oracle = accepted assumption (collateral IS an Aave position). not attacker-triggerable -> not a finding",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "twyne|src/twyne/CollateralVaultBase.sol|rebalance-health-asymmetry|",
+      "target": "twyne",
+      "file": "src/twyne/CollateralVaultBase.sol",
+      "line": 454,
+      "detector": "rebalance-health-asymmetry",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "H1 refuted via fork PoC + proof: scaled(isRebalancing=true) >= scaled(false) always (cash>=0 inside min with chosen leg), so rebalance invariant reserves >= liq-check basis; cannot strand healthy vault liquidatable. invariant==totalAssets exactly in active regime, cash-independent",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "twyne|src/twyne/EulerCollateralVault.sol|oracle-linearity|",
+      "target": "twyne",
+      "file": "src/twyne/EulerCollateralVault.sol",
+      "line": 163,
+      "detector": "oracle-linearity",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "H2 linearity refuted on-chain: configured wstETH/USD oracle 0x6FA8 getQuote is linear (q(2x)=2q(x), q(1000x) matches to ~3.8e5 wei rel 2e-19). getQuote(k*x)~k*getQuote(x) assumption holds for in-scope assets",
+      "date": "2026-06-26"
+    },
+    {
+      "sig": "twyne|src/twyne/EulerCollateralVault.sol|extliq-split-clp|",
+      "target": "twyne",
+      "file": "src/twyne/EulerCollateralVault.sol",
+      "line": 226,
+      "detector": "extliq-split-clp",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "handleExternalLiquidation 3-way split is the DEV's most-fuzzed area (case00-22 price-drop matrix + testFuzz_handleExternalLiquidation_InterpolationWindow/_holistics). low finding-density; not re-derived",
+      "date": "2026-06-26"
+    },
+    {
       "sig": "usual-eth0|token/Usual.sol|target|",
       "target": "usual-eth0",
       "file": "token/Usual.sol",
@@ -1396,6 +1539,17 @@
       "verdict": "known",
       "reason": "VanEck VBILL = Securitize DS Protocol (audited multi-tenant tokenized-securities platform). recon mint/burn = library-internal (auth in DSToken caller); 'liquidation' leads = compliance forced-seize (not lending). Audited platform deploy, low EV.",
       "date": "2026-06-10"
+    },
+    {
+      "sig": "venus-flux|fetched/56_0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63/XVS.sol|reach|",
+      "target": "venus-flux",
+      "file": "fetched/56_0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63/XVS.sol",
+      "line": 0,
+      "detector": "reach",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "defillama addr = XVS gov token, not core; Venus core = hardened Compound-fork, over-audited, low finding-density",
+      "date": "2026-06-26"
     },
     {
       "sig": "venus-flux (XVS governance token)|(fanout)|fanout|fanout triage: -",
