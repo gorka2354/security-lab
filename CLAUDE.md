@@ -28,7 +28,8 @@
   false-0 -> Etherscan-v2 txlist authoritative override (death.fun урок); park/skip — ДО чтения И как
   обязательный pre-disclosure Gate-0 в VERIFY.md. ПЕРЕД severity: txlist-liveness + per-function usage +
   custodial-caller check), `legacy.py` (СОРСИНГ deprecated-но-с-деньгами контрактов — инверсия activity:
-  ищет dormant+funded = Thetanuts-класс; `check`/`from-deployer`, keyless RPC, скип EIP-7702 EOA),
+  ищет dormant+funded = Thetanuts-класс; `check`/`from-deployer`/`from-factory`(txlistinternal)/`sweep`(ранг
+  по value), age-based dormancy, keyless RPC, скип EIP-7702 EOA; урок: класс редкий — нужен широкий свип),
   `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
   ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`

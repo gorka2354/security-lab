@@ -248,6 +248,12 @@ _facrows = [{"type": "create", "from": "0xFAC", "contractAddress": "0xAAA"},
             {"type": "create", "from": "0xFAC", "contractAddress": "0xAAA"}]
 check(_legacy._creations_from_internal(_facrows, "0xfac") == ["0xAAA", "0xBBB"],
       "legacy: from-factory parser -> only create/create2 BY the factory, de-duped (the clones txlist can't see)")
+check(_legacy._load_addrs(None, "0xAAA, 0xbbb ,0xAAA # dup") == ["0xAAA", "0xbbb"],
+      "legacy: sweep _load_addrs parses a comma list, strips '#' comments, de-dups case-insensitively")
+_sw = [{"verdict": "EMPTY", "eth": 0.0, "supply": 0}, {"verdict": "LEGACY-FUNDED", "eth": 1.0, "supply": 5},
+       {"verdict": "ACTIVE-FUNDED", "eth": 9.0, "supply": 9}]
+check([r["verdict"] for r in sorted(_sw, key=_legacy._value_key)] == ["LEGACY-FUNDED", "ACTIVE-FUNDED", "EMPTY"],
+      "legacy: sweep _value_key ranks LEGACY-FUNDED first (then active, then empty) regardless of ETH size")
 
 print("== recon Vyper guard (yUSD/Yearn-v2 lesson: never a false-clean on Vyper) ==")
 check(recon.is_vyper("# @version 0.2.11\n@external\ndef deposit(_amount: uint256) -> uint256:\n    pass"),

@@ -27,7 +27,8 @@ Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Ethersca
 - In-scope + paid: `python toolkit/scout.py --source immunefi`.
 - GameFi/gamble (egor's edge): scout covers Gambling/Luck Games/Lottery/Betting now; or a fresh game launch he names.
 - DEPRECATED-but-funded (the Thetanuts class scout/contest STRUCTURALLY miss — de-listed, no bounty):
-  `python toolkit/legacy.py check <addr>[,...] --chain <id>` (or `from-deployer <deployer>` w/ ETHERSCAN_API_KEY)
+  `python toolkit/legacy.py check <addr>[,...] --chain <id>` (also `from-deployer`/`from-factory` w/ ETHERSCAN_API_KEY,
+  or `sweep --file <addrs>` to rank a big list by residual value -- the class is RARE, prefer a broad sweep)
   -> LEGACY-FUNDED = residual value + no recent activity = forgotten contract, classic bug shapes
   (det_vault_share_math/det_erc4626). Inverse of activity.py. Skips EIP-7702 EOAs.
 - Ledger suppresses already-hunted; pick the top un-suppressed, our-zone, reachable candidate.

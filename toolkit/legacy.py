@@ -170,11 +170,37 @@ def _print_row(r):
     print(f"               {r['note']}")
 
 
+def _load_addrs(path, target):
+    """sweep/check input: addresses from a --file (one per line, '#' comments ok) + a comma list, de-duped."""
+    src = []
+    if path:
+        try:
+            src += open(path, encoding="utf-8", errors="ignore").read().splitlines()
+        except Exception as e:
+            raise SystemExit(f"[!] cannot read --file {path}: {e}")
+    src += (target or "").split(",")
+    out, seen = [], set()
+    for line in src:
+        a = line.split("#")[0].strip()
+        if a and a.lower() not in seen:
+            seen.add(a.lower())
+            out.append(a)
+    return out
+
+
+def _value_key(r):
+    """sweep ranking: LEGACY-FUNDED first, then by residual ETH, then supply (a ROUGH proxy -- no price feed)."""
+    order = {"LEGACY-FUNDED": 0, "ACTIVE-FUNDED": 1}.get(r["verdict"], 2)
+    return (order, -(r.get("eth") or 0.0), -((r.get("supply") or 0)))
+
+
 def main():
     ap = argparse.ArgumentParser(description="Deprecated-but-funded sourcing lane (the Thetanuts class)")
-    ap.add_argument("mode", choices=["check", "from-deployer", "from-factory"],
-                    help="check addresses, enumerate a deployer's EOA-creations, or a factory's spawned clones")
-    ap.add_argument("target", help="address(es) for `check`, or a deployer/factory address for the enumerate modes")
+    ap.add_argument("mode", choices=["check", "from-deployer", "from-factory", "sweep"],
+                    help="check / enumerate a deployer EOA / a factory's clones / sweep+rank a big list")
+    ap.add_argument("target", nargs="?", default="",
+                    help="address(es) comma-sep; or a deployer/factory addr; omit for `sweep --file`")
+    ap.add_argument("--file", help="sweep/check: a file of addresses, one per line ('#' comments ok)")
     ap.add_argument("--chain", default="1", help="chain id or name (eth/base/arb/op/linea/polygon/...)")
     ap.add_argument("--blocks", type=int, default=20000, help="event lookback window (wider than activity: legacy = low-frequency)")
     ap.add_argument("--dormant-days", type=int, default=90, help="last-tx age (days) at/above which a funded contract is DORMANT")
@@ -197,21 +223,40 @@ def main():
             return 1
         print(f"# legacy scan: {len(addrs)} contract(s) {kind} {args.target}  chain={chain}\n")
     else:
-        addrs = [a.strip() for a in args.target.split(",") if a.strip()]
-        print(f"# legacy check  chain={chain}  window={args.blocks} blocks\n")
+        addrs = _load_addrs(args.file, args.target)
+        if not addrs:
+            print("[!] no addresses -> pass them comma-sep, or --file <path>")
+            return 1
+        print(f"# legacy {args.mode}  chain={chain}  {len(addrs)} address(es)  window={args.blocks} blocks\n")
 
-    hits = 0
+    rows = []
     for a in addrs:
         try:
-            r = assess(a, chain, args.blocks, rpc, args.dormant_days)
+            rows.append(assess(a, chain, args.blocks, rpc, args.dormant_days))
         except Exception as e:
             print(f"[ERROR        ] {a}  -- {str(e)[:60]}")
-            continue
-        if r["verdict"] == "LEGACY-FUNDED":
-            hits += 1
-        _print_row(r)
-    print(f"\n-> {hits} LEGACY-FUNDED (deprecated + still holds value) = the Thetanuts class -> fetch_source + recon."
-          "\n   No ETHERSCAN_API_KEY => dormancy rests on the event window only (weaker); a key adds authoritative txns.")
+
+    if args.mode == "sweep":
+        rows.sort(key=_value_key)
+        targets = [r for r in rows if r["verdict"] == "LEGACY-FUNDED"]
+        print(f"## TOP TARGETS -- {len(targets)} LEGACY-FUNDED (ranked by residual value)\n")
+        for r in targets:
+            _print_row(r)
+        tally = {}
+        for r in rows:
+            tally[r["verdict"]] = tally.get(r["verdict"], 0) + 1
+        print("\n## rest (tally): " + ", ".join(f"{v}x{k}" for k, v in sorted(tally.items())))
+        print(f"\n-> {len(targets)}/{len(rows)} LEGACY-FUNDED -> fetch_source + recon (det_vault_share_math/det_erc4626)."
+              "\n   Value rank is a ROUGH proxy (no price feed); verify backing + scope by hand.")
+    else:
+        hits = 0
+        for r in rows:
+            if r["verdict"] == "LEGACY-FUNDED":
+                hits += 1
+            _print_row(r)
+        print(f"\n-> {hits} LEGACY-FUNDED (deprecated + still holds value) = the Thetanuts class -> fetch_source + recon."
+              "\n   No ETHERSCAN_API_KEY => dormancy rests on the event window only (weaker); a key adds authoritative txns.")
+    return 0
     return 0
 
 
