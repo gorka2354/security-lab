@@ -9,7 +9,7 @@
         "type": "url_appears",
         "needle": "(?i)\"vena",
         "urls": [
-          "https://immunefi.com/bug-bounty/",
+          "https://immunefi.com/public-api/bounties.json",
           "https://cantina.xyz/api/v0/competitions?status=active&limit=50",
           "https://code4rena.com/api/v1/audits",
           "https://mainnet-contest.sherlock.xyz/contests"
@@ -24,7 +24,7 @@
         "type": "url_appears",
         "needle": "(?i)\"gaib",
         "urls": [
-          "https://immunefi.com/bug-bounty/",
+          "https://immunefi.com/public-api/bounties.json",
           "https://cantina.xyz/api/v0/competitions?status=active&limit=50",
           "https://code4rena.com/api/v1/audits",
           "https://mainnet-contest.sherlock.xyz/contests"

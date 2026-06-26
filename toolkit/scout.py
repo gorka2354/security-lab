@@ -278,6 +278,7 @@ def collect_defillama(done, tvl_min, tvl_max, max_audits, today):
 # objects as escaped-JSON in the Next.js RSC stream -> parse name/slug/maxBounty/updated/tags. Filter to
 # programType=Smart Contract + an EVM language (Solidity/Vyper) -> guaranteed-EVM contract scope.
 IMMUNEFI_URL = "https://immunefi.com/bug-bounty/"
+IMMUNEFI_JSON = "https://immunefi.com/public-api/bounties.json"   # official list: 263 progs vs ~198 in HTML scrape
 EVM_LANGS = {"solidity", "vyper", "yul"}
 
 
@@ -321,6 +322,48 @@ def parse_immunefi_programs(html):
     return out
 
 
+def fetch_immunefi_programs_json():
+    """scout v3.1: the OFFICIAL Immunefi public JSON (~263 programs vs ~198 in the HTML scrape). Richer +
+    stabler than regex-on-RSC, and carries in-scope `assets` (addresses), `ecosystem` (chains), `kyc`,
+    `inviteOnly`, `endDate` inline. Returns the SAME program-dict shape as parse_immunefi_programs() PLUS
+    {ecosystem[], kyc, inviteOnly, ended, assets[]}. Returns None on failure -> caller falls back to HTML."""
+    req = urllib.request.Request(IMMUNEFI_JSON, headers={"User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"})
+    data = _get(req)
+    if isinstance(data, dict):
+        data = data.get("bounties") or data.get("data")   # tolerate a wrapped payload
+    if not isinstance(data, list):
+        return None
+    out = []
+    for b in data:
+        if not isinstance(b, dict):
+            continue
+        addrs = []
+        for a in (b.get("assets") or []):
+            if isinstance(a, dict) and a.get("type") == "smart_contract":
+                m = re.search(r"0x[a-fA-F0-9]{40}", a.get("url") or "")
+                if m:
+                    addrs.append(m.group(0))
+        end = (b.get("endDate") or "")[:10]
+        out.append({
+            "name": b.get("project") or b.get("slug") or "?",
+            "slug": b.get("slug") or "",
+            "maxBounty": int(b.get("maxBounty") or 0),
+            "updated": (b.get("updatedDate") or "")[:10],
+            "launched": (b.get("launchDate") or "")[:10],
+            "language": [str(x).lower() for x in (b.get("language") or [])],
+            "programType": [str(x).lower() for x in (b.get("programType") or [])],
+            "projectType": [str(x).lower() for x in (b.get("projectType") or [])],
+            "productType": [str(x).lower() for x in (b.get("productType") or [])],
+            "ecosystem": [str(x).lower() for x in (b.get("ecosystem") or [])],
+            "kyc": bool(b.get("kyc")),
+            "inviteOnly": bool(b.get("inviteOnly")),
+            "endDate": end,
+            "assets": addrs,
+        })
+    return out
+
+
 def imm_is_evm_sc(prog):
     """Keep only programs we can actually hunt: a Smart-Contract program in an EVM language. PURE."""
     return ("smart contract" in prog.get("programType", [])
@@ -330,8 +373,16 @@ def imm_is_evm_sc(prog):
 def collect_immunefi(done, today, min_bounty):
     """scout v3: Immunefi Smart-Contract bounties (EVM) -> exact in-scope addresses + guaranteed payout."""
     cands = []
-    for p in parse_immunefi_programs(_get_text(IMMUNEFI_URL)):
+    progs = fetch_immunefi_programs_json()                       # official JSON (complete + has assets/kyc/chains)
+    if not progs:                                                # graceful fallback to the HTML scrape
+        progs = parse_immunefi_programs(_get_text(IMMUNEFI_URL))
+        print("  [info] immunefi: JSON api unavailable -> HTML-scrape fallback", file=sys.stderr)
+    for p in progs:
         if not imm_is_evm_sc(p) or p["maxBounty"] < min_bounty:
+            continue
+        if p.get("inviteOnly"):                                  # can't join invite-only -> not huntable
+            continue
+        if p.get("endDate") and p["endDate"] < today:            # program already ended
             continue
         key = re.sub(r"[^a-z0-9]+", "-", p["name"].lower()).strip("-")
         if is_suppressed(key, done):
@@ -350,14 +401,20 @@ def collect_immunefi(done, today, min_bounty):
               + 25 * len(kw))
         fresh = "  [NEW PROGRAM]" if launch_age <= 150 else ""
         scope = f"https://immunefi.com/bug-bounty/{p['slug']}/scope/"
+        chains = ",".join(p.get("ecosystem", [])[:5]) or "?"
+        kyc = "  [KYC]" if p.get("kyc") else ""
+        addrs = p.get("assets", [])
+        addr_line = (f"    in-scope contracts ({len(addrs)}): " + ", ".join(addrs[:6])
+                     + (" ..." if len(addrs) > 6 else "")) if addrs \
+            else f"    IN-SCOPE addresses (exact, deployed) + rules at: {scope}"
         cands.append({
             "key": key, "name": p["name"], "score": sc, "src": "immunefi",
             "lines": [
-                f"- **{p['name']}**  (Immunefi, max ${p['maxBounty']/1e6:.2f}M, {lang}, "
-                f"{'/'.join(p['productType'][:2]) or '-'}, launched {p['launched'] or '?'}, updated {p['updated'] or '?'}){fresh}"
+                f"- **{p['name']}**  (Immunefi, max ${p['maxBounty']/1e6:.2f}M, {lang}, chains:{chains}, "
+                f"{'/'.join(p['productType'][:2]) or '-'}, launched {p['launched'] or '?'}, updated {p['updated'] or '?'}){fresh}{kyc}"
                 + (f"  zone:{','.join(kw)}" if kw else "  zone:-"),
-                f"    IN-SCOPE addresses (exact, deployed) + rules at: {scope}",
-                f"    # pull scope -> `fetch_source.py <in-scope addr> --proxy` -> forkdrift -> recon",
+                addr_line,
+                f"    # fetch_source.py <addr> --chain <id> --proxy -> forkdrift -> recon   (scope: {scope})",
             ],
         })
     return cands
