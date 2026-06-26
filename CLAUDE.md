@@ -58,7 +58,8 @@
 **Движок собран end-to-end И упакован в скилл `/hunt`** (`.claude/skills/hunt/SKILL.md`) — одна команда
 проходит весь конвейер:
 - **SOURCE:** `scout.py` — contests (GH) + **v2 DefiLlama** (deployed-unaudited, +CORE-repo резолв) +
-  **v3 Immunefi** (точные in-scope адреса+выплата); `contest_monitor.py` (**тайминг-эдж**: `--alert` → exit-10 +
+  **v3.1 Immunefi via public-api JSON** (`bounties.json` — 263 прог vs ~198 скрейп; in-scope addrs инлайн +
+  chains + kyc/inviteOnly-флаги; graceful-fallback на HTML); `contest_monitor.py` (**тайминг-эдж**: `--alert` → exit-10 +
   `monitor/ALERTS.md` на НОВЫЙ+СВЕЖИЙ+our-zone контест. **ALWAYS-ON**: Windows-Task `security-lab-contest-watch`
   каждые 4ч (`toolkit/watch_contests.ps1` → desktop balloon; ставить `toolkit/register_contest_watch.ps1`) —
   алертит на свежий контест ДАЖЕ при закрытом Claude → хантим первыми). Сектор расширен на GameFi/гэмблинг/лотереи/предикшн.
@@ -75,6 +76,14 @@
 - **FAN-OUT (масштаб):** Workflow-невод (агент-на-таргет: reach+forkdrift+recon+gate → структурный вердикт →
   я ранжирую); `fanout_log.py` персист (типизированная таблица `hunts/_fanout/` + ledger-suppress + DIG-очередь).
   Доказан на 2 задачах: triage (Abstract/DeFiLlama-волны) + pattern-mining (DeFiHackLabs 751 хак → 53 паттерна).
+- **MEMORY+RADAR (рециклит утопленный контекст триажа → срезает SOURCE+REACH):** `registry.py` — авто-реестр
+  всех триаженных таргетов из ledger+fanout (cartography-модель: re-derive каждый ран, MERGE по norm_key,
+  firstseen/lastupdated; категории zone/chain/fork-base + OWASP-SC теги; **fork-индекс** под батч-CVE) →
+  `monitor/registry.json`+`REGISTRY.md`. `radar.py` — **24/7 радар изменений** по реестру: impl-upgrade
+  (EIP-1967 slot-diff) + bounty-launch (Immunefi-JSON), адреса+чейны из авторитетного JSON, дедуп `radar-seen.json`,
+  exit-10 → **`hunts/_radar/QUEUE.md`** (session-start work-list с ПРОШЛЫМИ НОТАМИ — читаю первым делом).
+  Хостинг: **GitHub Actions** `.github/workflows/radar.yml` (крон 3ч, коммитит QUEUE.md обратно; без Mac/сна/TCC —
+  локальный launchd-агент TCC-блокается под ~/Desktop). Метрика силы = hit-rate QUEUE→находка (через `calibrate.py`).
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).

@@ -65,7 +65,7 @@ security-lab/
 ├─ README.md / CLAUDE.md / ROADMAP.md / PLAYBOOK.md  ← вход · контекст · роадмап · цепочка охоты
 ├─ .claude/skills/hunt/SKILL.md       ← `/hunt` — весь пайплайн в одной команде (source→reach→triage→detect→L4-read→verify→prove→record)
 ├─ toolkit/
-│   ├─ scout.py                       ← STAGE-0 ОПТИМИЗАТОР: contests (GH) + DefiLlama (deployed-unaudited, +CORE-repo резолв) + Immunefi (in-scope addrs+payout) → ledger-supp + ранг
+│   ├─ scout.py                       ← STAGE-0 ОПТИМИЗАТОР: contests (GH) + DefiLlama (deployed-unaudited, +CORE-repo резолв) + Immunefi via **public-api JSON** (263 прог vs ~198 скрейп; in-scope addrs инлайн + chains + kyc) → ledger-supp + ранг
 │   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
 │   ├─ recon.py                       ← L1 сканер: 41 детектор наших эвристик
 │   ├─ secrets.py                     ← SECRETS-лейн: закоммиченные ключи/креды в дереве + ИСТОРИИ git (Taiko layer-A; язык-агностичен)
@@ -76,12 +76,19 @@ security-lab/
 │   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
 │   ├─ ledger.py · watch.py · pdftext.py  ← память вердиктов · cron-монитор парковок · текст из аудит-PDF
 │   ├─ contest_monitor.py             ← ТАЙМИНГ-ЭДЖ: live audit-contests (Cantina/Sherlock/C4) → [NEW]/[FRESH<48ч] → хант первым
+│   ├─ registry.py · radar.py         ← **MEMORY+RADAR лейн**: авто-реестр всех триаженных таргетов (zone/chain/fork-base/OWASP-теги, cartography-модель) · радар изменений (impl-upgrade slot-diff + bounty-launch) → `hunts/_radar/QUEUE.md` с прошлыми нотами
+│   └─ watch_all.sh · com.security-lab.radar.plist  ← обёртка-планировщик (registry→radar→watch→contests) · launchd-агент (Mac; в облаке — GitHub Actions)
+├─ .github/workflows/radar.yml  ← **24/7 радар в облаке**: крон 3ч гоняет registry+radar, коммитит QUEUE.md обратно (без Mac/сна/TCC)
 ├─ research/            ← БИБЛИОТЕКА ПАТТЕРНОВ (T0→T3) + разборы: паттерн → детектор → инвариант
 │   ├─ patterns/{accounting,pricing,liquidation,signatures,gamefi,trust-anchor,bridge}/  (+ bridge sector-playbook, trust-anchor)
+│   ├─ registry-radar/  ← PLAN + 11-агентный prior-art ресёрч под MEMORY+RADAR фичу
 │   └─ krait-study.md · taiko-sgx-keyleak-study.md · thetanuts-vault-rounding-study.md   ← разборы взломов → детекторы
 ├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ
 ├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
-├─ monitor/watchlist.json  ← припаркованные находки → watch.py следит, [FIRED] при деплое
+│   ├─ _radar/QUEUE.md  ← session-start work-list (радар пишет, агент читает первым)
+│   └─ _parked/parked-leads.md  ← реальные лиды без баунти (Vena/GAIB) → watchlist следит за запуском
+├─ monitor/                 ← runtime-стейт (gitignored, кроме watchlist): registry.json/REGISTRY.md · radar-seen.json · ALERTS.md
+│   └─ watchlist.json     ← припаркованные находки → watch.py следит, [FIRED] при деплое/баунти
 ├─ tests/test_detectors.py ← 394 golden-fixture проверок (CI-гейт)
 └─ nomad-poc/ oracle-poc/  ← Foundry PoC
 ```
@@ -138,5 +145,6 @@ forge test --root invariant-lab -vvv               # прогнать фаззи
 - ✅ **ledger** (память вердиктов) — шум падает каждый прогон; **diffscan** — хантинг по audit-drift
 - 🎯 Живые тесты пайплайна: **Morpho Midnight** (детекторное плечо → fix#21/#22/#23) · **реальный OZ ERC4626** (инвариантное → находка «экономическая vs абсолютная защита»)
 - 🎯 Охоты: Nomad (учебная) + Exactly/YO/Cap/Likwid/TermMax/Crypto-Unicorns/Morpho-Midnight (триаж — все добротны)
-- 🔎 Парковка: `monitor/watchlist.json` (Malda LZ bridge + Cap upgrades) → `watch.py` следит
+- 🔎 Парковка: `monitor/watchlist.json` (Malda LZ bridge + Cap upgrades; Vena/GAIB лиды) → `watch.py` следит
+- 🛰️ **MEMORY+RADAR лейн** (новое): `registry.py` — авто-реестр 79 триаженных протоколов (status/zone/chain/fork-base/OWASP + fork-индекс под батч-CVE) · `radar.py` — 24/7 радар (impl-upgrade slot-diff + bounty-launch) → `hunts/_radar/QUEUE.md` с прошлыми нотами; крутится в **GitHub Actions** (крон 3ч). Рециклит утопленный контекст триажа → срезает SOURCE+REACH. Источник усилен: Immunefi via public-api JSON (+33% покрытия, addrs инлайн)
 - 📌 Бэклог в `ROADMAP.md` (MCP-сервер отложен)
