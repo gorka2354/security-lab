@@ -964,6 +964,35 @@ def det_precision(text, rel):
     return out
 
 
+# ── Detector: decimal-scaling truncation (bridge/wrapper non-18 token; ZKFair gas-token, bridge playbook E) ──
+_DEC_FACTOR = (r"\w*(?:decimal[_]?diff\w*|decimals?[_]?factor|scal\w*factor|conversion\w*factor|"
+               r"scaling\w*factor|normaliz\w*factor)\w*")
+DECIMAL_SCALE = re.compile(r"[*/]=?\s*" + _DEC_FACTOR + r"\b|\b" + _DEC_FACTOR + r"\s*[*/]", re.I)
+
+
+def det_decimal_scale(text, rel):
+    """A bridge/wrapper scales an amount by a DECIMALS-difference factor via a LONE mul/div (`amount /= factor`
+    / `amount *= factor`) -- NOT a divide-before-multiply (det_precision's domain). The division TRUNCATES (dust
+    loss / round-to-zero) and the */ asymmetry can break the round-trip & locked==minted invariant on non-18
+    tokens (the ZKFair gas-token shape; bridge playbook E). T2 LEAD: verify the sub-divisor amount loss AND that
+    the deposit-scale and withdraw-scale are EXACT inverses. Line-based + comment-skip (a comment can't fire it)."""
+    out = []
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if not s or s.startswith(("//", "*", "/*")):
+            continue
+        code = s.split("//")[0]
+        if "*/" in code or "/*" in code:
+            continue
+        if DECIMAL_SCALE.search(code):
+            out.append((rel, i, s[:90],
+                        "amount scaled by a decimals-difference factor (lone mul/div, not divide-before-multiply) "
+                        "-> the divide truncates (dust / round-to-zero) and a */ asymmetry breaks the round-trip / "
+                        "locked==minted invariant on non-18 tokens (ZKFair gas-token class). Verify sub-divisor loss "
+                        "+ that deposit and withdraw scaling are exact inverses.", 0))
+    return out
+
+
 ENCODE_PACKED = re.compile(r"abi\.encodePacked\s*\(")
 
 
@@ -1621,6 +1650,9 @@ DETECTORS = [
      "DeFiVulnLabs: downcasting a value past type(uintN).max wraps silently (all 0.8.x). Frequent High."),
     ("DIVIDE-BEFORE-MULTIPLY precision loss", det_precision,
      "DeFiVulnLabs: (a/b)*c truncates before the multiply -> rounding favors someone; multiply first."),
+    ("DECIMAL-SCALING truncation (bridge/wrapper non-18 token)", det_decimal_scale,
+     "ZKFair gas-token / bridge playbook E: amount *=/ a decimals-diff factor (lone, not divide-before-multiply) "
+     "-> dust/round-to-zero + */ asymmetry breaks round-trip & locked==minted on non-18 tokens. det_precision misses it."),
     ("abi.encodePacked HASH-COLLISION (dynamic args)", det_encodepacked,
      "DeFiVulnLabs: encodePacked of 2+ adjacent dynamic args collides ('a'+'bc'=='ab'+'c'); use abi.encode."),
     ("FEE-ON-TRANSFER over-credit (no balance-delta)", det_feeontransfer,
@@ -1680,7 +1712,7 @@ def det_key(title):
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),
                    ("dangerous", "danger"), ("footgun", "l2"), ("disabled", "disabled"),
-                   ("downcast", "downcast"), ("divide-before", "precision"),
+                   ("downcast", "downcast"), ("decimal-scaling", "decimalscale"), ("divide-before", "precision"),
                    ("encodepacked", "encodepacked"), ("fee-on-transfer", "feeontransfer"),
                    ("delete struct", "delmap"), ("overflow", "overflow"), ("flashloan", "flashloan"),
                    ("owner-drain", "ownerdrain"), ("fee/tax setter", "feebackdoor"),

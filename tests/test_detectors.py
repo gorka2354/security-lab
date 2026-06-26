@@ -641,6 +641,17 @@ check(flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c) 
       "det_precision: (a/b)*c flagged")
 check(not flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c) external { y = a * c / b; }}"),
       "det_precision guard: a * c / b (multiply-first, safe) NOT flagged")
+# det_decimal_scale (ZKFair gas-token / bridge playbook E) -- lone decimals-factor mul/div, det_precision misses it
+check(flagged(recon.det_decimal_scale, "contract C{function f() external { leafAmount /= gasTokenDecimalDiffFactor; }}"),
+      "det_decimal_scale: `leafAmount /= gasTokenDecimalDiffFactor` flagged (the ZKFair shape)")
+check(flagged(recon.det_decimal_scale, "contract C{function f() external { amount = amount * decimalsFactor; }}"),
+      "det_decimal_scale: amount * decimalsFactor flagged")
+check(not flagged(recon.det_decimal_scale, "contract C{function f(uint a,uint b,uint c) external { y = a / b * c; }}"),
+      "det_decimal_scale scope: a/b*c (no decimals-factor name) is det_precision's job, NOT flagged here")
+check(not flagged(recon.det_decimal_scale, "contract C{function f(uint a) external { y = a * 1e18; }}"),
+      "det_decimal_scale: a generic `a * 1e18` (no decimals-factor var) -> NOT flagged (FP gate)")
+check(not flagged(recon.det_decimal_scale, "contract C{ // amount /= decimalsFactor in the old code\n function f() external { x=1; }}"),
+      "det_decimal_scale: the factor mentioned only in a COMMENT -> NOT flagged (line-based comment-skip)")
 check(not flagged(recon.det_precision, "contract C{function f(uint a,uint b,uint c,uint d) external { y = a / b + c * d; }}"),
       "det_precision guard: a/b + c*d (independent terms) NOT flagged")
 check(flagged(recon.det_encodepacked, "contract C{function f(string a,string b) external { h = keccak256(abi.encodePacked(a, b)); }}"),

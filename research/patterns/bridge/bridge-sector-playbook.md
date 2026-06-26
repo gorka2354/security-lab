@@ -46,8 +46,9 @@ Recurring, well-shaped classes -> high EV IF you read the right layer.
     real proof is cross-file -> mostly L4/invariant.
   - **B double-claim:** a deposit/withdrawal leaf/nonce consumed without a spent-marker write (cousin of
     `det_reward`'s late-marker; extend to bridge claim paths).
-  - **E decimals-scale:** the lone `/= decimalFactor` (ZKFair) — `det_precision` misses it (not divide-before-
-    multiply) -> candidate `det_decimal_scale` (already backlogged from the ZKFair hunt).
+  - **E decimals-scale: DONE — `det_decimal_scale` (#41).** The lone `*=`/`/=` a decimals-diff factor that
+    `det_precision` misses (not divide-before-multiply). Validated on the real ZKFair bridge (flags both
+    `leafAmount /= gasTokenDecimalDiffFactor` L253 + `*=` L262).
   - **A proof-verification depth:** Merkle/light-client/zk proof soundness is NOT regex-able -> pure L4 read +
     the invariant below. (zk-SNARK verifier != leakable-key class — see `det_trust_anchor` SNARK gate.)
 
