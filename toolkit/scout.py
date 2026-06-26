@@ -49,6 +49,9 @@ DL_CATEGORIES = {
     # game/gamble/predict sector (egor's edge; det_weak_randomness lens) -- RNG outcomes, wager/payout
     # accounting, lottery winner-selection, prediction-market settlement. Often unaudited + grindable RNG.
     "Gambling", "Luck Games", "Yield Lottery", "NFT Marketplace", "NFT Lending", "Betting",
+    # bridge/cross-chain (the bridge playbook; det_trust_anchor/mapping-default/arbcall/secrets lanes). NOT
+    # "Canonical Bridge" (L2 Arbitrum/Base/... -- audited forks that show audits=0 -> noise; hunt via forkdrift-drift).
+    "Bridge", "Cross Chain Bridge", "Bridge Aggregator", "Bridge Aggregators",
 }
 # anti-fit: our regex engines are blind to heavily-assembly / huge codebases
 LARGE_KB = 6000          # contest repo size over this -> flag "LARGE: verify fit (assembly/giant?)"

@@ -517,6 +517,9 @@ check(scout.age_days("2025-06-09", "2026-06-09") > 360 and scout.age_days("2026-
       "scout.age_days: ~1yr apart > 360; 8 days apart == 8")
 check(any(k in "lending vault for cross-chain stablecoin".lower() for k in scout.WHEELHOUSE),
       "scout.WHEELHOUSE matches our-zone keywords (vault/lend/stablecoin/cross-chain)")
+check({"Bridge", "Cross Chain Bridge", "Bridge Aggregator"} <= scout.DL_CATEGORIES
+      and "Canonical Bridge" not in scout.DL_CATEGORIES,
+      "scout.DL_CATEGORIES surfaces bridges (Bridge/Cross Chain Bridge/Aggregator) but NOT Canonical Bridge (audited L2 forks)")
 # expanded game/gamble/predict sector (egor's edge)
 check(all(any(k in s for k in scout.WHEELHOUSE) for s in
           ["a luck games coin flip", "sports betting protocol", "prediction market", "weekly raffle lottery", "casino jackpot"]),
