@@ -1,0 +1,40 @@
+name: radar
+# 24/7 change/freshness radar — runs registry.py + radar.py on a schedule (no Mac, no sleep, no TCC),
+# commits the refreshed QUEUE.md + state back so the hunting agent reads it at session start.
+# Setup (one-time): push this repo, then `gh secret set ETHERSCAN_API_KEY -b <key> -R gorka2354/security-lab`.
+on:
+  schedule:
+    - cron: '17 */3 * * *'      # every 3h (offset :17 to dodge the top-of-hour Actions queue)
+  workflow_dispatch: {}          # manual run button
+
+permissions:
+  contents: write                # the job commits state back
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: registry + radar
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+        run: |
+          python toolkit/registry.py
+          python toolkit/radar.py || true     # exit 10 = NEW changes queued, not a failure
+      - name: commit radar state
+        run: |
+          git config user.name  "radar-bot"
+          git config user.email "radar@security-lab.local"
+          git add -f monitor/registry.json monitor/REGISTRY.md monitor/radar-seen.json hunts/_radar/QUEUE.md
+          git diff --cached --quiet || git commit -m "chore(radar): state $(date -u +%FT%TZ) [skip ci]"
+          git pull --rebase --autostash || true
+          git push

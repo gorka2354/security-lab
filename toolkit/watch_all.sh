@@ -23,6 +23,17 @@ ALERTS="$ROOT/monitor/ALERTS.md"
 
 echo "=== watch_all $STAMP ==="
 
+# 0) refresh the registry projection (cheap; keeps firstseen/lastupdated current)
+"$PY" toolkit/registry.py >/dev/null 2>&1
+
+# 0b) radar: impl-upgrade + bounty-launch over the registry -> hunts/_radar/QUEUE.md (exit 10 if NEW)
+ROUT="$("$PY" toolkit/radar.py 2>&1)"; rrc=$?
+echo "$ROUT"
+if [ $rrc -eq 10 ]; then
+  fired=1
+  { echo ""; echo "## [RADAR] $STAMP -- new change(s) queued, see hunts/_radar/QUEUE.md"; echo '```'; echo "$ROUT"; echo '```'; } >> "$ALERTS"
+fi
+
 # 1) parked findings (exit 2 if any FIRED)
 WOUT="$("$PY" toolkit/watch.py 2>&1)"; wrc=$?
 echo "$WOUT"
