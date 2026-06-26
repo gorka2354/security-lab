@@ -211,16 +211,20 @@ def det_mint(text, rel):
         # fix#30: scan the FULL function body (not just 280 chars) so a gate deep behind preamble
         # is seen -- DRE mintFrom's `_authorize` sits past validations/reverts (cf. fix#26 for det_access).
         body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        # fix#35: a SELF-burn (`_burn(_msgSender()/msg.sender, ...)`) is safe -- you can only destroy your OWN
+        # balance, no supply-integrity risk (the #1 det_mint FP: every ERC20Burnable.burn). _msgSender() too.
+        self_burn = bool(re.search(r"\b_?[Bb]urn\w*\s*\(\s*(?:_msgSender\s*\(\s*\)|msg\.sender\b)", body))
         gated = ("only" in blob.lower() or re.search(r"\b(re)?initializer\b", blob)
                  or INLINE_AUTH.search(blob)   # fix#16: auth modifier in signature, e.g. checkAccess(this.mint.selector)
                  or WARD_MOD.search(blob)   # fix#27: ward-model `auth` / authOrHook modifier
                  or "super.mint(" in body or "super.burn(" in body   # fix#27: thin override -> parent gate (Centrifuge ShareToken)
-                 or INLINE_AUTH.search(body) or "msg.sender" in body)
+                 or INLINE_AUTH.search(body) or "msg.sender" in body or self_burn)
         is_test = bool(re.search(r"(^|/)(test|tests|mock|mocks)", rel, re.I))
         if gated:
-            out.append((rel, lineno(text, m.start()), f"function {name}(...)",
-                        "mint/burn entry, GATED -> verify the gate + that supply stays bounded",
-                        2 if is_test else 1))
+            note = ("self-burn of the caller's OWN balance -> safe (no supply-integrity risk)" if self_burn
+                    else "mint/burn entry, GATED -> verify the gate + that supply stays bounded")
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)", note,
+                        2 if (is_test or self_burn) else 1))
         else:
             # fix#25: a thin wrapper delegating to a gated sibling mint fn (mintRogues ->
             # mintRogue()) isn't the real ungated mint -> downgrade + note, don't suppress.

@@ -111,6 +111,11 @@ check(not (recon.det_mint("contract C{function mint(uint a) external { require(_
 _capmint = recon.det_mint("contract C{function mint(address t,uint a) external checkAccess(this.mint.selector) { _mint(t,a); }}", "src/Fix.sol")
 check(bool(_capmint) and "GATED" in _capmint[0][3],
       "fix#16: checkAccess(this.mint.selector) mint recognized as GATED, not 'PUBLIC mint' (Cap CCAToken)")
+_selfburn = recon.det_mint("contract C{function burn(uint a) external { _burn(_msgSender(), a); }}", "src/Fix.sol")
+check(bool(_selfburn) and _selfburn[0][4] != 0 and "self-burn" in _selfburn[0][3],
+      "fix#35: public self-burn `_burn(_msgSender(), a)` -> 'self-burn safe', NOT prio-0 (the #1 ERC20Burnable FP; Pepu token)")
+check(recon.det_mint("contract C{function mint(address t,uint a) external { _mint(t,a); }}", "src/Fix.sol")[0][4] == 0,
+      "fix#35 scope: a real ungated mint(to,amt) is STILL prio-0 (self-burn fix doesn't over-suppress mint)")
 _mw = recon.det_mint("contract C{function mintRogues(uint n) external { for(uint i;i<n;i++){ mintRogue(); } }"
                      " function mintRogue() public { require(openForMint||auth[msg.sender]); _mint(msg.sender,1); }}", "src/Fix.sol")
 _mr = [l for l in _mw if "mintRogues" in l[2]][0]
