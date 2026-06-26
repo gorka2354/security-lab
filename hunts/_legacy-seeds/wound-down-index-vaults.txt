@@ -1,0 +1,32 @@
+# Reusable legacy-sweep seed: old contracts of wound-down / migrated index+vault protocols (Thetanuts class).
+# Run: python toolkit/legacy.py sweep --file hunts/_legacy-seeds/wound-down-index-vaults.txt --chain eth --dormant-days 120
+# (ETHERSCAN_API_KEY sharpens dormancy via authoritative txns.) Sweep #1 (2026-06-26): 4/21 LEGACY-FUNDED,
+# all audited forks (Yearn/Balancer) -> no finding. Append new wound-down protocols here for the next sweep.
+
+# PieDAO (wound down ~2022; Balancer-fork index pies, custom share-math)
+0x8d1ce361eb68e9e05573443c407d4a3bed23b033  # DEFI++
+0xe4f726adc8e89c6a6017f01eada77865db22da14  # BCP
+0x33e18a092a93ff21ad04746c7da12e35d34dc7c4  # PLAY
+0x78f225869c08d478c34e5f645d07a87d3fe8eb78  # DEFI+L
+# PowerPool index pools (Balancer v1 BPool forks)
+0x26607aC599266b21d13c7aCF7942c7701a8b699c  # PIPT
+0xb4bebd34f6daafd808f73de0d10235a92fbb6c3d  # YETI
+0xb2b9335791346e94245dcd316a9c9ed486e6dd7f  # PIPT (older) -- LEGACY-FUNDED, read = Balancer fork, no finding
+# Harvest Finance (hacked 2020; vaults/pools)
+0x8e298734681adbfc41ee5d17ff8b0d6d803e7098  # fWETH
+0xe85C8581e60D7Cd32Bbfd86303d2A4FA6a951Dac  # fDAI
+0xc3F7ffb5d5869B3ade9448D094d81B0521e8326f  # fUSDC
+0xf9e5f9024c2f3f2908a1d0e7272861a767c9484b  # fDAI pool -- LEGACY-FUNDED (reward pool, low EV)
+0xE1f9A3EE001a2EcC906E8de637DBf20BB2d44633  # fUSDC pool -- dust (~empty)
+# Set Protocol / Index Coop (mostly still active -> ACTIVE)
+0x1494ca1f11d487c2bbe4543e90080aeba4ba3c2b  # DPI
+0x72e364f2abdc788b7e918bc238b21f109cd634d7  # MVI
+# Yearn iEarn v1 (yUSD is a known LEGACY-FUNDED control = audited Yearn V2)
+0xACd43E627e64355f1861cEC6d3a6688B31a6F952  # yDAI
+0x4b5bfd52124784745c1071dcb244c6688d2533d3  # yUSD (control)
+0x597aD1e0c13Bfe8025993D9e79C69E1c0233522e  # yUSDC
+0x2f08119C6f07c006695E079AAFc638b8789FAf18  # yUSDT
+0x5dbcf33d8c2e976c6b560249878e6f1491bca25c  # yCRV
+# Indexed Finance (drained 2021 -> EMPTY)
+0xfa6de2697d59e88ed7fc4dfe5a33dac43565ea41  # DEFI5
+0x17ac188e09a7890a1844e5e65471fe8b0ccfadf3  # CC10

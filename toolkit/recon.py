@@ -55,6 +55,7 @@ INLINE_AUTH = re.compile(
     r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*(msg\.sender|_msgSender)|"
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforce[A-Za-z]\w*\s*\(|"   # fix#18: Diamond/library enforce-auth (enforceIsContractOwner / enforceIsController / LibX.enforce*)
     r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
+    r"_check(?:Controller|Manager|Admin|Operator|Gov\w*|Authoriz\w*)\s*\(|"   # fix#34: Balancer/PowerPool BPool inline auth `_checkController()` (NOT input-validators like _checkAmount)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_?require\w*Caller\w*\s*\(|"   # fix#33: Liquity/Threshold inline caller-auth (_requireCallerIsBorrowerOperations / _requireCallerIsStabilityPool / _requireCallerIsBOorTroveM) -- the #1 fork-CDP FP source
     r"_only\w+\s*\(|"   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)

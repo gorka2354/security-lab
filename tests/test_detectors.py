@@ -42,6 +42,10 @@ check(not flagged(recon.det_access, "contract C{function setFee(uint x) external
       "onlyOwner setFee NOT flagged")
 check(not flagged(recon.det_access, "contract C{function setFee(uint x) external { requireGovernanceOnly(); fee=x; }}"),
       "fix#12: requireGovernanceOnly() inline-auth NOT flagged")
+check(not flagged(recon.det_access, "contract C{function setSwapFee(uint f) external { _checkController(); _swapFee=f; }}", "setSwapFee"),
+      "fix#34: _checkController() inline auth NOT flagged (Balancer/PowerPool BPool, found on the PIPT read)")
+check(flagged(recon.det_access, "contract C{function setSwapFee(uint f) external { _checkAmount(f); _swapFee=f; }}", "setSwapFee"),
+      "fix#34 scope: _checkAmount() is an input validator, NOT auth -> setSwapFee still flagged (no over-suppression)")
 check(not flagged(recon.det_access,
       "contract C{function updateRewards(P p) external { uint a; uint b; uint c; _verifySignatures(m,h,p.s); root=p.r; }}"),
       "fix#11: deep _verifySignatures gate NOT flagged")
