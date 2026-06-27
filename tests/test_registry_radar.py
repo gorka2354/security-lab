@@ -163,5 +163,36 @@ with tempfile.TemporaryDirectory() as d:
     check("IMPL-UPGRADE" in body and "Twyne" in body, "event rendered with type + target")
     check("prior read" in body, "prior notes rendered into the queue")
 
+print("== radar.detect_impl_for_addrs (extra non-Immunefi address sources) ==")
+TGT = {"name": "Venus Flux", "status": "CLEAN", "last_reason": "gov token, dead"}
+pairs = [("56", "0xCFB", TGT)]
+seen = {"bounties": {}, "impls": {}}
+# baseline-seed on first run: no event, slot recorded
+ev = radar.detect_impl_for_addrs(pairs, seen, True, impl_fn=lambda a, c: "0ximplA")
+eq(len(ev), 0, "first run seeds, no event")
+check(seen["impls"].get("56_0xcfb") == "0ximplA", "slot baselined under lowercased key")
+# steady -> no event
+eq(len(radar.detect_impl_for_addrs(pairs, seen, False, impl_fn=lambda a, c: "0ximplA")), 0, "no change -> none")
+# upgrade -> event with prior notes
+ev = radar.detect_impl_for_addrs(pairs, seen, False, impl_fn=lambda a, c: "0ximplB")
+eq([e["type"] for e in ev], ["IMPL-UPGRADE"], "impl change -> IMPL-UPGRADE")
+check(ev[0]["tgt"]["last_reason"] == "gov token, dead", "prior notes carried")
+# dedup
+eq(len(radar.detect_impl_for_addrs(pairs, seen, False, impl_fn=lambda a, c: "0ximplB")), 0, "dedup: no re-fire")
+# non-proxy (impl_fn -> None) is skipped, not watched
+seen2 = {"bounties": {}, "impls": {}}
+eq(len(radar.detect_impl_for_addrs([("1", "0xEOA", TGT)], seen2, False, impl_fn=lambda a, c: None)), 0, "non-proxy skipped")
+check("1_0xeoa" not in seen2["impls"], "non-proxy NOT baselined (correctly unwatchable)")
+
+print("== radar.add_address (manual coverage-growth store) ==")
+with tempfile.TemporaryDirectory() as d:
+    os.makedirs(os.path.join(d, "monitor"))
+    radar.add_address(d, "footgt", "8453", "0xDEAD")
+    store = R and __import__("json").load(open(os.path.join(d, "monitor", "addresses.json")))
+    check(store.get("footgt") == [{"chain": "8453", "addr": "0xDEAD"}], "address appended to store")
+    radar.add_address(d, "footgt", "8453", "0xdead")     # same addr, different case
+    store = __import__("json").load(open(os.path.join(d, "monitor", "addresses.json")))
+    eq(len(store["footgt"]), 1, "idempotent: case-insensitive dedup, no dupe row")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

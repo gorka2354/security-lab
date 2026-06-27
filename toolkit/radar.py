@@ -23,6 +23,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -108,14 +109,99 @@ def detect_events(progs, registry, seen, first_run, today, max_assets=20, impl_f
     return events
 
 
+def gather_extra_addrs(root, registry):
+    """Extra impl-watch addresses beyond the Immunefi assets: contracts we actually pulled source for
+    (fetched/<chainid>_<addr>) + a manual store (monitor/addresses.json: {key:[{chain,addr}]}). Returns
+    [(chainid, addr, tgt)] where tgt is the matching registry row (notes) or a generic stub. The address
+    store grows organically: `radar.py --add <key> <chain> <addr>` after a deep-read with on-chain addrs."""
+    out, seenk = [], set()
+
+    def add(cid, addr, tgt):
+        k = f"{cid}_{addr.lower()}"
+        if k not in seenk:
+            seenk.add(k)
+            out.append((cid, addr.lower(), tgt))
+
+    # ledger file paths map a few fetched addrs to their target (for prior notes)
+    addr2key = {}
+    led = os.path.join(root, "toolkit", "triage-ledger.json")
+    if os.path.exists(led):
+        try:
+            for e in json.load(open(led, encoding="utf-8")).get("entries", []):
+                m = re.search(r"fetched/(\d+)_(0x[a-fA-F0-9]{40})", e.get("file", "") or "")
+                if m:
+                    addr2key[f"{m.group(1)}_{m.group(2).lower()}"] = reg.norm_key(e.get("target"))
+        except Exception:
+            pass
+
+    def tgt_for(cid, addr):
+        key = addr2key.get(f"{cid}_{addr.lower()}")
+        return registry.get(key) if key else {
+            "name": addr, "status": "?", "fork_base": None, "zones": [],
+            "last_reason": "verified source fetched earlier; an impl change = audit-drift, re-diff vs our read"}
+
+    # source A: fetched/ dirs (named <chainid>_<addr>)
+    fdir = os.path.join(root, "fetched")
+    if os.path.isdir(fdir):
+        for name in os.listdir(fdir):
+            m = re.match(r"(\d+)_(0x[a-fA-F0-9]{40})$", name)
+            if m:
+                add(m.group(1), m.group(2), tgt_for(m.group(1), m.group(2)))
+    # source B: manual store
+    store = load_json(os.path.join(root, "monitor", "addresses.json"), {})
+    for key, rows in (store.items() if isinstance(store, dict) else []):
+        for r in rows or []:
+            if r.get("addr") and r.get("chain"):
+                add(str(r["chain"]), r["addr"], registry.get(key) or tgt_for(str(r["chain"]), r["addr"]))
+    return out
+
+
+def detect_impl_for_addrs(addr_pairs, seen, first_run, impl_fn=storage_impl):
+    """IMPL-UPGRADE detection for a flat [(chainid, addr, tgt)] list (the extra non-Immunefi sources).
+    Mutates `seen['impls']`; returns NEW events. Same baseline-seed + dedup semantics as detect_events."""
+    events = []
+    for cid, addr, tgt in addr_pairs:
+        k = f"{cid}_{addr.lower()}"
+        cur = impl_fn(addr, cid)
+        if cur is None:
+            continue                                    # non-proxy / unreachable -> not impl-watchable
+        base = seen["impls"].get(k)
+        seen["impls"][k] = cur
+        if base and cur != base and not first_run:
+            events.append({
+                "type": "IMPL-UPGRADE", "target": tgt.get("name", addr), "key": reg.norm_key(tgt.get("name", addr)),
+                "slug": tgt.get("slug", ""), "detail": f"{addr} on chain {cid}: reviewed impl {base} -> NEW {cur}",
+                "tgt": tgt,
+            })
+    return events
+
+
+def add_address(root, key, chain, addr):
+    """`radar.py --add <key> <chain> <addr>` -> append to monitor/addresses.json (organic coverage growth)."""
+    path = os.path.join(root, "monitor", "addresses.json")
+    store = load_json(path, {})
+    rows = store.setdefault(key, [])
+    if not any(r.get("addr", "").lower() == addr.lower() and str(r.get("chain")) == str(chain) for r in rows):
+        rows.append({"chain": str(chain), "addr": addr})
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    json.dump(store, open(path, "w", encoding="utf-8"), indent=1, sort_keys=True)
+    print(f"[radar] watching {addr} (chain {chain}) for target '{key}' -> monitor/addresses.json")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Change/freshness radar over the triaged-target registry")
     ap.add_argument("--root", default=os.path.join(os.path.dirname(__file__), ".."))
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     ap.add_argument("--max-assets", type=int, default=20, help="impl-check at most N in-scope addrs/program")
+    ap.add_argument("--add", nargs=3, metavar=("KEY", "CHAIN", "ADDR"),
+                    help="register an on-chain address to impl-watch for a target (grows coverage)")
     a = ap.parse_args()
     root = os.path.abspath(a.root)
     today = a.date
+
+    if a.add:                                            # one-off: append to the manual address store, exit
+        add_address(root, a.add[0], a.add[1], a.add[2])
+        return
 
     registry = load_json(os.path.join(root, "monitor", "registry.json"), {"targets": {}})["targets"]
     if not registry:
@@ -127,13 +213,16 @@ def main():
 
     progs = scout.fetch_immunefi_programs_json() or []
     events = detect_events(progs, registry, seen, first_run, today, a.max_assets)
+    extra = gather_extra_addrs(root, registry)           # fetched/ dirs + manual store (non-Immunefi sources)
+    events += detect_impl_for_addrs(extra, seen, first_run, storage_impl)
 
     os.makedirs(os.path.dirname(seen_path), exist_ok=True)
     json.dump(seen, open(seen_path, "w", encoding="utf-8"), indent=1, sort_keys=True)
 
     write_queue(events, today, first_run, os.path.join(root, "hunts", "_radar", "QUEUE.md"))
     tag = "(baseline seeded - no alerts on first run)" if first_run else f"{len(events)} NEW"
-    print(f"[radar] {len(progs)} immunefi programs scanned, {len(registry)} registry targets -> {tag}")
+    print(f"[radar] {len(progs)} immunefi programs + {len(extra)} extra addrs scanned, "
+          f"{len(registry)} registry targets, {len(seen['impls'])} proxies impl-watched -> {tag}")
     sys.exit(10 if events else 0)
 
 
