@@ -34,6 +34,14 @@ if [ $rrc -eq 10 ]; then
   { echo ""; echo "## [RADAR] $STAMP -- new change(s) queued, see hunts/_radar/QUEUE.md"; echo '```'; echo "$ROUT"; echo '```'; } >> "$ALERTS"
 fi
 
+# 0c) fresh-deploy radar: new contracts from watched deployers/factories -> FRESH-DEPLOY.md (the freshness edge)
+FOUT="$("$PY" toolkit/freshdeploy.py 2>&1)"; frc=$?
+echo "$FOUT"
+if [ $frc -eq 10 ]; then
+  fired=1
+  { echo ""; echo "## [FRESH-DEPLOY] $STAMP -- new deploy(s), see hunts/_radar/FRESH-DEPLOY.md"; echo '```'; echo "$FOUT"; echo '```'; } >> "$ALERTS"
+fi
+
 # 1) parked findings (exit 2 if any FIRED)
 WOUT="$("$PY" toolkit/watch.py 2>&1)"; wrc=$?
 echo "$WOUT"

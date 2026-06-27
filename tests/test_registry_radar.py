@@ -194,5 +194,30 @@ with tempfile.TemporaryDirectory() as d:
     store = __import__("json").load(open(os.path.join(d, "monitor", "addresses.json")))
     eq(len(store["footgt"]), 1, "idempotent: case-insensitive dedup, no dupe row")
 
+print("== freshdeploy (deployer/factory new-contract radar) ==")
+import freshdeploy as FD   # noqa: E402
+eq(FD.cid("apechain"), 33139, "chain-name -> id (apechain)")
+eq(FD.cid("eth"), 1, "chain-name -> id (eth)")
+eq(FD.cid("42161"), "42161", "numeric chain passes through")
+with tempfile.TemporaryDirectory() as d:
+    os.makedirs(os.path.join(d, "hunts", "_radar"))
+    _origroot = FD.ROOT
+    FD.ROOT = d
+    try:
+        q = os.path.join(d, "hunts", "_radar", "FRESH-DEPLOY.md")
+        FD.write_queue([], "2026-06-27", True, [{"addr": "0x1", "chain": "1"}])
+        check("baseline seeded" in open(q).read(), "first run -> baseline message")
+        FD.write_queue([], "2026-06-27", False, [{"addr": "0x1", "chain": "1"}])
+        check("All quiet" in open(q).read(), "no new deploys -> All quiet")
+        FD.write_queue([{"deployer": "0xDEP", "label": "Twyne factory", "kind": "factory",
+                         "chain": "1", "child": "0xNEW", "verified": "CollateralVault"}],
+                       "2026-06-27", False, [{"addr": "0x1", "chain": "1"}])
+        body = open(q).read()
+        check("0xNEW" in body and "Twyne factory" in body and "CollateralVault" in body,
+              "new verified deploy rendered (child + label + ContractName)")
+        check("dig FIRST" in body or "dig first" in body.lower(), "verified deploy prioritised as dig-first")
+    finally:
+        FD.ROOT = _origroot
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

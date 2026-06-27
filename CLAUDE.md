@@ -87,6 +87,11 @@
   exit-10 → **`hunts/_radar/QUEUE.md`** (session-start work-list с ПРОШЛЫМИ НОТАМИ — читаю первым делом).
   Хостинг: **GitHub Actions** `.github/workflows/radar.yml` (крон 3ч, коммитит QUEUE.md обратно; без Mac/сна/TCC —
   локальный launchd-агент TCC-блокается под ~/Desktop). Метрика силы = hit-rate QUEUE→находка (через `calibrate.py`).
+- **FRESH-DEPLOY радар (`freshdeploy.py`) — атакует стену СВЕЖЕСТИ (главный рычаг к находке):** watchlist
+  деплоеров/фактори разобранных протоколов (`monitor/deployers.json`; `--add`/`--seed-fetched`) → enumerate детей
+  (`legacy.deployer_contracts`/`factory_spawned`) → diff новых → verified? → `hunts/_radar/FRESH-DEPLOY.md` (verified =
+  reachable+un-hardened = копай ПЕРВЫМ, timing-эдж). Сидирован Twyne-фактори (in-scope волты) + Ape Church-деплоер.
+  В watch_all + Actions-кроне + brief.
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).

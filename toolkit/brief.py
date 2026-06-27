@@ -84,6 +84,23 @@ def radar_block():
             print(f"  ALERTS.md: {len(last)} alert block(s), latest: {last[-1][3:][:70]}")
 
 
+def freshdeploy_block():
+    p = os.path.join(ROOT, "hunts", "_radar", "FRESH-DEPLOY.md")
+    if not os.path.exists(p):
+        return
+    body = open(p, encoding="utf-8").read()
+    section("FRESH-DEPLOY  (new contracts from watched deployers/factories — the timing edge)")
+    if "All quiet" in body or "baseline seeded" in body:
+        wl = load("monitor/deployers.json", {}).get("deployers", [])
+        print(f"  all quiet — no new deploys from {len(wl)} watched deployer(s)")
+    else:
+        hits = [l.strip() for l in body.splitlines() if l.strip().startswith("### ")]
+        print(f"  >>> {len(hits)} NEW deploy(s) — dig the verified ones FIRST:")
+        for h in hits[:6]:
+            print(f"     {h[4:]}")
+        print("     full: hunts/_radar/FRESH-DEPLOY.md")
+
+
 def registry_block():
     reg = load("monitor/registry.json", {}).get("targets", {})
     if not reg:
@@ -142,6 +159,7 @@ def main():
     print("\033[1m" + title + "\033[0m" if sys.stdout.isatty() else title)
     git_block(a.fetch)
     radar_block()
+    freshdeploy_block()
     registry_block()
     parked_block()
     fanout_block()

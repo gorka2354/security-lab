@@ -1,0 +1,16 @@
+{
+ "deployers": [
+  {
+   "addr": "0xa1517cCe0bE75700A8838EA1cEE0dc383cd3A332",
+   "chain": "1",
+   "kind": "factory",
+   "label": "Twyne CollateralVaultFactory (in-scope vaults)"
+  },
+  {
+   "addr": "0x48f704f490d19ae7e46d5ea92f2f31df3b9381e4",
+   "chain": "33139",
+   "kind": "deployer",
+   "label": "Ape Church deployer (House+games)"
+  }
+ ]
+}
