@@ -42,6 +42,15 @@ if [ $frc -eq 10 ]; then
   { echo ""; echo "## [FRESH-DEPLOY] $STAMP -- new deploy(s), see hunts/_radar/FRESH-DEPLOY.md"; echo '```'; echo "$FOUT"; echo '```'; } >> "$ALERTS"
 fi
 
+
+# 0d) fresh-feed: NEW DefiLlama-listed our-zone protocols + Sourcify freshly-verified contracts (the WIDE freshness net)
+FFOUT="$("$PY" toolkit/freshfeed.py --days 7 2>&1)"; ffrc=$?
+echo "$FFOUT"
+if [ $ffrc -eq 10 ]; then
+  fired=1
+  { echo ""; echo "## [FRESH-FEED] $STAMP -- new fresh code, see hunts/_radar/FRESH-FEED.md"; echo '```'; echo "$FFOUT"; echo '```'; } >> "$ALERTS"
+fi
+
 # 1) parked findings (exit 2 if any FIRED)
 WOUT="$("$PY" toolkit/watch.py 2>&1)"; wrc=$?
 echo "$WOUT"

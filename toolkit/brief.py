@@ -101,6 +101,21 @@ def freshdeploy_block():
         print("     full: hunts/_radar/FRESH-DEPLOY.md")
 
 
+def freshfeed_block():
+    p = os.path.join(ROOT, "hunts", "_radar", "FRESH-FEED.md")
+    if not os.path.exists(p):
+        return
+    body = open(p, encoding="utf-8").read()
+    section("FRESH-FEED  (new DefiLlama-listed + Sourcify-verified code — wide freshness net)")
+    if "baseline seeded" in body or "All quiet" in body:
+        print("  all quiet — no new fresh-listed/verified code this run")
+    else:
+        prot = [l[2:].strip() for l in body.splitlines() if l.startswith("- **")][:6]
+        print("  >>> fresh code surfaced (read hunts/_radar/FRESH-FEED.md):")
+        for x in prot:
+            print(f"     {x[:92]}")
+
+
 def registry_block():
     reg = load("monitor/registry.json", {}).get("targets", {})
     if not reg:
@@ -160,6 +175,7 @@ def main():
     git_block(a.fetch)
     radar_block()
     freshdeploy_block()
+    freshfeed_block()
     registry_block()
     parked_block()
     fanout_block()

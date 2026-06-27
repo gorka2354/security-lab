@@ -219,5 +219,17 @@ with tempfile.TemporaryDirectory() as d:
     finally:
         FD.ROOT = _origroot
 
+print("== freshfeed (DefiLlama listedAt freshness filter) ==")
+import time as _time
+import freshfeed as FF   # noqa: E402
+_now = _time.time()
+_fresh = {"name": "FreshLend", "category": "Lending", "tvl": 1e6, "chains": ["eth"], "listedAt": _now - 2 * 86400, "audits": "0", "url": "x"}
+_old = {"name": "OldLend", "category": "Lending", "tvl": 1e6, "chains": ["eth"], "listedAt": _now - 90 * 86400, "audits": "0", "url": "x"}
+_offzone = {"name": "SomeNFTThing", "category": "NFT Marketplace", "tvl": 1e6, "chains": ["eth"], "listedAt": _now - 1 * 86400, "audits": "0", "url": "x"}
+res_ff = FF.defillama_fresh(7, 0, "2026-06-27", data=[_fresh, _old, _offzone])
+eq([c["name"] for c in res_ff], ["FreshLend"], "freshfeed: keeps recent our-zone, drops old + off-zone")
+check("lend" in res_ff[0]["zones"], "freshfeed: zone tag derived")
+eq(FF.norm("Jupiter Offerbook"), "jupiter-offerbook", "freshfeed.norm slugifies")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
