@@ -160,6 +160,14 @@ check(not flagged(recon.det_signature, "contract C{function claim(Order calldata
       "det_signature guard: struct-field verifier compared (== trustedSigner) -> bound -> NOT flagged")
 check(not flagged(recon.det_signature, "contract C{function permit(address owner,bytes sig) external { require(SignatureChecker.isValidSignatureNow(owner,hash,sig)); }}", "isValidSignature"),
       "det_signature scope: bare-param verifier (EIP-2612 permit shape) is reasoning-tier -> NOT flagged (avoids the permit FP)")
+# (1b) Lixir permit drain (2026): ecrecover result checked != address(0) but NEVER compared == owner -> forgeable
+_LIXIR = "contract C{uint nonce;uint deadline;function permit(address owner,uint8 v,bytes32 r,bytes32 s) external { address rec=ecrecover(h,v,r,s); require(rec!=address(0),'bad'); allowance[owner]=1; }}"
+check(flagged(recon.det_signature, _LIXIR, "not bound"),
+      "det_signature 1b: ecrecover != address(0) with NO == owner binding -> forgeable (Lixir 2026) flagged")
+check(not flagged(recon.det_signature, "contract C{function permit(address owner,uint8 v,bytes32 r,bytes32 s) external { address rec=ecrecover(h,v,r,s); require(rec!=address(0) && rec==owner,'bad'); nonce++; }}", "not bound"),
+      "det_signature 1b guard: recovered == owner present -> bound -> NOT flagged (no FP on secure EIP-2612)")
+check(not flagged(recon.det_signature, "contract C{using ECDSA for bytes32; function f(bytes32 h,bytes sig,address owner) external { require(h.recover(sig)==owner); }}", "not bound"),
+      "det_signature 1b guard: ECDSA.recover compared == owner -> NOT flagged")
 # class-F extension: a nonce that is declared/read but never consumed -> still replayable
 _sign = recon.det_signature("contract C{mapping(address=>uint) nonces; function f(address u) external { uint n=nonces[u]; address s=ecrecover(h,v,r,s); require(s!=address(0)); } }", "src/C.sol")
 check(any("never consumed" in (t[3] or "").lower() for t in _sign),

@@ -475,6 +475,18 @@ def det_signature(text, rel):
             note = ("raw ecrecover, file MISSING: " + ", ".join(miss)) if miss else \
                    "raw ecrecover but file has zero/nonce/deadline guards (review)"
             out.append((rel, lineno(text, m.start()), "ecrecover(...)", note, 0 if miss else 2))
+        # (1b) Lixir permit drain (2026): recovered signer checked != address(0) but NEVER compared `== owner/
+        # signer` -> any well-formed sig recovering to a NONZERO addr is accepted = forgeable permit/auth.
+        binds_signer = bool(re.search(
+            r"==\s*(owner|_owner|signer|signatory|expectedSigner|maker|trustedSigner)\b|"
+            r"\b(owner|_owner|signer|signatory|expectedSigner|maker|trustedSigner)\s*==|"
+            r"isSigner\s*\[|authorizedSigner|signers\s*\[|isValidSigner|_trustedSigner", text))
+        if "address(0)" in text and not binds_signer:
+            mm = next(re.finditer(r"\becrecover\s*\(", text), None)
+            out.append((rel, lineno(text, mm.start()) if mm else 0, "ecrecover(...) result not bound to owner",
+                        "ecrecover result validated as NONZERO (address(0) check) but NEVER compared `== owner/"
+                        "signer` -> any well-formed sig recovering to a nonzero address passes = FORGEABLE "
+                        "permit/auth (Lixir permit drain, 2026). Bind the recovered address to the expected signer.", 0))
     return out
 
 

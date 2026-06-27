@@ -89,7 +89,7 @@ security-lab/
 │   └─ _parked/parked-leads.md  ← реальные лиды без баунти (Vena/GAIB) → watchlist следит за запуском
 ├─ monitor/                 ← runtime-стейт (gitignored, кроме watchlist): registry.json/REGISTRY.md · radar-seen.json · ALERTS.md
 │   └─ watchlist.json     ← припаркованные находки → watch.py следит, [FIRED] при деплое/баунти
-├─ tests/test_detectors.py ← 403 golden-fixture проверок (CI-гейт)
+├─ tests/test_detectors.py ← 406 golden-fixture проверок (CI-гейт)
 └─ nomad-poc/ oracle-poc/  ← Foundry PoC
 ```
 
