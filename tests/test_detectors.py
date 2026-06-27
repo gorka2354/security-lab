@@ -189,6 +189,20 @@ check(not flagged(recon.det_pyth_oracle, "contract C{function v(bytes32 id) publ
 check(not flagged(recon.det_pyth_oracle, "contract C{ function p() external { (,int a,,uint u,)=feed.latestRoundData(); require(a>0); } }"),
       "Chainlink latestRoundData NOT flagged by det_pyth (that's det_oracle's job; no overlap-noise)")
 
+print("== det_multicall_value (payable-multicall / msg.value reuse) ==")
+_MCV_POS = ("contract C{ function multicall(bytes[] calldata d) external payable { "
+            "for(uint i;i<d.length;i++){ address(this).delegatecall(d[i]); } } "
+            "function deposit() external payable { bal[msg.sender]+=msg.value; } }")
+check(flagged(recon.det_multicall_value, _MCV_POS, "function multicall"),
+      "payable delegatecall-multicall + payable deposit reading msg.value -> value-reuse flagged")
+check(recon.det_multicall_value(_MCV_POS, "src/C.sol")[0][4] == 0, "value-reuse is high-priority [!]")
+check(not flagged(recon.det_multicall_value, "contract C{ function multicall(bytes[] calldata d) external { for(uint i;i<d.length;i++){ address(this).delegatecall(d[i]); } } function setX(uint x) external { x_=x; } }"),
+      "multicall with NO payable msg.value consumer NOT flagged (no FP)")
+check(not flagged(recon.det_multicall_value, "contract C{ function deposit() external payable { bal[msg.sender]+=msg.value; } }"),
+      "plain payable deposit (no multicall) NOT flagged")
+check(flagged(recon.det_multicall_value, "contract C{ function airdrop(address[] calldata to) external payable { for(uint i;i<to.length;i++){ payable(to[i]).transfer(msg.value); } } }", "for("),
+      "msg.value read inside a loop -> per-iteration credit flagged")
+
 print("== det_trust_anchor (Taiko/Raiko SGX key-leak class) ==")
 _TA_POS = "contract V{bytes32 mrSigner; mapping(address=>bool) ti; function registerInstance(bytes32 m,address i) external { require(m==mrSigner); ti[i]=true; }}"
 check(flagged(recon.det_trust_anchor, _TA_POS, "registerInstance"),

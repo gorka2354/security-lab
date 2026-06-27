@@ -13,7 +13,7 @@
                     +------------------+------------------+
                                        v
                         recon.py — МЕТАЛЛОИСКАТЕЛЬ (L1)
-                        43 детектора, быстрый триаж, приоритет [!]
+                        44 детектора, быстрый триаж, приоритет [!]
                                        |
                         ledger.py — КАРТОТЕКА ВЕРДИКТОВ
                         гасит уже засуженные (FP/known) → вижу только НОВОЕ
@@ -67,7 +67,7 @@ security-lab/
 ├─ toolkit/
 │   ├─ scout.py                       ← STAGE-0 ОПТИМИЗАТОР: contests (GH) + DefiLlama (deployed-unaudited, +CORE-repo резолв) + Immunefi via **public-api JSON** (263 прог vs ~198 скрейп; in-scope addrs инлайн + chains + kyc) → ledger-supp + ранг
 │   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
-│   ├─ recon.py                       ← L1 сканер: 43 детектора наших эвристик
+│   ├─ recon.py                       ← L1 сканер: 44 детектора наших эвристик
 │   ├─ secrets.py                     ← SECRETS-лейн: закоммиченные ключи/креды в дереве + ИСТОРИИ git (Taiko layer-A; язык-агностичен)
 │   ├─ legacy.py                      ← СОРСИНГ deprecated-но-funded (Thetanuts-класс): check/from-deployer/from-factory/sweep + --token + age-dormancy
 │   ├─ fetch_source.py · livecheck.py ← LIVE-FIRST: verified-source по адресу · дрейф impl vs аудит
@@ -89,11 +89,11 @@ security-lab/
 │   └─ _parked/parked-leads.md  ← реальные лиды без баунти (Vena/GAIB) → watchlist следит за запуском
 ├─ monitor/                 ← runtime-стейт (gitignored, кроме watchlist): registry.json/REGISTRY.md · radar-seen.json · ALERTS.md
 │   └─ watchlist.json     ← припаркованные находки → watch.py следит, [FIRED] при деплое/баунти
-├─ tests/test_detectors.py ← 398 golden-fixture проверок (CI-гейт)
+├─ tests/test_detectors.py ← 403 golden-fixture проверок (CI-гейт)
 └─ nomad-poc/ oracle-poc/  ← Foundry PoC
 ```
 
-## 43 детектора (recon.py)
+## 44 детектора (recon.py)
 disabled-signals · access-control · **sibling-inconsistency** · supply-integrity (mint/burn) ·
 reentrancy (CEI) · arbitrary-call (approval-drain) · **signature/ecrecover** (replay) ·
 **domain-separator** (cross-chain/fork replay) · **UUPS upgrade-safety** · **unchecked ERC20 return** ·
@@ -122,7 +122,7 @@ python toolkit/scout.py --source immunefi          # SOURCE: in-scope адрес
 python toolkit/fetch_source.py <addr> --chain 1 --proxy --out hunts/_volume/<x>   # REACH: verified-source
 python toolkit/forkdrift.py fingerprint <src>      # TRIAGE: форк? audited? → роутер
 python toolkit/orchestrate.py                      # ОБЛАВА: скан targets.txt → очередь (с ledger-подавлением)
-python toolkit/recon.py <repo>                     # L1 скан одного репо (43 детектора)
+python toolkit/recon.py <repo>                     # L1 скан одного репо (44 детектора)
 python toolkit/secrets.py <repo>                   # SECRETS: закоммиченные ключи в дереве + истории git (Taiko layer-A)
 python toolkit/legacy.py sweep --file <addrs>      # СОРСИНГ deprecated-funded (Thetanuts-класс): ранг по value
 python toolkit/diffscan.py <repo> --since-days 120 # СВЕЖЕСТЬ: только изменённое за 120 дней
@@ -136,7 +136,7 @@ forge test --root invariant-lab -vvv               # прогнать фаззи
 
 ## Статус
 - ✅ Полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH** (recon → Slither → scaffold+fuzz → L4)
-- ✅ **43 детектора**; закалён **35 фиксами** (fix#1–#35; последние: #34 `_checkController` PowerPool BPool, #35 self-burn ≠ mint); recon громко предупреждает на Vyper (анти-false-clean)
+- ✅ **44 детектора**; закалён **35 фиксами** (fix#1–#35; последние: #34 `_checkController` PowerPool BPool, #35 self-burn ≠ mint); recon громко предупреждает на Vyper (анти-false-clean)
 - ✅ **Сорсинг-лейны:** `secrets.py` (закоммиченные ключи в дереве+истории git, Taiko layer-A) · `legacy.py` (deprecated-funded, Thetanuts-класс: check/from-deployer/from-factory/sweep + --token) · `scout` bridge-зона
 - ✅ **Разборы взломов → детекторы:** Taiko ($1.7M) → `det_trust_anchor` · Thetanuts ($2.1M) → `det_vault_share_math` · ZKFair gas-token → `det_decimal_scale` · Vena (2026) → `det_pyth_oracle` (Pyth pull-oracle без price>0/conf/staleness); **bridge sector-playbook** (Nomad/Wormhole/Ronin/Taiko, detector-vs-L4 карта)
 - ✅ **research/** — библиотека из 6 баг-паттернов (T0→T3) + TEMPLATE; пайплайн паттерн → детектор → инвариант

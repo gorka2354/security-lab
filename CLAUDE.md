@@ -18,7 +18,7 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 43 детектора; вкл. `det_trust_anchor` — verifier с одним signer/measurement без кворума,
+  `recon.py` (L1, 44 детектора; вкл. `det_trust_anchor` — verifier с одним signer/measurement без кворума,
   Taiko/Raiko layer-B; `det_vault_share_math` — кастомный волт `X*amount/totalSupply` без floor, near-empty
   share-price manip, Thetanuts $2.1M; `det_decimal_scale` — `amount *=//= decimalsFactor` в бридже/враппере,
   dust/round-to-zero + асимметрия round-trip на non-18 токенах, ZKFair gas-token), `secrets.py` (SECRETS-лейн: закоммиченные ключи/креды в дереве + истории git —
@@ -70,7 +70,7 @@
   ВСЕ 64 chains вкл. Abstract/Mantle/Sonic/HyperEVM/zkSync) + **DefiLlama-Adapters** как источник CORE-адресов.
 - **TRIAGE:** `forkdrift.py` — форк-ли аудированного base (Lagoon/M^0/Aave/Compound…) + substantive-диф
   дрейфа + audited-ли? → роутер (drift / out-of-scope / economic / greenfield). LIVE-FIRST.
-- **DETECT:** `recon.py` (**43 детектора**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс, `det_self_transfer`/
+- **DETECT:** `recon.py` (**44 детектора**, вкл. `det_spot_oracle` = #1 DeFiHackLabs-класс, `det_self_transfer`/
   `det_pair_reserve_mutation` = BSC token-классы, `det_unprotected_init` = front-run ownership-grab,
   `det_caller_supplied_authority` = calldata-order transferFrom drain) +
   `hypothesize.py` (shared-state seeds + CI-gated `INVARIANT_MENU` CORE/ECONOMIC/GAMEFI/BRIDGE — вкл. DeFiHackLabs
@@ -90,7 +90,7 @@
 - **L4 (я):** `toolkit/L4-READ.md` (4 mindsets × 4 lenses + Feynman + coupled-state) → `toolkit/VERIFY.md`
   (Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP; «FP хуже miss'а»). **ПЕРЕД severity: callability-gates** —
   txlist-liveness + per-function usage + custodial-caller (урок death.fun). Методология заимствована у Krait (MIT).
-- **398 detector + 64 registry/radar golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
+- **403 detector + 64 registry/radar golden-тестов** (CI-гейт). Цикл самоулучшения: реальный хак → детектор → **test+tune на ЖИВОМ коде** (не только golden); FP → точность.
   `shadow.py --corpus defihacklabs` меряет ЧЕСТНЫЙ recall на РЕАЛЬНЫХ victim-контрактах (deployed verified source): HIT 3/4=75%
   на T0-покрываемом+reachable срезе (token-классы ловятся), остальное — reasoning-tier / version-drift / unverified.
   (Примеры: `det_self_transfer`/`det_pair_reserve_mutation` — TP на ВЫТЯНУТОМ on-chain коде BY/LPC/GPU + 0 FP на 8 клонах

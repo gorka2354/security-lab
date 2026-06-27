@@ -304,6 +304,41 @@ def det_pyth_oracle(text, rel):
     return out
 
 
+# ── Detector: payable-multicall / msg.value reuse ── classic value-reuse (N deposits for 1 payment)
+def det_multicall_value(text, rel):
+    """msg.value reused across batched calls. (a) A delegatecall-multicall (multicall/aggregate/batch that
+    loops delegatecall(data[i])) keeps the SAME msg.value for EVERY sub-call -> batching N payable calls
+    each reading msg.value credits N payments for ONE (the payable-multicall drain; OZ added a guard, many
+    forks didn't). (b) msg.value read INSIDE a for-loop -> same value credited per iteration."""
+    out = []
+    mc = re.search(r"function\s+(multi[cC]all|aggregate|batch\w*)\s*\([^)]*\)[^{;]*\{", text)
+    has_dc_loop = bool(mc and re.search(r"delegatecall", text[mc.end():mc.end() + 1500]))
+    payable_value = []
+    for fm in re.finditer(r"function\s+(\w+)\s*\([^;{]*\bpayable\b[^;{]*\{", text):
+        name = fm.group(1)
+        if re.match(r"multi|aggregate|batch", name, re.I):
+            continue
+        nxt = text.find("function ", fm.end())
+        body = text[fm.end():(nxt if nxt > 0 else fm.end() + 1200)]
+        if "msg.value" in body:
+            payable_value.append(name)
+    if has_dc_loop and payable_value:
+        out.append((rel, lineno(text, mc.start()), f"function {mc.group(1)}(...)",
+                    "delegatecall-multicall + payable fn(s) reading msg.value (" + ",".join(payable_value[:3])
+                    + ") -> msg.value REUSED across batched sub-calls (N payments for 1); forbid value in "
+                    "multicall or track consumed value", 0))
+    # (b) msg.value inside a loop body (bounded window, cut at the next function so it can't leak across fns)
+    for fm in re.finditer(r"\bfor\s*\([^)]*\)\s*\{", text):
+        win = text[fm.end():fm.end() + 400]
+        cut = win.find("function ")
+        if cut >= 0:
+            win = win[:cut]
+        if "msg.value" in win:
+            out.append((rel, lineno(text, fm.start()), "for(...) { ... msg.value ... }",
+                        "msg.value read INSIDE a loop -> same tx value credited each iteration (value-reuse)", 0))
+    return out
+
+
 # ── Detector 4: dangerous primitives ── (unprotected-init moved to dedicated det_unprotected_init #37)
 def det_danger(text, rel):
     out = []
@@ -1667,6 +1702,9 @@ DETECTORS = [
     ("PYTH / pull-oracle missing guards (price>0 / confidence / staleness)", det_pyth_oracle,
      "Vena (2026): Pyth getPriceUnsafe/.price (signed int64) into valuation with no price>0/.conf/publishTime "
      "check -> zero/stale/wide-confidence push mis-prices the market. det_oracle covers Chainlink; this is the pull-oracle gap."),
+    ("MULTICALL / msg.value reuse (N payments for 1)", det_multicall_value,
+     "Payable delegatecall-multicall keeps the SAME msg.value for every batched sub-call -> N payable deposits "
+     "for ONE payment (OZ guards it, forks don't); also msg.value read inside a loop = per-iteration credit."),
     ("INTEREST-INDEX inflation (Aave-fork empty-market)", det_index,
      "Pattern 04: liquidityIndex/borrowIndex compounds delta/supply -> empty market inflates it (dTRINITY)."),
     ("LIQUIDATION math (self-liq, rounding, bad-debt)", det_liquidation,
@@ -1751,7 +1789,7 @@ def det_key(title):
                    ("spot-amm", "spotoracle"), ("self-transfer", "selftransfer"),
                    ("pair-reserve", "pairreserve"), ("unprotected init", "uinit"),
                    ("caller-supplied", "callerauth"), ("trust-anchor", "trustanchor"),
-                   ("pyth", "pyth"), ("oracle", "oracle"),
+                   ("pyth", "pyth"), ("oracle", "oracle"), ("multicall", "multicallvalue"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),
