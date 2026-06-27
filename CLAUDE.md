@@ -41,8 +41,11 @@
 - **Охоты:** `security-lab/hunts/<target>/HUNT.md` — лог триажа (ноты в репо, клоны в `hunts/_volume/` gitignored).
 
 ## Правила
+- **СТАРТ СЕССИИ:** `source toolkit/env.sh` (ставит PATH: forge/solc/brew + Etherscan-ключ; чинит слетающий PATH)
+  → `python toolkit/brief.py` (утренний дашборд: git-синк + radar `QUEUE.md` + open DIGs реестра + parked-лиды +
+  last fan-out; `--fetch`/`--contests` для network). Это первое, что гоняем — заменяет ручной сбор «что свежего».
 - **White-hat жёстко:** тестируем только in-scope авторизованных баунти; ответственное раскрытие; **чужие средства не трогаем**. Известный/исправленный баг ≠ находка.
-- Foundry стоит, но не в PATH: префикс `export PATH="$HOME/.foundry/bin:$PATH"`.
+- Foundry/solc не в PATH по умолчанию → `source toolkit/env.sh` (или префикс `export PATH="/opt/homebrew/bin:$HOME/.foundry/bin:$PATH"`).
 - `forge init` оставляет `script/Counter.s.sol` — удаляй вместе с `src/Counter.sol`.
 - Печатаемый вывод — ASCII (Windows-консоль давится юникодом).
 - После каждого разбора — обновляй vault (паттерн + эвристику в MOC).
