@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""Golden tests for the MEMORY+RADAR lane (registry.py + radar.py).
+
+Same style as test_detectors.py: pure asserts, no pytest, exits 1 if any fail (CI-friendly).
+
+    python tests/test_registry_radar.py
+
+Pins: norm_key merge/dedup, category extraction (chains/zones/fork/OWASP), fanout-table parse,
+registry merge precedence, radar storage_impl slot-decode, and radar detect_events (baseline-seed,
+bounty-open, impl-upgrade, dedup, non-registry ignore).
+"""
+import os
+import sys
+import tempfile
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "toolkit"))
+import registry as R   # noqa: E402
+import radar           # noqa: E402
+
+_p, _f = 0, 0
+
+
+def check(cond, msg):
+    global _p, _f
+    if cond:
+        _p += 1
+    else:
+        _f += 1
+        print("  FAIL:", msg)
+
+
+def eq(a, b, msg):
+    check(a == b, f"{msg}  (got {a!r}, want {b!r})")
+
+
+print("== registry.norm_key (stable merge key; merges parenthetical dupes) ==")
+eq(R.norm_key("Twyne (twyne-contracts-v1)"), "twyne", "parenthetical annotation dropped")
+eq(R.norm_key("twyne"), "twyne", "bare key stable")
+eq(R.norm_key("Vena Finance (native money market of Fluent L2)"), "vena-finance", "multi-word + paren")
+eq(R.norm_key("venus-flux (XVS governance token)"), "venus-flux", "slug + paren merge")
+check(R.norm_key("mezo-borrow") != R.norm_key("mezo-musd"), "distinct sibling products stay distinct")
+eq(R.norm_key("Ample (Ample Earn — layer3xyz)"), "ample", "em-dash + paren")
+eq(R.norm_key(""), "unknown", "empty -> unknown")
+eq(R.norm_key("Twyne (x)"), R.norm_key("Twyne"), "annotated == bare (the dedup that 93->79 relies on)")
+
+print("== registry.extract_chains (ambiguous English words gated to structured columns) ==")
+eq(R.extract_chains("audited base currency, deployed on arbitrum"), ["arb"], "free-text drops spurious 'base'")
+eq(R.extract_chains("Base,Arbitrum", structured=True), ["arb", "base"], "structured column keeps 'base'")
+eq(R.extract_chains("native money market of Fluent L2"), ["fluent"], "fluent picked up")
+eq(R.extract_chains("on ethereum mainnet"), ["eth"], "ethereum -> eth")
+eq(R.extract_chains("a codebase note"), [], "'codebase' does not match 'base'")
+
+print("== registry.extract_zones (DeFiLlama-style, canonicalised) ==")
+check("lending" in R.extract_zones("isolated lending market"), "lending")
+z = R.extract_zones("perp dex on arbitrum")
+check("perp" in z and "dex" in z, "perp + dex")
+check("lending" in R.extract_zones("a money market"), "money market -> lending (canon)")
+check("lending" in R.extract_zones("borrow against collateral"), "borrow -> lending (canon)")
+
+print("== registry.extract_fork ==")
+eq(R.extract_fork("verbatim re-deployment of Velodrome V2"), "velodrome", "velodrome fork")
+eq(R.extract_fork("a fork of Aave V3 lending"), "aave", "aave fork")
+eq(R.extract_fork("greenfield custom code, no base"), None, "greenfield -> None")
+eq(R.extract_fork("Compound-style comptroller"), "compound", "compound")
+
+print("== registry.owasp_for (detector -> OWASP SC class) ==")
+check("SC02-OracleManipulation" in R.owasp_for("spot_oracle"), "oracle -> SC02")
+check("SC01-AccessControl" in R.owasp_for("unprotected_init"), "init -> SC01")
+check("SC05-Reentrancy" in R.owasp_for("operator-reentrancy-cei"), "reentrancy -> SC05")
+check("SC03-LogicError" in R.owasp_for("decimal_scale"), "decimal -> SC03")
+eq(R.owasp_for("totally-unknown-detector"), [], "unknown detector -> no class")
+
+print("== registry.parse_fanout (typed table) ==")
+with tempfile.TemporaryDirectory() as d:
+    md = os.path.join(d, "2026-06-27-demo.md")
+    open(md, "w").write(
+        "# demo\n"
+        "| target | type | chain | gate | fork/audit | rec | leads |\n"
+        "|---|---|---|---|---|---|---|\n"
+        "| Foo Lending (foo-v1) | lending | arbitrum | live | aave-fork | DIG | x |\n"
+        "| Bar Bridge | bridge | eth | dormant | greenfield | SKIP | - |\n"
+    )
+    fan = R.parse_fanout(os.path.join(d, "*.md"))
+    check("foo-lending" in fan, "fanout row -> norm_key 'foo-lending'")
+    eq(fan["foo-lending"]["status"], ("DIG", 5), "rec DIG -> status DIG/prio5")
+    check("lending" in fan["foo-lending"]["zones"], "type 'lending' -> zone")
+    check("arb" in fan["foo-lending"]["chains"], "structured chain 'arbitrum' -> arb")
+    eq(fan["foo-lending"]["fork"], "aave", "fork/audit col -> aave")
+    eq(fan["bar-bridge"]["status"], ("SKIP", 1), "rec SKIP -> status SKIP/prio1")
+
+print("== registry.merge (status takes max priority across sources) ==")
+a1 = {"x": {"name": "X", "sources": {"ledger"}, "zones": {"dex"}, "chains": set(), "fork": None,
+            "owasp": set(), "status": ("CLEAN", 2), "n": 1, "reason": "short", "dates": ["2026-06-01"]}}
+a2 = {"x": {"name": "X (long)", "sources": {"fanout"}, "zones": {"amm"}, "chains": {"eth"}, "fork": "uniswap",
+            "owasp": set(), "status": ("DIG", 5), "n": 1, "reason": "a much longer reason", "dates": ["2026-06-10"]}}
+m = R.merge(a1, a2)["x"]
+eq(m["status"], ("DIG", 5), "DIG(5) beats CLEAN(2)")
+eq(m["fork"], "uniswap", "fork carried")
+check(m["sources"] == {"ledger", "fanout"}, "sources unioned")
+eq(m["reason"], "a much longer reason", "longest reason kept")
+
+print("== radar.storage_impl (EIP-1967 slot decode; monkeypatched RPC) ==")
+_orig = radar.fs._rpc
+try:
+    radar.fs._rpc = lambda rpc, method, params: "0x000000000000000000000000" + "ab" * 20      # padded impl
+    eq(radar.storage_impl("0xproxy", 1), "0x" + "ab" * 20, "padded slot -> last-20-bytes addr (lowercased)")
+    radar.fs._rpc = lambda rpc, method, params: "0x" + "0" * 64                                  # empty slot
+    eq(radar.storage_impl("0xproxy", 1), None, "zero slot -> None (non-proxy)")
+    def _boom(*a):
+        raise RuntimeError("rpc down")
+    radar.fs._rpc = _boom
+    eq(radar.storage_impl("0xproxy", 1), None, "rpc error -> None (graceful)")
+    eq(radar.storage_impl("0xproxy", 999999), None, "no DEFAULT_RPC for chain -> None")
+finally:
+    radar.fs._rpc = _orig
+
+print("== radar.detect_events (baseline / bounty-open / impl-upgrade / dedup / ignore) ==")
+REG = {"twyne": {"name": "Twyne", "status": "DIG", "fork_base": "euler", "zones": ["lending"],
+                 "last_reason": "prior read of the liq math"}}
+prog = {"name": "Twyne", "slug": "twyne", "ecosystem": ["eth"], "assets": ["0xAAA"], "maxBounty": 50000}
+
+# first run: seed baseline, NO events
+seen = {"bounties": {}, "impls": {}}
+ev = radar.detect_events([prog], REG, seen, True, "2026-06-27", impl_fn=lambda a, c: "0ximpl1")
+eq(len(ev), 0, "first run emits no events")
+check("twyne" in seen["bounties"], "first run seeds the bounty baseline")
+check("1_0xaaa" in seen["impls"] and seen["impls"]["1_0xaaa"] == "0ximpl1", "first run seeds the impl baseline")
+
+# steady state: same bounty, same impl -> NO events
+ev = radar.detect_events([prog], REG, seen, False, "2026-06-27", impl_fn=lambda a, c: "0ximpl1")
+eq(len(ev), 0, "no change -> no events")
+
+# impl upgrade -> IMPL-UPGRADE event with prior notes attached
+ev = radar.detect_events([prog], REG, seen, False, "2026-06-27", impl_fn=lambda a, c: "0ximpl2")
+eq(len(ev), 1, "impl change -> one event")
+eq(ev[0]["type"], "IMPL-UPGRADE", "event type")
+check(ev[0]["tgt"]["last_reason"].startswith("prior read"), "prior notes carried into the event")
+# dedup: same new impl next run -> NO event
+ev = radar.detect_events([prog], REG, seen, False, "2026-06-27", impl_fn=lambda a, c: "0ximpl2")
+eq(len(ev), 0, "dedup: recorded change does not re-fire")
+
+# bounty newly opens (slug not yet seen) -> BOUNTY-OPEN
+seen2 = {"bounties": {}, "impls": {"1_0xaaa": "0ximpl1"}}   # impl already baselined, bounty not
+ev = radar.detect_events([prog], REG, seen2, False, "2026-06-27", impl_fn=lambda a, c: "0ximpl1")
+eq([e["type"] for e in ev], ["BOUNTY-OPEN"], "new bounty -> BOUNTY-OPEN only")
+
+# a program NOT in the registry is ignored
+other = {"name": "RandomUntriaged", "slug": "rnd", "ecosystem": ["eth"], "assets": ["0xBBB"], "maxBounty": 1}
+ev = radar.detect_events([other], REG, {"bounties": {}, "impls": {}}, False, "2026-06-27", impl_fn=lambda a, c: "0xz")
+eq(len(ev), 0, "untriaged program ignored (we only signal on our targets)")
+
+print("== radar.write_queue (rendered work-list) ==")
+with tempfile.TemporaryDirectory() as d:
+    q = os.path.join(d, "QUEUE.md")
+    radar.write_queue([], "2026-06-27", True, q)
+    check("baseline seeded" in open(q).read(), "first run -> baseline message")
+    radar.write_queue([], "2026-06-27", False, q)
+    check("All quiet" in open(q).read(), "no events -> All quiet")
+    radar.write_queue([{"type": "IMPL-UPGRADE", "target": "Twyne", "key": "twyne", "slug": "twyne",
+                        "detail": "0xAAA on chain 1: reviewed X -> NEW Y",
+                        "tgt": REG["twyne"]}], "2026-06-27", False, q)
+    body = open(q).read()
+    check("IMPL-UPGRADE" in body and "Twyne" in body, "event rendered with type + target")
+    check("prior read" in body, "prior notes rendered into the queue")
+
+print(f"\n{_p} passed, {_f} failed")
+sys.exit(1 if _f else 0)

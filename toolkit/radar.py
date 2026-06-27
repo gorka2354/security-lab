@@ -62,6 +62,52 @@ def load_json(path, default):
     return default
 
 
+def detect_events(progs, registry, seen, first_run, today, max_assets=20, impl_fn=storage_impl):
+    """PURE-ish core: scan Immunefi programs against the registry, MUTATE `seen` (baselines), and return
+    the list of NEW change events. `impl_fn(addr, chainid)` is injectable so tests can run without RPC.
+    Signals only on targets already in the registry (prior context = the leverage). On first_run only the
+    baseline is seeded (no events). A change recorded in `seen` never re-fires (dedup)."""
+    events = []
+    for p in progs:
+        key = reg.norm_key(p.get("name"))
+        tgt = registry.get(key)
+        if not tgt:
+            continue                                    # only signal on targets we've already triaged
+        slug = p.get("slug") or key
+        chainid = next((ECO_CHAIN[e.lower()] for e in (p.get("ecosystem") or [])
+                        if e.lower() in ECO_CHAIN), None)
+
+        # --- signal 1: BOUNTY-OPEN (a target we triaged now has an open Immunefi program) ---
+        if slug not in seen["bounties"]:
+            seen["bounties"][slug] = today
+            if not first_run:                           # first run only seeds the baseline, no flood
+                events.append({
+                    "type": "BOUNTY-OPEN", "target": tgt["name"], "key": key, "slug": slug,
+                    "detail": f"Immunefi program live (max ${p.get('maxBounty',0)/1e6:.2f}M, "
+                              f"chains:{','.join(p.get('ecosystem') or []) or '?'}, "
+                              f"{len(p.get('assets') or [])} in-scope contracts)",
+                    "tgt": tgt,
+                })
+
+        # --- signal 2: IMPL-UPGRADE on in-scope proxies (audit-drift on live code) ---
+        for addr in (p.get("assets") or [])[:max_assets]:
+            if not chainid:
+                break
+            k = f"{chainid}_{addr.lower()}"
+            cur = impl_fn(addr, chainid)
+            if cur is None:
+                continue                                # non-proxy / unreachable
+            base = seen["impls"].get(k)
+            seen["impls"][k] = cur
+            if base and cur != base and not first_run:
+                events.append({
+                    "type": "IMPL-UPGRADE", "target": tgt["name"], "key": key, "slug": slug,
+                    "detail": f"{addr} on chain {chainid}: reviewed impl {base} -> NEW {cur}",
+                    "tgt": tgt,
+                })
+    return events
+
+
 def main():
     ap = argparse.ArgumentParser(description="Change/freshness radar over the triaged-target registry")
     ap.add_argument("--root", default=os.path.join(os.path.dirname(__file__), ".."))
@@ -80,44 +126,7 @@ def main():
     first_run = not seen["impls"] and not seen["bounties"]
 
     progs = scout.fetch_immunefi_programs_json() or []
-    events = []   # NEW changes this run
-
-    for p in progs:
-        key = reg.norm_key(p.get("name"))
-        tgt = registry.get(key)
-        if not tgt:
-            continue                                    # only signal on targets we've already triaged
-        slug = p.get("slug") or key
-        chainid = next((ECO_CHAIN[e] for e in (p.get("ecosystem") or []) if e in ECO_CHAIN), None)
-
-        # --- signal 1: BOUNTY-OPEN (target we triaged now has an open Immunefi program) ---
-        if slug not in seen["bounties"]:
-            seen["bounties"][slug] = today
-            if not first_run:                           # first run only seeds the baseline, no flood
-                events.append({
-                    "type": "BOUNTY-OPEN", "target": tgt["name"], "key": key, "slug": slug,
-                    "detail": f"Immunefi program live (max ${p.get('maxBounty',0)/1e6:.2f}M, "
-                              f"chains:{','.join(p.get('ecosystem') or []) or '?'}, "
-                              f"{len(p.get('assets') or [])} in-scope contracts)",
-                    "tgt": tgt,
-                })
-
-        # --- signal 2: IMPL-UPGRADE on in-scope proxies (audit-drift on live code) ---
-        for addr in (p.get("assets") or [])[:a.max_assets]:
-            if not chainid:
-                break
-            k = f"{chainid}_{addr.lower()}"
-            cur = storage_impl(addr, chainid)
-            if cur is None:
-                continue                                # non-proxy / unreachable
-            base = seen["impls"].get(k)
-            seen["impls"][k] = cur
-            if base and cur != base and not first_run:
-                events.append({
-                    "type": "IMPL-UPGRADE", "target": tgt["name"], "key": key, "slug": slug,
-                    "detail": f"{addr} on chain {chainid}: reviewed impl {base} -> NEW {cur}",
-                    "tgt": tgt,
-                })
+    events = detect_events(progs, registry, seen, first_run, today, a.max_assets)
 
     os.makedirs(os.path.dirname(seen_path), exist_ok=True)
     json.dump(seen, open(seen_path, "w", encoding="utf-8"), indent=1, sort_keys=True)
