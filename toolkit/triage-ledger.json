@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "sig": "1sec (onesec) ICP<->EVM message-passing bridge|(fanout)|fanout|fanout triage: bridge",
+      "target": "1sec (onesec) ICP<->EVM message-passing bridge",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: bridge",
+      "verdict": "known",
+      "reason": "[SKIP/fresh-defillama-wave-2] Core unreachable: EVM 'locker' is a custodial EOA (no contract code), and the actual bridge logic is a closed-source ICP Rust canister (exotic non-EVM VM, no verified source, no public repo). Per reachability-first rule, exotic ch",
+      "date": "2026-06-27"
+    },
+    {
       "sig": "Aborean|(fanout)|fanout|fanout triage: dex",
       "target": "Aborean",
       "file": "(fanout)",
@@ -56,6 +67,17 @@
       "date": "2026-06-26"
     },
     {
+      "sig": "Boar Finance|(fanout)|fanout|fanout triage: yield",
+      "target": "Boar Finance",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: yield",
+      "verdict": "known",
+      "reason": "[SKIP/fresh-defillama-wave-2] Reachability-first fail: the REAL core (BoarBTCRelay impl 0xc6447a...bc5c behind proxy) is unverified on Mezo and there is no public Solidity repo (boar-network GitHub ships only docs/infra). Cannot read the code to triage. Additi",
+      "date": "2026-06-27"
+    },
+    {
       "sig": "Citrea Bridge (chainwayxyz/token-bridge) \u2014 LayerZero v2 OFT mint-and-burn bridge, BTC<->Ethereum|(fanout)|fanout|fanout triage: bridge",
       "target": "Citrea Bridge (chainwayxyz/token-bridge) \u2014 LayerZero v2 OFT mint-and-burn bridge, BTC<->Ethereum",
       "file": "(fanout)",
@@ -89,6 +111,17 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "Everything (UniPool engine) \u2014 DefiLlama Lending $1.1M, audits=0|(fanout)|fanout|fanout triage: oracle,lending,amm,leverage (oracle-less tick-based AMM+lending)",
+      "target": "Everything (UniPool engine) \u2014 DefiLlama Lending $1.1M, audits=0",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: oracle,lending,amm,leverage (oracle-less tick-based AMM+lending)",
+      "verdict": "todo",
+      "reason": "[DIG/fresh-defillama-wave-2] Reachable full verified-source engine, live + very active (txns days old, $1.1M, 252k loans, 4 chains), audits=0, and a novel oracle-less tick-based AMM-lending design that sits squarely in the #1 oracle/lending zone with several c",
+      "date": "2026-06-27"
+    },
+    {
       "sig": "Flex|(fanout)|fanout|fanout triage: lending (fixed-rate money market, borrower-chosen rates; Liquity-V2-inspired, Vyper reimplementation)",
       "target": "Flex",
       "file": "(fanout)",
@@ -120,6 +153,28 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/gigaverse-systems] ",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "Hyperbeat USD (hbUSDC) | HyperEVM chainid 999|(fanout)|fanout|fanout triage: lending,stablecoin (RWA mToken / manual-priced redeemable)",
+      "target": "Hyperbeat USD (hbUSDC) | HyperEVM chainid 999",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lending,stablecoin (RWA mToken / manual-priced redeemable)",
+      "verdict": "known",
+      "reason": "[SKIP/fresh-defillama-wave-2] Verbatim audited Midas Protocol RWA-mToken deployment with role-rename-only drift (no substantive custom logic to hunt). Live but no in-scope bounty. Huntable surface = the audited Midas base = covered/out-of-scope. recon.py surfa",
+      "date": "2026-06-27"
+    },
+    {
+      "sig": "Ignition LST (Fogo liquid staking, stake FOGO -> LST)|(fanout)|fanout|fanout triage: lst,staking",
+      "target": "Ignition LST (Fogo liquid staking, stake FOGO -> LST)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lst,staking",
+      "verdict": "known",
+      "reason": "[SKIP/fresh-defillama-wave-2] Wrong VM for our stack: Ignition runs on Fogo (SVM) as a Rust/Anchor program, so none of the EVM tooling (fetch_source, recon's 41 Solidity detectors, forkdrift) applies. The core is also a fork of the audited canonical SPL Stake ",
+      "date": "2026-06-27"
     },
     {
       "sig": "ImportExportSystem|(fanout)|fanout|fanout triage: gamefi",
@@ -188,6 +243,28 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "Lorenzo sUSD1+ (BTCfi yield-stable vault, BNB Chain)|(fanout)|fanout|fanout triage: yield,stablecoin,btcfi",
+      "target": "Lorenzo sUSD1+ (BTCfi yield-stable vault, BNB Chain)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: yield,stablecoin,btcfi",
+      "verdict": "known",
+      "reason": "[SKIP/fresh-defillama-wave-2] Hardened-audited fork + core hypothesis REFUTED + no in-scope bounty. The candidate hint (ERC4626-ish deposit-vs-redeem share-math manipulation, GAIB sAID-class) does NOT apply: AccountantWithRateProviders.updateExchangeRate (src/",
+      "date": "2026-06-27"
+    },
+    {
+      "sig": "Mezo Vaults (Mezo BTC L2, chainid 31612)|(fanout)|fanout|fanout triage: vault,yield",
+      "target": "Mezo Vaults (Mezo BTC L2, chainid 31612)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: vault,yield",
+      "verdict": "known",
+      "reason": "[SKIP/fresh-defillama-wave-2] Real core is a recently Hacken-audited third-party product (Upshift Atomic Vault + Instant Redeem Subaccount, Mar/Apr-2026) = hardened/covered. Mezo deployment is dust (~$48k, not $6M). No in-scope bounty/contest for Mezo Vaults o",
+      "date": "2026-06-27"
+    },
+    {
       "sig": "Monolith Market|(fanout)|fanout|fanout triage: CDP-stablecoin (autonomous single-collateral stablecoin factory; dual free/paid debt + share-accounted debt, ERC4626 yield Vault, PSM)",
       "target": "Monolith Market",
       "file": "(fanout)",
@@ -252,6 +329,17 @@
       "verdict": "todo",
       "reason": "[DIG/gigaverse-systems] ",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "Rysk Premium (Arbitrum) \u2014 resolved to Rysk V12 \"Ciao\" CLOB derivatives core|(fanout)|fanout|fanout triage: yield, options/derivatives (perp+spot CLOB margin)",
+      "target": "Rysk Premium (Arbitrum) \u2014 resolved to Rysk V12 \"Ciao\" CLOB derivatives core",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: yield, options/derivatives (perp+spot CLOB margin)",
+      "verdict": "todo",
+      "reason": "[DIG/fresh-defillama-wave-2] Reachable full source of a LIVE, unaudited (no audit evidence in repo), in-zone derivatives core (options/perp CLOB) with an active Rysk Immunefi bounty. recon is clean (expected \u2014 bugs here are reasoning-tier margin/funding/liquid",
+      "date": "2026-06-27"
     },
     {
       "sig": "SoDEX Bridge / SoSoValue SSI Protocol|(fanout)|fanout|fanout triage: bridge,dex,index",
@@ -340,6 +428,17 @@
       "verdict": "fp",
       "reason": "Ungated setWhitelist/pauseAlchemist/setCeiling (stale 'admin only' NatSpec, empty body) -> looks like 1-call infinite mint. BUT AlEth.sol is a TEST MOCK (header: 'modified for V3 invariant testing'); deployed token = CrossChainCanonicalAlchemicTokenV3 extends audited AlchemicTokenV2Base (role-gated). Mock not deployed -> FP.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "ape-church-house|fetched/33139_0x2054709F89F18a4CCAC6132acE7b812E32608469/House.sol|concurrency-maxpayout-aggregation|",
+      "target": "ape-church-house",
+      "file": "fetched/33139_0x2054709F89F18a4CCAC6132acE7b812E32608469/House.sol",
+      "line": 844,
+      "detector": "concurrency-maxpayout-aggregation",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "Concurrency drain/DoS DEFENDED (Foundry-modeled, hunts/ape-church-poc): bet-time check (SpeedCrash:585) is against full balance, but House.payout RE-CAPS at payout-time sendAmount=min(value, balance*maxPayoutPerGame/FEE_DENOM) -> payouts geometrically decay, house can never go insolvent/revert. Naive (no recap) model drains 100->0 + reverts winner#51; real model pays 70.2/120 never reverts. Residual: concurrent winners underpaid (first 2.0 -> last 0.61) = intended current-capacity cap, not a vuln",
+      "date": "2026-06-27"
     },
     {
       "sig": "apiary-berachain|src/ApiaryToken.sol:152|signature|",
@@ -692,6 +791,28 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live (~$6M TVL on mainnet), non-fork, novel async-ERC4626 wrapping Wildcat isolated-credit + custom LayerZero OFT with a bespoke 1:1 virtual-assets/shares accounting model and a yield-skim mint path -- genuinely interesting ",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "everything-unipool|fetched/1_0xe8f745ec62f0446be7497d2882d1e18f3b739a4c/src/libraries/UniPoolPairLiquidate.sol|spot-oracle-manip|",
+      "target": "everything-unipool",
+      "file": "fetched/1_0xe8f745ec62f0446be7497d2882d1e18f3b739a4c/src/libraries/UniPoolPairLiquidate.sol",
+      "line": 288,
+      "detector": "spot-oracle-manip",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "DEFENDED by design (verified in code): liquidation price uses DIRECTIONAL virtual reserves (virtualReserve0In.max + virtualReserve1Out.min) specifically chosen so a price-moving swap doesn't touch them. swap updates In(tokenIn)+Out(tokenOut) (UniPoolPairSwap:217-220), liq reads the OTHER pair -> immune to flashloan-swap liquidation manip. Likwid-class lending-AMM, competent impl. No bounty -> PARK",
+      "date": "2026-06-27"
+    },
+    {
+      "sig": "everything-unipool|src/libraries/UniPoolPairTicks.sol:131|det_spot_oracle|",
+      "target": "everything-unipool",
+      "file": "src/libraries/UniPoolPairTicks.sol:131",
+      "line": 0,
+      "detector": "det_spot_oracle",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "DIG live oracle-less tick-lending engine eth impl 0xe8f745ec; Likwid truncatedReserves class; deep-dive liquidation price path",
+      "date": "2026-06-27"
     },
     {
       "sig": "flex|src/trove_manager.vy:1402|signature|",
@@ -1209,6 +1330,17 @@
       "verdict": "fp",
       "reason": "burn/burnFrom are 'restricted' (OZ AccessManager AccessManagedUpgradeable) -> gated. recon missed the modifier -> fix#32 (added restricted to WARD_MOD). 47 access FPs -> 0.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "rysk-ciao|hunts/_volume/rysk-ciao/src/contracts/OrderDispatch.sol|missing-taker-signature|",
+      "target": "rysk-ciao",
+      "file": "hunts/_volume/rysk-ciao/src/contracts/OrderDispatch.sol",
+      "line": 205,
+      "detector": "missing-taker-signature",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "agent over-flagged: forceSwap/autoDeleverage are OPERATOR-ONLY (@dev only operator) with on-chain gates (coreCollateralDebt>0||recentDeposit for forceSwap; health<liqBuffer for ADL). No taker sig because it's an operator force-action to fix the taker's own bad position, not order forgery. reasoning-tier (operator trust + recentDeposit-OR guard), not free-money. ALSO scope unconfirmed: Rysk Immunefi bounty describes DHV (old), V12 Ciao in-scope NOT verified (Immunefi anti-bots automated read)",
+      "date": "2026-06-27"
     },
     {
       "sig": "sakuraswap (Abstract / zkSync L2, chainid 2741)|(fanout)|fanout|fanout triage: dex",
