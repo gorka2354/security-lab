@@ -211,6 +211,18 @@ check(not flagged(recon.det_multicall_value, "contract C{ function deposit() ext
 check(flagged(recon.det_multicall_value, "contract C{ function airdrop(address[] calldata to) external payable { for(uint i;i<to.length;i++){ payable(to[i]).transfer(msg.value); } } }", "for("),
       "msg.value read inside a loop -> per-iteration credit flagged")
 
+print("== det_readonly_reentrancy (shadow.py #1 blind-spot; Curve/lending class) ==")
+_RO = ("contract Pool{ modifier nonReentrant(){_;} "
+       "function remove_liquidity(uint a) external nonReentrant { (bool ok,)=msg.sender.call{value:a}(''); supply-=a; } "
+       "function get_virtual_price() external view returns(uint){ return bal*1e18/supply; } }")
+check(flagged(recon.det_readonly_reentrancy, _RO, "get_virtual_price"),
+      "nonReentrant state-changer + UN-guarded pricing view -> read-only reentrancy flagged")
+check(recon.det_readonly_reentrancy(_RO, "src/P.sol")[0][4] == 0, "read-only reentrancy is high-priority [!]")
+check(not flagged(recon.det_readonly_reentrancy, "contract V{ modifier nonReentrant(){_;} modifier nonReentrantView(){_;} function withdraw(uint a) external nonReentrant {} function totalAssets() external view nonReentrantView returns(uint){return x;} }"),
+      "view guarded by nonReentrantView (the Twyne defense) -> NOT flagged (no FP)")
+check(not flagged(recon.det_readonly_reentrancy, "contract C{ function totalAssets() external view returns(uint){return x;} }"),
+      "no nonReentrant anywhere -> NOT the read-only variant (det_reentrancy's job)")
+
 print("== det_trust_anchor (Taiko/Raiko SGX key-leak class) ==")
 _TA_POS = "contract V{bytes32 mrSigner; mapping(address=>bool) ti; function registerInstance(bytes32 m,address i) external { require(m==mrSigner); ti[i]=true; }}"
 check(flagged(recon.det_trust_anchor, _TA_POS, "registerInstance"),
@@ -1156,7 +1168,8 @@ check(shadow.normalize_name("src/test/Unsafe-downcast.sol") == "unsafe-downcast"
       and shadow.normalize_name("Divmultiply.sol") == "divmultiply",
       "shadow.normalize_name: a test path -> lowercase slug (drop dir/ext, separators -> '-')")
 check(shadow.expected_keys("unsafe-downcast")[1] == {"downcast"}
-      and shadow.expected_keys("readonlyreentrancy") == ("readonlyreentrancy", None)
+      and shadow.expected_keys("readonlyreentrancy")[1] == {"roreentrancy"}   # now covered by det_readonly_reentrancy
+      and shadow.expected_keys("storage-collision") == ("storage-collision", None)  # a genuine remaining blind-spot
       and shadow.expected_keys("totally-novel-thing") == (None, None),
       "shadow.expected_keys: covered class -> det_keys; uncovered -> (kw,None); no match -> (None,None)")
 check(shadow.classify(("downcast", {"downcast"}), {"downcast", "access"}) == "HIT"

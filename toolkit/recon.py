@@ -339,6 +339,35 @@ def det_multicall_value(text, rel):
     return out
 
 
+# ── Detector: read-only reentrancy ── shadow.py #1 blind-spot (Curve/lending class)
+def det_readonly_reentrancy(text, rel):
+    """Read-only reentrancy: a contract that DOES guard state-changers with nonReentrant but exposes a
+    PRICING/VALUE view (get_virtual_price/getReserves/totalAssets/pricePerShare/convertToAssets/exchangeRate)
+    that is NOT reentrancy-guarded -> an external integrator (a lending market using this view as an oracle)
+    reading it DURING a withdraw/remove_liquidity reentrant callback sees stale/inconsistent state = a wrong
+    price (Curve, dozens of lending hacks). Fix = a VIEW-side guard (Twyne's nonReentrantView /
+    require(_status != _ENTERED) / _reentrancyGuardEntered). Only fires when the contract is reentrancy-AWARE
+    (uses nonReentrant) but left a pricing view un-guarded -- the subtle case det_reentrancy misses."""
+    out = []
+    if not re.search(r"\bnonReentrant\b|ReentrancyGuard", text):
+        return out  # not reentrancy-aware -> plain reentrancy story (det_reentrancy), not the read-only variant
+    view_guard = r"nonReentrantView|_reentrancyGuardEntered|notEntered|_status\s*!=\s*_ENTERED|ReentrancyGuardReentrantCall"
+    price_view = (r"function\s+(\w*(?:get_virtual_price|getReserves|totalAssets|pricePerShare|getPricePerFullShare|"
+                  r"convertToAssets|convertToShares|exchangeRate|sharePrice|virtualPrice|getRate|stEthPerToken)\w*)"
+                  r"\s*\([^;{]*\bview\b[^;{]*\{")
+    for fm in re.finditer(price_view, text, re.I):
+        name = fm.group(1)
+        nxt = text.find("function ", fm.end())
+        sig_body = text[fm.start():(nxt if nxt > 0 else fm.end() + 600)]
+        if re.search(view_guard, sig_body):
+            continue  # this view IS reentrancy-guarded (the Twyne nonReentrantView pattern) -> fine
+        out.append((rel, lineno(text, fm.start()), f"function {name}(...) view",
+                    "pricing/value VIEW is reentrancy-UNGUARDED while the contract guards state-changers with "
+                    "nonReentrant -> READ-ONLY REENTRANCY: an integrator reading this mid-withdraw/remove-liquidity "
+                    "callback gets stale state = a wrong oracle value (Curve/lending class). Add a view-side guard.", 0))
+    return out
+
+
 # ── Detector 4: dangerous primitives ── (unprotected-init moved to dedicated det_unprotected_init #37)
 def det_danger(text, rel):
     out = []
@@ -1717,6 +1746,10 @@ DETECTORS = [
     ("MULTICALL / msg.value reuse (N payments for 1)", det_multicall_value,
      "Payable delegatecall-multicall keeps the SAME msg.value for every batched sub-call -> N payable deposits "
      "for ONE payment (OZ guards it, forks don't); also msg.value read inside a loop = per-iteration credit."),
+    ("READ-ONLY REENTRANCY (pricing view un-guarded while state-changers are)", det_readonly_reentrancy,
+     "shadow.py #1 blind-spot: a nonReentrant-aware contract leaves a pricing VIEW (get_virtual_price/totalAssets/"
+     "pricePerShare) un-guarded -> an integrator reading it mid-withdraw callback gets stale state (Curve/lending). "
+     "Fix = view-side guard (Twyne's nonReentrantView)."),
     ("INTEREST-INDEX inflation (Aave-fork empty-market)", det_index,
      "Pattern 04: liquidityIndex/borrowIndex compounds delta/supply -> empty market inflates it (dTRINITY)."),
     ("LIQUIDATION math (self-liq, rounding, bad-debt)", det_liquidation,
@@ -1793,7 +1826,8 @@ def det_key(title):
     sibling title contains both)."""
     t = title.lower()
     for sub, k in (("sibling", "sibling"), ("access control leads", "access"),
-                   ("share-price rounding", "vaultsharemath"), ("supply", "supply"), ("receiver-hook", "nftcallback"), ("reentrancy", "reentrancy"),
+                   ("share-price rounding", "vaultsharemath"), ("supply", "supply"), ("receiver-hook", "nftcallback"),
+                   ("read-only reentrancy", "roreentrancy"), ("reentrancy", "reentrancy"),
                    ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),

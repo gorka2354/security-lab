@@ -32,8 +32,8 @@ DEFIVULNLABS_URL = "https://github.com/SunWeb3Sec/DeFiVulnLabs.git"
 # we WANT to surface). Keywords are matched against the normalized (lowercased, separators->'-') filename;
 # first match wins, so list more-specific keywords first.
 BENCH = [
-    ("read-only-reentrancy", None),          # reasoning-tier; recon can't (yet)
-    ("readonlyreentrancy", None),
+    ("read-only-reentrancy", {"roreentrancy"}),  # det_readonly_reentrancy (view-side guard tell)
+    ("readonlyreentrancy", {"roreentrancy"}),
     ("reentrancy", {"reentrancy", "nftcallback"}),
     ("unsafe-downcast", {"downcast"}),
     ("downcast", {"downcast"}),
@@ -88,7 +88,7 @@ BENCH = [
     ("phantom", None),                       # phantom function (fallback permit) - still uncovered
     ("flashloan", {"flashloan"}),            # det_flashloan (initiator/sender check)
     ("erc777", None),                        # extend nft-callback to tokensReceived - still uncovered
-    ("self-transfer", None),
+    ("self-transfer", {"selftransfer"}),  # det_self_transfer (mapping fix: was a false blind-spot)
     ("transient", None),                     # EIP-1153 misuse - still uncovered
     ("dos", None),                           # generic DoS - still uncovered
     ("overflow", {"overflow"}),              # det_overflow (pre-0.8 pragma / unchecked block)
