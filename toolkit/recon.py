@@ -267,6 +267,43 @@ def det_oracle(text, rel):
     return out
 
 
+# ── Detector: Pyth / pull-oracle missing guards ── grounded in the Vena finding (2026); det_oracle only does Chainlink
+def det_pyth_oracle(text, rel):
+    """Pyth (and pull-oracle) price reads that skip the 3 Pyth-specific guards: price>0 (Pyth price is a
+    SIGNED int64 -> can be <=0), confidence-interval (.conf; a wide band = unreliable/manipulated), and
+    staleness (getPriceUnsafe EXPLICITLY bypasses the freshness check -> needs a manual publishTime guard;
+    getPriceNoOlderThan is self-guarding). Naive `int256(price)` straight into valuation = the Vena
+    PythAggregatorAdapter class. Chainlink is handled by det_oracle; this fills the pull-oracle gap."""
+    out = []
+    has_price_guard = bool(re.search(r"\.price\s*[<>=]|price\s*<=?\s*0|price\s*>\s*0|"
+                                     r"InvalidPrice|NegativePrice|PriceLessThanZero|require\([^)]*price", text))
+    has_conf = bool(re.search(r"\.conf\b|confidence|confInterval|maxConf", text))
+    has_publishtime = bool(re.search(r"publishTime|block\.timestamp\s*-|getPriceNoOlderThan|maxAge|staleness", text))
+    seen = set()
+    for m in re.finditer(r"\b(getPriceUnsafe|getEmaPriceUnsafe|getPriceNoOlderThan|getEmaPriceNoOlderThan|"
+                         r"getPrice|getEmaPrice)\s*\(", text):  # the actual price-READ call, not the IPyth type ref
+        call = m.group(1)
+        ln = lineno(text, m.start())
+        if ln in seen:
+            continue
+        seen.add(ln)
+        is_unsafe = call in ("getPriceUnsafe", "getEmaPriceUnsafe", "getPrice", "getEmaPrice")  # no built-in staleness
+        self_fresh = call in ("getPriceNoOlderThan", "getEmaPriceNoOlderThan")
+        miss = []
+        if not has_price_guard:
+            miss.append("price>0 (signed int64)")
+        if not has_conf:
+            miss.append("confidence(.conf)")
+        if is_unsafe and not has_publishtime and not self_fresh:
+            miss.append("staleness(publishTime)")
+        if not miss:
+            continue
+        prio = 0 if ("price>0 (signed int64)" in miss or "staleness(publishTime)" in miss) else 2
+        out.append((rel, ln, call, "Pyth/pull-oracle read MISSING: " + ", ".join(miss)
+                    + (" [getPriceUnsafe bypasses freshness]" if is_unsafe and not self_fresh else ""), prio))
+    return out
+
+
 # ── Detector 4: dangerous primitives ── (unprotected-init moved to dedicated det_unprotected_init #37)
 def det_danger(text, rel):
     out = []
@@ -1627,6 +1664,9 @@ DETECTORS = [
      "Pattern 03: reward payout with no claimed/rewardDebt marker write (or written after transfer)."),
     ("ORACLE usage vs 3-guard checklist", det_oracle,
      "Heuristic 2: staleness(updatedAt) + price>0 + decimals(); + spot-reserve pricing sub-check."),
+    ("PYTH / pull-oracle missing guards (price>0 / confidence / staleness)", det_pyth_oracle,
+     "Vena (2026): Pyth getPriceUnsafe/.price (signed int64) into valuation with no price>0/.conf/publishTime "
+     "check -> zero/stale/wide-confidence push mis-prices the market. det_oracle covers Chainlink; this is the pull-oracle gap."),
     ("INTEREST-INDEX inflation (Aave-fork empty-market)", det_index,
      "Pattern 04: liquidityIndex/borrowIndex compounds delta/supply -> empty market inflates it (dTRINITY)."),
     ("LIQUIDATION math (self-liq, rounding, bad-debt)", det_liquidation,
@@ -1711,7 +1751,7 @@ def det_key(title):
                    ("spot-amm", "spotoracle"), ("self-transfer", "selftransfer"),
                    ("pair-reserve", "pairreserve"), ("unprotected init", "uinit"),
                    ("caller-supplied", "callerauth"), ("trust-anchor", "trustanchor"),
-                   ("oracle", "oracle"),
+                   ("pyth", "pyth"), ("oracle", "oracle"),
                    ("interest-index", "index"), ("liquidation", "liquidation"),
                    ("randomness", "weakrand"), ("slippage", "swapguard"),
                    ("mapping-default", "mapdefault"), ("strict balance", "strictbal"),

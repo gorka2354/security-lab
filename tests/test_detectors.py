@@ -179,6 +179,16 @@ check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(addr
 check(flagged(recon.det_oracle, "contract C{ function p() external { (,int a,,,)=feed.latestRoundData(); } }"),
       "latestRoundData with missing guards flagged")
 
+print("== det_pyth_oracle (Pyth/pull-oracle missing guards; Vena 2026 class) ==")
+check(flagged(recon.det_pyth_oracle, "contract C{function v(bytes32 id) public { Price p=pyth.getPriceUnsafe(id); x=uint(int(p.price)); }}", "getPriceUnsafe"),
+      "naive getPriceUnsafe with no price>0/.conf/staleness -> flagged")
+check(recon.det_pyth_oracle("contract C{function v(bytes32 id) public { Price p=pyth.getPriceUnsafe(id); x=uint(int(p.price)); }}", "src/C.sol")[0][4] == 0,
+      "naive getPriceUnsafe is high-priority [!] (price>0 + staleness missing)")
+check(not flagged(recon.det_pyth_oracle, "contract C{function v(bytes32 id) public { Price p=pyth.getPriceNoOlderThan(id,60); require(p.price>0,'InvalidPrice'); require(p.conf<maxConf,'wide'); }}"),
+      "guarded Pyth (getPriceNoOlderThan + price>0 + .conf) NOT flagged (no FP)")
+check(not flagged(recon.det_pyth_oracle, "contract C{ function p() external { (,int a,,uint u,)=feed.latestRoundData(); require(a>0); } }"),
+      "Chainlink latestRoundData NOT flagged by det_pyth (that's det_oracle's job; no overlap-noise)")
+
 print("== det_trust_anchor (Taiko/Raiko SGX key-leak class) ==")
 _TA_POS = "contract V{bytes32 mrSigner; mapping(address=>bool) ti; function registerInstance(bytes32 m,address i) external { require(m==mrSigner); ti[i]=true; }}"
 check(flagged(recon.det_trust_anchor, _TA_POS, "registerInstance"),
