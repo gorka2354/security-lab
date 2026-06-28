@@ -48,6 +48,24 @@ Sourced 2026-06-26 from the `defillama-immunefi-wave` fan-out (`hunts/_fanout/20
 
 ---
 
+## 3. Panoptic V2 — LAUNCH-WATCH (no hypothesis yet)  (options AMM, ETH + Unichain, ~$1.3M TVL)
+- **Source:** fresh DefiLlama listing 2026-06-19 (`freshfeed.py`, our-zone:option). Surfaced 2026-06-28.
+- **Why parked (not dug):** bounty is **PAUSED** — Panoptic V1 bounty paused while completing V2 audits; the V2
+  bounty (Cantina) "launches at V2 release", not live yet → white-hat: no authorized scope today.
+- **Why it's worth a watch (high EV on launch):** options AMM = heavy custom math (liquidation / collateral
+  settlement / oracle) = our **reasoning-tier zone** where regex-tier tools are blind. Fresh on-chain, EVM-reachable.
+- **Hardened caveat:** already combed by **Nethermind NM-0701** + the **Code4rena "Panoptic: Next Core"** contest,
+  and the issues were **mitigated**. So on launch the hunt is the **post-mitigation V2 drift** (incomplete fixes,
+  new code added after the audit), NOT the audited base. Cross-ref the mitigated NM-0701 / C4 findings first.
+- **Scope (from panoptic.xyz/docs/security/bug-bounties):** SemiFungiblePositionManager, PanopticFactory, and any
+  pool deployed by PanopticFactory; chains = Ethereum mainnet + Unichain.
+- **First step on FIRE:** confirm the live Cantina scope + V2 deployed addresses → `fetch_source` the factory +
+  a live pool → diff vs the audited panoptic-v2-core commit (audit-drift) → recon/hypothesize on the drift only.
+- **No artifacts yet** (no hypothesis): pre-study the options/liq/oracle math BEFORE fire to land in the first hours.
+
+---
+
 ### Discipline
-- Both are **hypotheses**, not confirmed bugs. Do the Foundry PoC + Gate-0 (live + in-scope) before any severity claim.
-- Do NOT engage either protocol until `monitor/watchlist.json` FIREs (a real authorized program). egor discloses, never me.
+- #1 and #2 are **hypotheses**, not confirmed bugs; #3 is a launch-watch with no hypothesis yet. Do the Foundry
+  PoC + Gate-0 (live + in-scope) before any severity claim.
+- Do NOT engage any of these protocols until `monitor/watchlist.json` FIREs (a real authorized program). egor discloses, never me.

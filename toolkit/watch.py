@@ -38,15 +38,68 @@ def _get(url):
         return r.read().decode("utf-8", "replace")
 
 
+# statuses that mean "huntable right now" (a fire condition). Anything else (complete/ended/
+# paused/draft/judging/upcoming...) is NOT a live authorized program -> do not fire.
+_ACTIVE_STATUS = {"active", "live", "open", "ongoing", "running", "in progress", "in_progress"}
+_STATUS_KEYS = ("status", "state", "phase")
+
+
+def _iter_dicts(node):
+    if isinstance(node, dict):
+        yield node
+        for v in node.values():
+            yield from _iter_dicts(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _iter_dicts(v)
+
+
+def _active_match(body, rx):
+    """JSON-aware match: find per-item dicts whose OWN scalar values hit the needle AND that carry a
+    status field; fire only if such an item is ACTIVE. Returns (fired, reason, decided).
+    `decided` is False when the feed has no status-bearing item matching the needle -> caller falls
+    back to the raw substring check (covers presence-based feeds like Immunefi bounties.json)."""
+    try:
+        data = json.loads(body)
+    except Exception:
+        return False, "", False                      # not JSON -> let caller raw-match (HTML feeds)
+    candidates = []
+    for d in _iter_dicts(data):
+        st = next((str(d[k]).lower() for k in _STATUS_KEYS if k in d and isinstance(d[k], (str, int))), None)
+        if st is None:
+            continue
+        # shallow re-dump (scalars only) so quote-anchored needles like '"panoptic' still match,
+        # while nested children (which belong to their own item dict) are excluded.
+        own = json.dumps({k: v for k, v in d.items() if isinstance(v, (str, int, float, bool))})
+        if rx.search(own):
+            candidates.append((st, d))
+    if not candidates:
+        return False, "", False                      # no status-bearing item matched -> raw fallback
+    for st, d in candidates:
+        if st in _ACTIVE_STATUS:
+            nm = d.get("name") or d.get("title") or d.get("slug") or "?"
+            return True, f"ACTIVE program '{nm}' (status={st})", True
+    sts = sorted({st for st, _ in candidates})
+    return False, f"matched only non-active item(s) (status={','.join(sts)}) -> still parked", True
+
+
 def check_url_appears(c):
     rx = re.compile(c["needle"])
+    last = "needle absent in all urls (still parked)"
     for u in c.get("urls", []):
         try:
-            if rx.search(_get(u)):
-                return True, f"/{c['needle']}/ now present in {u}"
+            body = _get(u)
         except Exception:
-            pass  # transient url error -> treat as no-match (stay quiet, retry next run)
-    return False, "needle absent in all urls (still parked)"
+            continue  # transient url error -> treat as no-match (stay quiet, retry next run)
+        fired, reason, decided = _active_match(body, rx)
+        if fired:
+            return True, f"{reason} in {u}"
+        if decided:
+            last = reason  # status-bearing feed said not-active here -> remember why, don't raw-match
+            continue
+        if rx.search(body):                            # presence-based / non-JSON feed
+            return True, f"/{c['needle']}/ now present in {u}"
+    return False, last
 
 
 def check_code_at(c):

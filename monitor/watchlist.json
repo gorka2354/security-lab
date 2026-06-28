@@ -2,6 +2,21 @@
   "_comment": "Parked leads: real bug hypotheses in DEPLOYED+funded code with NO in-scope bounty yet (white-hat blocks digging). watch.py FIREs (exit 2) when a bounty/contest for the protocol opens on Immunefi/Cantina/Code4rena/Sherlock -> then we dig the preserved lead FIRST. Detail: hunts/_parked/parked-leads.md. Run via toolkit/watch_all.sh (cron, every 4h).",
   "findings": [
     {
+      "id": "panoptic-v2-launch-watch",
+      "title": "Panoptic V2 (options AMM, ETH + Unichain, ~$1.3M TVL, fresh 2026-06-19) - LAUNCH-WATCH, no hypothesis yet. V2 bounty PAUSED on Cantina, launches at V2 release. Already combed (Nethermind NM-0701 + Code4rena 'Panoptic: Next Core', mitigated) -> hunt the post-mitigation V2 DRIFT, not the audited base.",
+      "fire_means": "A Panoptic V2 bounty/contest just opened (Cantina most likely). Be FIRST: scope = SemiFungiblePositionManager + PanopticFactory + factory-deployed pools (ETH mainnet + Unichain). Pre-study the options/liquidation/oracle math (our reasoning-tier zone) BEFORE fire so we land a finding in the first hours. Cross-ref the mitigated NM-0701 / C4 issues for incomplete-fix drift.",
+      "check": {
+        "type": "url_appears",
+        "needle": "(?i)\"panoptic",
+        "urls": [
+          "https://immunefi.com/public-api/bounties.json",
+          "https://cantina.xyz/api/v0/competitions?status=active&limit=50",
+          "https://code4rena.com/api/v1/audits",
+          "https://mainnet-contest.sherlock.xyz/contests"
+        ]
+      }
+    },
+    {
       "id": "vena-finance-pyth-oracle",
       "title": "Vena Finance (Aave-V3 fork, Fluent L2, ~$19.9M TVL) - PythAggregatorAdapter.latestAnswer() has NO price>0 / confidence-interval guard + divide-before-multiply; feeds AaveOracle for the whole money market.",
       "fire_means": "A Vena/Fluent bounty or contest just opened. DIG NOW: hunts/_volume/vena-finance/src/PythAggregatorAdapter.sol:19-35 (missing price>0/conf), :34 (precision). First confirm per-asset oracle wiring (AaveOracle.getSourceOfAsset uses the WEAK PythAggregatorAdapter vs hardened PythProAggregatorAdapter). PoC: stale/zero Pyth push -> mispriced collateral -> over-borrow or wrongful liquidation. See hunts/_parked/parked-leads.md.",

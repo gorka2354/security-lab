@@ -258,5 +258,41 @@ with tempfile.TemporaryDirectory() as d:
     check("Twyne" in _q(owasp="SC02") and "Flex" not in _q(owasp="SC02"), "--owasp filters by vuln class")
     check("Aborean" in _q(chain="abstract") and "Twyne" not in _q(chain="abstract"), "--chain filters by chain")
 
+print("== watch.check_url_appears active-status gate (no FP on completed Cantina comps) ==")
+import re as _re
+import watch as W   # noqa: E402
+
+_rx = _re.compile(r'(?i)"panoptic')
+# Cantina-shape: completed comp must NOT fire (the bug we just fixed)
+_complete = '[{"name":"panoptic-core","status":"complete","createdAt":"2024-10-10"}]'
+fired, reason, decided = W._active_match(_complete, _rx)
+check(not fired and decided, "completed Cantina comp -> decided non-active, no fire")
+check("status=complete" in reason, "reason names the non-active status")
+# active comp MUST fire
+_active = '[{"name":"panoptic-v2","status":"active","createdAt":"2026-06-28"}]'
+fired, reason, decided = W._active_match(_active, _rx)
+check(fired and "ACTIVE" in reason, "active Cantina comp -> fires")
+# mixed feed: one complete + one active for the SAME needle -> active wins
+_mixed = '[{"name":"panoptic-core","status":"complete"},{"name":"panoptic-v2","status":"live"}]'
+fired, _, _ = W._active_match(_mixed, _rx)
+check(fired, "mixed complete+live -> the live item fires")
+# presence-based feed with NO status field (Immunefi bounties.json shape) -> raw fallback (decided False)
+_nostatus = '[{"project":"panoptic","maxBounty":100000}]'
+fired, reason, decided = W._active_match(_nostatus, _rx)
+check(not fired and not decided, "no status-bearing match -> defer to raw substring fallback")
+# wrapper dict whose own scalars don't contain the needle must not swallow the active child
+_wrapped = '{"ok":true,"competitions":[{"name":"panoptic-v2","status":"active"}]}'
+fired, _, _ = W._active_match(_wrapped, _rx)
+check(fired, "active child under a status-less wrapper still fires")
+# non-JSON (HTML) feed -> not decided, raw fallback handles it
+fired, reason, decided = W._active_match("<html>panoptic</html>", _rx)
+check(not decided, "non-JSON body -> defer to raw substring (HTML feeds)")
+# full check_url_appears against a non-active stub: returns the honest non-active reason
+def _stub_get(url):
+    return _complete
+W._get = _stub_get
+ok, why = W.check_url_appears({"needle": r'(?i)"panoptic', "urls": ["http://x"]})
+check(not ok and "non-active" in why, "check_url_appears: completed comp -> quiet + honest reason")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
