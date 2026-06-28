@@ -42,3 +42,9 @@ of recon). Everything else is incremental coverage. Prioritize the three.
 2. **Tier-2 A (ItyFuzz)** — the single highest-leverage build (dynamic auto-find + unverified). Make it the post-DIG confirm step.
 3. **Tier-2 C (LLM-reasoning lane)** + **B (PoCo)** — close the reasoning-tier + auto-PoC speed gap.
 4. Backlog as capacity allows.
+
+
+## Tier-1 follow-up notes (2026-06-28)
+- **registry --query DONE** — instant memory recall over monitor/registry.json (`--query <text>` + `--status/--zone/--fork/--chain/--owasp`). E.g. `registry.py --fork liquity` = the batch-CVE family. +5 tests.
+- **Solodit known-bug check = DEAD END** — no free public API (solodit.cyfrin.io is a SPA, /api/ 404s). Would need auth or scraping -> backlog, low priority.
+- **shadow corpus = located, NOT cheap** — FORGE-Artifacts (`shenyimings/FORGE-Artifacts`, [ICSE'26], 27k findings) is the RIGHT modern corpus but 150MB + submodules + needs a vuln-label -> det_key map = a deliberate integration, not a quick win. SmartBugs-curated (smartbugs/smartbugs-curated) is cheaper but OLD (2019 SWC classics, solc-mitigated) = low value for our modern-DeFi focus. -> proper next-session task.

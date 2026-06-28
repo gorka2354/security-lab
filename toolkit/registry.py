@@ -223,13 +223,61 @@ def merge(*aggs):
     return merged
 
 
+def query(root, text, status, zone, fork, chain, owasp):
+    """Instant memory recall over monitor/registry.json — filter the triaged universe without re-deriving.
+    All filters AND together; `text` is a free substring over name/zones/fork/last_reason. PURE-ish (reads json)."""
+    reg = {}
+    p = os.path.join(root, "monitor", "registry.json")
+    if os.path.exists(p):
+        reg = json.load(open(p, encoding="utf-8")).get("targets", {})
+    if not reg:
+        print("(no registry.json — run `python toolkit/registry.py` first)")
+        return
+    t = (text or "").lower()
+    rows = []
+    for v in reg.values():
+        blob = (v["name"] + " " + " ".join(v.get("zones", [])) + " " + (v.get("fork_base") or "") + " "
+                + (v.get("last_reason") or "")).lower()
+        if t and t not in blob:
+            continue
+        if status and v.get("status", "").upper() != status.upper():
+            continue
+        if zone and zone.lower() not in [z.lower() for z in v.get("zones", [])]:
+            continue
+        if fork and (v.get("fork_base") or "").lower() != fork.lower():
+            continue
+        if chain and chain.lower() not in [c.lower() for c in v.get("chains", [])]:
+            continue
+        if owasp and not any(owasp.upper() in o.upper() for o in v.get("owasp_classes", [])):
+            continue
+        rows.append(v)
+    rows.sort(key=lambda v: (STATUS_ORDER.get(v["status"], 9), v["key"]))
+    print(f"# registry query -> {len(rows)} match(es)\n")
+    for v in rows:
+        z = ",".join(v.get("zones", [])[:3]) or "-"
+        ch = ",".join(v.get("chains", [])[:2])
+        fk = f" fork:{v['fork_base']}" if v.get("fork_base") else ""
+        oc = " " + ",".join(x.split("-")[0] for x in v.get("owasp_classes", [])[:3]) if v.get("owasp_classes") else ""
+        print(f"[{v['status']}] {v['name'][:36]:36} {z}{fk}{(' ('+ch+')') if ch else ''}{oc}")
+        if v.get("last_reason"):
+            print(f"      {v['last_reason'][:130]}")
+
+
 def main():
-    ap = argparse.ArgumentParser(description="Auto-derive the categorized triaged-target registry")
+    ap = argparse.ArgumentParser(description="Auto-derive (or --query) the categorized triaged-target registry")
     ap.add_argument("--root", default=os.path.join(os.path.dirname(__file__), ".."))
     ap.add_argument("--date", default=datetime.date.today().isoformat())
+    ap.add_argument("--query", nargs="?", const="", metavar="TEXT",
+                    help="recall mode: search the registry instead of rebuilding (free text + filters below)")
+    ap.add_argument("--status"); ap.add_argument("--zone"); ap.add_argument("--fork")
+    ap.add_argument("--chain"); ap.add_argument("--owasp")
     a = ap.parse_args()
     root = os.path.abspath(a.root)
     run_tag = a.date
+
+    if a.query is not None or any([a.status, a.zone, a.fork, a.chain, a.owasp]):
+        query(root, a.query, a.status, a.zone, a.fork, a.chain, a.owasp)
+        return
 
     led = parse_ledger(os.path.join(root, "toolkit", "triage-ledger.json"))
     fan = parse_fanout(os.path.join(root, "hunts", "_fanout", "*.md"))

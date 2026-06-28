@@ -231,5 +231,32 @@ eq([c["name"] for c in res_ff], ["FreshLend"], "freshfeed: keeps recent our-zone
 check("lend" in res_ff[0]["zones"], "freshfeed: zone tag derived")
 eq(FF.norm("Jupiter Offerbook"), "jupiter-offerbook", "freshfeed.norm slugifies")
 
+print("== registry.query (instant memory recall) ==")
+import io
+import contextlib
+with tempfile.TemporaryDirectory() as d:
+    os.makedirs(os.path.join(d, "monitor"))
+    reg = {"targets": {
+        "twyne": {"name": "Twyne", "key": "twyne", "status": "DIG", "zones": ["lending"], "chains": ["eth"],
+                  "fork_base": "euler", "owasp_classes": ["SC02-Oracle"], "last_reason": "euler credit layer"},
+        "flex": {"name": "Flex", "key": "flex", "status": "DIG", "zones": ["lending"], "chains": [],
+                 "fork_base": "liquity", "owasp_classes": [], "last_reason": "liquity fork avg-rate"},
+        "aborean": {"name": "Aborean", "key": "aborean", "status": "CLEAN", "zones": ["dex"], "chains": ["abstract"],
+                    "fork_base": "velodrome", "owasp_classes": [], "last_reason": "verbatim velodrome"},
+    }}
+    __import__("json").dump(reg, open(os.path.join(d, "monitor", "registry.json"), "w"))
+
+    def _q(**kw):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            R.query(d, kw.get("text"), kw.get("status"), kw.get("zone"), kw.get("fork"), kw.get("chain"), kw.get("owasp"))
+        return buf.getvalue()
+    check("Twyne" in _q(text="euler") and "Flex" not in _q(text="euler"), "free-text query matches reason/name")
+    check("Flex" in _q(fork="liquity") and "Twyne" not in _q(fork="liquity"), "--fork filters to the fork-family (batch-CVE)")
+    out_dig = _q(status="DIG")
+    check("Twyne" in out_dig and "Flex" in out_dig and "Aborean" not in out_dig, "--status DIG excludes CLEAN")
+    check("Twyne" in _q(owasp="SC02") and "Flex" not in _q(owasp="SC02"), "--owasp filters by vuln class")
+    check("Aborean" in _q(chain="abstract") and "Twyne" not in _q(chain="abstract"), "--chain filters by chain")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
