@@ -22,7 +22,12 @@
   Taiko/Raiko layer-B; `det_vault_share_math` — кастомный волт `X*amount/totalSupply` без floor, near-empty
   share-price manip, Thetanuts $2.1M; `det_decimal_scale` — `amount *=//= decimalsFactor` в бридже/враппере,
   dust/round-to-zero + асимметрия round-trip на non-18 токенах, ZKFair gas-token), `secrets.py` (SECRETS-лейн: закоммиченные ключи/креды в дереве + истории git —
-  Taiko/Raiko layer-A; история через `git log -G`, нужен полный клон), `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
+  Taiko/Raiko layer-A; история через `git log -G`, нужен полный клон), `secrets_sweep.py` (SECRETS-SWEEP радар —
+  СОРСИНГ+МАСШТАБ над secrets.py: watchlist репо живых протоколов `monitor/repos.json` → full-clone в gitignored-volume →
+  reuse secrets.py tree+history → diff НОВЫХ утечек → `hunts/_radar/SECRETS.md`; инкрементально (git-fetch + scan
+  `last_sha..HEAD`), первый свип репо репортит ВСЕ старые ключи (найти 2-летний), только [!] prod-path алертят;
+  weekly Actions `secrets.yml` + watch_all + brief. Урок: Taiko-класс «на виду 2 года» = дыра в МАСШТАБЕ скана, не в детекторе),
+  `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
   Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может
