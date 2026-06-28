@@ -35,6 +35,26 @@
    "chain": "eth",
    "protocol": "abracadabra",
    "slug": "abracadabra-money/abracadabra-money-contracts"
+  },
+  {
+   "chain": "eth",
+   "protocol": "ion",
+   "slug": "ion-protocol/ion-protocol"
+  },
+  {
+   "chain": "eth",
+   "protocol": "mellow",
+   "slug": "mellow-finance/mellow-lrt"
+  },
+  {
+   "chain": "eth",
+   "protocol": "symbiotic",
+   "slug": "symbioticfi/core"
+  },
+  {
+   "chain": "eth",
+   "protocol": "sofa",
+   "slug": "sofa-org/sofa-protocol"
   }
  ]
 }

@@ -68,6 +68,15 @@ check(S.scan_text('api_key = "sk_live_4eC39HqLyjWasdfQ"', "src/C.sol"), "real to
 check(S.scan_text('password = "correcthorsebatterystaplexx"', "src/C.sol"), "long word value (>20) still caught (no over-suppress)")
 check(S.suppress_dev_dumps([("tooling/config.ts", 1, "secret assigned to a literal", "x", 0)])[0][4] >= 2,
       "bare config.ts downgraded as a config-key file")
+# anvil/hardhat public default keys are not secrets (ion deploy-sim.sh/node.sh FP)
+check(not S.scan_text('private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" # anvil', "deploy.sh"),
+      "anvil default key (account #0) denied by value")
+check(not S.scan_text('PK=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', "node.sh"),
+      "anvil default key (account #1) denied by value")
+check(S.scan_text('private_key="0x' + '1' * 64 + '"', "deploy.sh"), "a NON-default key in a .sh still fires (no over-suppress)")
+# generated/minified files skipped for content (ion offchain/output.html minified-JS FP)
+check(bool(S._GENERATED_EXT.search("offchain/files/output.html")) and bool(S._GENERATED_EXT.search("bundle.min.js")),
+      "generated/minified extensions matched (.html/.min.js skipped in scan_tree+history)")
 
 print("== suppress_dev_dumps (hardhat 2k-account / *.config.* / density — the Liquity 4000-FP class) ==")
 # filename signal: a hardhat account list is downgraded even with few hits

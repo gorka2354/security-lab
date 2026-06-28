@@ -57,6 +57,23 @@ _HISTORY_PREFILTER = (
 _SKIP_DIR = re.compile(r"(^|/)(\.git|node_modules|lib|out|artifacts|cache|dist|build|vendor|"
                        r"forge-std|openzeppelin|\.venv|venv|__pycache__)(/|$)")
 _EXAMPLE = re.compile(r"(?i)\.(example|sample|template|dist)$|\.env\.(example|sample|template)")
+# generated / minified / doc files are not source -> a "key=" match there is junk (minified JS in an .html,
+# integrity hashes in a lockfile). Skip CONTENT scan (filename scan still runs). (ion offchain/output.html FP.)
+_GENERATED_EXT = re.compile(r"(?i)\.(html?|min\.js|map|svg|csv|lock|ipynb)$")
+# well-known PUBLIC dev keys (anvil/hardhat default mnemonic "test test ... junk" accounts 0-9). They appear
+# in deploy scripts/tests everywhere and are NOT secrets. Deny by value. (ion deploy-sim.sh/node.sh FP.)
+_KNOWN_DEV_KEYS = {
+    "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+    "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+    "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+    "47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+    "8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba",
+    "92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e",
+    "4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356",
+    "dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97",
+    "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",
+}
 # test/fixture paths hold throwaway keys (test-vectors, mocks) -> downgrade, don't cry wolf (recon _TESTRE parallel)
 _TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?)([/]|$)", re.I)
 
@@ -122,6 +139,9 @@ def scan_text(text, rel):
     for name, rx, prio, do_redact in CONTENT:
         for m in rx.finditer(text):
             hit = m.group(0)
+            low = hit.lower()
+            if any(k in low for k in _KNOWN_DEV_KEYS):    # anvil/hardhat public default key -> not a secret
+                continue
             if name.startswith("secret assigned"):
                 if _PLACEHOLDER.search(hit):
                     continue                              # a placeholder / env-indirection, not a real secret
@@ -158,8 +178,8 @@ def scan_tree(repo, max_bytes=2_000_000):
         for fn in fnames:
             rel = os.path.normpath(os.path.join(rel_root, fn)).replace("\\", "/").lstrip("./")
             out.extend(scan_filename(rel))
-            if _EXAMPLE.search(fn):
-                continue                              # *.example/sample/template hold FAKE keys (e.g. the Anvil test key) -> not a leak
+            if _EXAMPLE.search(fn) or _GENERATED_EXT.search(fn):
+                continue                              # *.example/sample/template OR generated/minified (.html/.min.js) -> not a real leak
             path = os.path.join(root, fn)
             try:
                 if os.path.getsize(path) > max_bytes:
@@ -187,7 +207,8 @@ def scan_history(repo, rng=None):
             commit = line.split()[1][:10]
         elif line.startswith("+++ b/"):
             rel = line[6:]
-        elif line.startswith("+") and not line.startswith("+++") and not _EXAMPLE.search(os.path.basename(rel)):
+        elif (line.startswith("+") and not line.startswith("+++")
+              and not _EXAMPLE.search(os.path.basename(rel)) and not _GENERATED_EXT.search(os.path.basename(rel))):
             for (_, _l, name, preview, prio) in scan_text(line[1:], f"{commit}:{rel}"):
                 out.append((f"{commit}:{rel}", 0, name + " [in git history]", preview, max(0, prio)))
     # de-dup identical (commit:file, name, preview)
