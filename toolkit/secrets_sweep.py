@@ -78,7 +78,8 @@ def high_leads(repo, no_history=False, since_sha=None):
     rng = f"{since_sha}..HEAD" if since_sha else None
     hist = [] if no_history else S.scan_history(repo, rng=rng)
     leads = tree + hist
-    # downgrade test/fixture/test-vector paths below [!] (identical rule to secrets.main)
+    # identical filtering to secrets.main so the radar and the per-repo report agree:
+    leads = S.suppress_dev_dumps(leads)                   # hardhat 2k-account / *.config.* dumps -> not [!]
     leads = [(h[0], h[1], h[2], h[3], min(2, h[4] + 1)) if S._TEST_PATH.search(h[0]) else h for h in leads]
     return [h for h in leads if h[4] == 0]
 

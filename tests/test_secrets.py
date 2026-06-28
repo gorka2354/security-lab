@@ -62,6 +62,30 @@ check(any("secret assigned" in h[2] for h in hits), "literal secret assignment c
 check(not S.scan_text('apiKey = process.env.API_KEY', "x.js"), "env-indirection placeholder dropped (no FP)")
 check(S.scan_filename("deploy/enclave-key.pem"), "sensitive .pem filename is a lead by path alone")
 check(not S.scan_filename(".env.example"), "*.example is not a leak")
+# entropy gate: a bare dictionary-word value is a config token, not a secret (abracadabra api_key:"verifyContract")
+check(not S.scan_text('api_key: "verifyContract",', "tooling/config.ts"), "word-value api_key dropped (entropy gate)")
+check(S.scan_text('api_key = "sk_live_4eC39HqLyjWasdfQ"', "src/C.sol"), "real token (digits/sep) still caught")
+check(S.scan_text('password = "correcthorsebatterystaplexx"', "src/C.sol"), "long word value (>20) still caught (no over-suppress)")
+check(S.suppress_dev_dumps([("tooling/config.ts", 1, "secret assigned to a literal", "x", 0)])[0][4] >= 2,
+      "bare config.ts downgraded as a config-key file")
+
+print("== suppress_dev_dumps (hardhat 2k-account / *.config.* / density — the Liquity 4000-FP class) ==")
+# filename signal: a hardhat account list is downgraded even with few hits
+dev = S.suppress_dev_dumps([("contracts/hardhatAccountsList2k.js", 4, "hardcoded private key (hex near key-context)", "x", 0)])
+check(dev[0][4] >= 2 and "dev" in dev[0][2], "hardhat account-list file downgraded below [!] by name")
+check(S.suppress_dev_dumps([("test-wallets.js", 1, "hardcoded private key (hex near key-context)", "x", 0)])[0][4] >= 2,
+      "test-wallets.js downgraded by name")
+check(S.suppress_dev_dumps([("hardhat.config.js", 1, "secret assigned to a literal", "x", 0)])[0][4] >= 2,
+      "*.config.js downgraded by name")
+# density signal: a normal-named file with many key hits is a generated dump
+many = [(f"src/keys.sol", i, "private-key PEM block", "x", 0) for i in range(10)]
+check(all(h[4] >= 2 for h in S.suppress_dev_dumps(many)), "10 key hits in one file -> bulk-downgraded (density)")
+# history-loc grouping: commit-prefixed locs of the SAME file count together for density
+hist = [(f"abc1234567:src/keys.sol", i, "private-key PEM block", "x", 0) for i in range(9)]
+check(all(h[4] >= 2 for h in S.suppress_dev_dumps(hist)), "history-loc density groups by real file (strips commit)")
+# a REAL single secret in a production path stays [!]
+real = S.suppress_dev_dumps([("src/Treasury.sol", 12, "hardcoded private key (hex near key-context)", "x", 0)])
+check(real[0][4] == 0, "a lone production-path secret stays [!] (no over-suppression)")
 
 print("== git-history catch of a removed key (the Taiko shape) + range scan ==")
 with tempfile.TemporaryDirectory() as d:

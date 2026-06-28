@@ -42,7 +42,7 @@ WRITE = re.compile(r"\b\w+(\[[^\]]*\])?\s*(=|\+=|-=)(?!=)|\bdelete\s+\w+")
 GUARD = re.compile(r"nonreentrant|noreentr|reentrancyguard", re.I)
 
 # test/mock/script files are noise when hunting production bugs -> deprioritize
-_TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?)/", re.I)
+_TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?|certora|harness|echidna|halmos|fuzz)/", re.I)  # fix#36: + formal-verification / fuzz scaffolding (Euler certora/harness/*Harness.sol is FV plumbing, not production)
 
 # arbitrary external call (bridge-aggregator approval-drain class)
 ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
@@ -54,7 +54,9 @@ ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
 INLINE_AUTH = re.compile(
     r"msg\.sender\s*[!=]=|_msgSender\(\)\s*[!=]=|require\s*\([^;{]*(msg\.sender|_msgSender)|"
     r"hasRole|_checkRole|_checkOwner|_authorizeUpgrade|enforce[A-Za-z]\w*\s*\(|"   # fix#18: Diamond/library enforce-auth (enforceIsContractOwner / enforceIsController / LibX.enforce*)
-    r"_verifySignatures|verifySignature|_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
+    r"_verifySignatures|verifySignature|"
+    r"ecrecover\s*\(|\bECDSA\.(?:recover|tryRecover)\b|SignatureChecker|isValidSignature\w*|_hashTypedData\w*|"  # fix#35: signature-authenticated fns (*WithSig/permit): auth IS the EIP-712 sig, not a modifier -- bare ecrecover()+require(signer==authorizer) (Morpho setAuthorizationWithSig). det_signature still checks the sig BINDING; this only stops the access-control sibling/modifier FP. ECDSA.-qualified so it never matches a rescue `.recover(` verb.
+    r"_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_check(?:Controller|Manager|Admin|Operator|Gov\w*|Authoriz\w*)\s*\(|"   # fix#34: Balancer/PowerPool BPool inline auth `_checkController()` (NOT input-validators like _checkAmount)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_?require\w*Caller\w*\s*\(|"   # fix#33: Liquity/Threshold inline caller-auth (_requireCallerIsBorrowerOperations / _requireCallerIsStabilityPool / _requireCallerIsBOorTroveM) -- the #1 fork-CDP FP source
@@ -151,10 +153,15 @@ def det_access(text, rel):
             continue
         if PRIV.search(name):
             delegates = bool(LIB_DELEGATE.search(text[m.end():end]))   # fix#19: thin facet delegator
+            empty_body = text[m.end():].lstrip().startswith("}")       # fix#37: dispatcher/override stub
             note = "external/public + privileged name, NO only* / inline auth"
-            if delegates:
+            if empty_body:
+                note += (" (EMPTY body -> dispatcher/override stub; logic+auth live in a modifier or parent "
+                         "module, e.g. Euler EVK `use(MODULE_X)`. No local mutation = no local bug; verify the module)")
+            elif delegates:
                 note += " (thin facet delegator -> auth may be enforced in the Lib fn; verify there)"
-            out.append((rel, lineno(text, m.start()), f"function {name}(...)", note, 1 if delegates else 0))
+            out.append((rel, lineno(text, m.start()), f"function {name}(...)", note,
+                        1 if (delegates or empty_body) else 0))
     return out
 
 

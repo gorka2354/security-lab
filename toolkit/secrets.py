@@ -58,7 +58,38 @@ _SKIP_DIR = re.compile(r"(^|/)(\.git|node_modules|lib|out|artifacts|cache|dist|b
                        r"forge-std|openzeppelin|\.venv|venv|__pycache__)(/|$)")
 _EXAMPLE = re.compile(r"(?i)\.(example|sample|template|dist)$|\.env\.(example|sample|template)")
 # test/fixture paths hold throwaway keys (test-vectors, mocks) -> downgrade, don't cry wolf (recon _TESTRE parallel)
-_TEST_PATH = re.compile(r"(^|[:/])(tests?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?)([/]|$)", re.I)
+_TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?)([/]|$)", re.I)
+
+# Generated dev-account / config dumps that are NOT leaks: hardhat/ganache/anvil deterministic test accounts
+# (the public 2000-key list - every install ships it), test-wallet fixtures, *.config.* dev keys. The Liquity
+# sweep produced ~4000 hits from ONE such file. Two independent signals so neither has to be perfect:
+#  (1) filename (a *.js/.ts/.json named hardhat/ganache/anvil/account/wallet/mnemonic, or *.config.*);
+#  (2) per-file DENSITY - a real committed secret is 1-2 hits; a generated key dump is dozens-to-thousands.
+_DEV_KEYLIST = re.compile(r"(?i)(hardhat|ganache|anvil|truffle|foundry|genesis|devnet|"
+                          r"account|wallet|mnemonic)[-_a-z0-9]*\.(js|ts|cjs|mjs|json)$|(^|[-_.])config\.(js|ts|cjs|mjs)$")
+BULK_KEY_THRESHOLD = 8
+
+
+def _locfile(rel):
+    """Strip a history commit prefix (commit:file) so per-file density groups by the real file."""
+    return rel.split(":", 1)[1] if (":" in rel and not rel.startswith("0x")) else rel
+
+
+def suppress_dev_dumps(leads):
+    """Downgrade the two giant non-leak classes below [!] so they never bury a real secret:
+    (1) generated dev-account / test-wallet / *.config.* files (by name); (2) any file with
+    >= BULK_KEY_THRESHOLD key hits (a 2000-key hardhat dump is bulk). Real production secrets stay [!].
+    Reused by secrets_sweep so the radar and the per-repo report agree. Unit-tested."""
+    from collections import Counter
+    counts = Counter(_locfile(h[0]) for h in leads if "key" in h[2].lower() or "secret" in h[2].lower())
+    out = []
+    for rel, ln, name, prev, prio in leads:
+        f = _locfile(rel)
+        bulk = counts.get(f, 0) >= BULK_KEY_THRESHOLD
+        dev = bool(_DEV_KEYLIST.search(os.path.basename(f)))
+        tag = " [bulk dev-key list]" if bulk else (" [dev/config key file]" if dev else "")
+        out.append((rel, ln, name + tag, prev, max(prio, 2) if (bulk or dev) else prio))
+    return out
 
 
 def git(repo, *args):
@@ -95,6 +126,11 @@ def scan_text(text, rel):
                 if _PLACEHOLDER.search(hit):
                     continue                              # a placeholder / env-indirection, not a real secret
                 hit = m.group(3)                          # the literal value only
+                # entropy gate: a bare dictionary-word value (all letters, no digit/sep, not long) is a config
+                # TOKEN, not a secret -- e.g. `api_key: "verifyContract"` (a testnet explorer verifier accepts any
+                # string). Real keys/tokens carry entropy: a digit, a separator, or length. (Abracadabra sweep FP.)
+                if re.fullmatch(r"[A-Za-z]{1,20}", hit):
+                    continue
             preview = redact(hit) if do_redact else "-----BEGIN ... PRIVATE KEY-----"
             out.append((rel, lineno(text, m.start()), name, preview, prio))
     return out
@@ -206,6 +242,7 @@ def main():
     # Downgrade test/fixture/test-vector paths (mirrors recon's _TESTRE): a key under test-vectors/ is
     # fixture material (the ZKFair helpers.json + .env Anvil-key lesson), not a live leak -- keep the
     # signal but drop it below [!] so it never cries wolf over real, production-path secrets.
+    leads = suppress_dev_dumps(leads)                     # hardhat 2k-account / *.config.* dumps -> not [!]
     leads = [(h[0], h[1], h[2], h[3], min(2, h[4] + 1)) if _TEST_PATH.search(h[0]) else h for h in leads]
     by_prio = sorted(leads, key=lambda h: h[4])
     if not by_prio:

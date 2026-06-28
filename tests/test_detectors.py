@@ -87,6 +87,16 @@ check(bool(_deleg) and _deleg[0][4] == 1 and "delegator" in _deleg[0][3],
       "fix#19: thin facet delegator (LibCfg.setConfig) downgraded [!]->[.] prio 1 + noted (Crypto Unicorns/Chikn leaf-gating FP)")
 check(recon.det_access("contract C{function setFee(uint x) external { fee=x; }}", "src/C.sol")[0][4] == 0,
       "fix#19: genuinely ungated non-delegating setter stays [!] prio 0")
+# fix#35: signature-authenticated fns (*WithSig/permit) are intentionally permissionless -- auth IS the EIP-712 sig
+check(not flagged(recon.det_access,
+      "contract C{function setAuthorizationWithSig(bytes32 a,uint8 v,bytes32 r,bytes32 s) external "
+      "{ address g=ecrecover(a,v,r,s); require(g==authorizer); ok[g]=true; }}", "setAuthorizationWithSig"),
+      "fix#35: ecrecover-gated *WithSig not an access-control gap (Morpho setAuthorizationWithSig [!] FP)")
+check(not flagged(recon.det_access,
+      "contract C{function setApproval(address t) external { require(SignatureChecker.isValidSignatureNow(t,h,s)); ok[t]=true; }}",
+      "setApproval"), "fix#35: SignatureChecker-gated setter not flagged")
+check(flagged(recon.det_access, "contract C{function setAuthorizer(address a) external { authorizer=a; }}", "setAuthorizer"),
+      "fix#35 guard: plain ungated setter (no sig check) still fires -- no over-suppression")
 
 print("== det_sibling (regression technique + initializer) ==")
 sib = ("contract C{function setA(uint x) external onlyOwner { a=x; }"
@@ -98,6 +108,11 @@ _capsib = ("contract C{function setA(uint x) external checkAccess(this.setA.sele
            " function distributeRewards(address t) external { b=t; }}")
 check(flagged(recon.det_sibling, _capsib, "distributeRewards"),
       "fix#15: lone ungated sibling flagged among checkAccess-gated siblings (the real Cap signal)")
+_sigsib = ("contract C{function setFee(uint x) external onlyOwner { f=x; }"
+           " function setAuthorizationWithSig(bytes32 a,uint8 v,bytes32 r,bytes32 s) external "
+           "{ address g=ecrecover(a,v,r,s); require(g==who); ok[g]=true; }}")
+check(not flagged(recon.det_sibling, _sigsib, "setAuthorizationWithSig"),
+      "fix#35: ecrecover-gated *WithSig not sibling-inconsistent next to onlyOwner (Morpho [!] FP)")
 
 print("== det_mint (supply integrity, _msgSender fix) ==")
 check(flagged(recon.det_mint, "contract C{function mint(address t,uint a) external { _mint(t,a); }}", "mint"),
