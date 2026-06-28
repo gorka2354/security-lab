@@ -1,0 +1,8 @@
+{
+  "_comment": "Secrets-sweep watchlist: public repos of live protocols, swept tree+history by secrets_sweep.py for committed keys/creds (the Taiko/Raiko enclave-key.pem class - in plain sight in public git ~2y before noticed). Seeded with upstreams of our fork-families (a leak upstream = batch-relevant across forks we indexed). Grow it: `python toolkit/secrets_sweep.py --add <org/repo> <protocol> <chain>` as we triage open-source targets. Reference case (fixed, not actively swept - too large): taikoxyz/taiko-mono. Clones land in hunts/_volume/_secrets/ (gitignored); seen-state in monitor/secrets-seen.json.",
+  "repos": [
+    {"slug": "euler-xyz/euler-vault-kit", "protocol": "euler", "chain": "eth"},
+    {"slug": "liquity/bold", "protocol": "liquity-v2", "chain": "eth"},
+    {"slug": "morpho-org/morpho-blue", "protocol": "morpho", "chain": "eth"}
+  ]
+}

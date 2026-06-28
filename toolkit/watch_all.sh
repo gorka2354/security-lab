@@ -51,6 +51,15 @@ if [ $ffrc -eq 10 ]; then
   { echo ""; echo "## [FRESH-FEED] $STAMP -- new fresh code, see hunts/_radar/FRESH-FEED.md"; echo '```'; echo "$FFOUT"; echo '```'; } >> "$ALERTS"
 fi
 
+# 0e) secrets-sweep: committed keys in live-protocol public repos (tree+history; the Taiko enclave-key class).
+#     Incremental (git-fetch + scan new commits) so it's cron-cheap after the one-time first clone.
+SSOUT="$("$PY" toolkit/secrets_sweep.py 2>&1)"; ssrc=$?
+echo "$SSOUT"
+if [ $ssrc -eq 10 ]; then
+  fired=1
+  { echo ""; echo "## [SECRETS] $STAMP -- NEW committed key(s), see hunts/_radar/SECRETS.md"; echo '```'; echo "$SSOUT"; echo '```'; } >> "$ALERTS"
+fi
+
 # 1) parked findings (exit 2 if any FIRED)
 WOUT="$("$PY" toolkit/watch.py 2>&1)"; wrc=$?
 echo "$WOUT"

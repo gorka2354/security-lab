@@ -135,12 +135,14 @@ def scan_tree(repo, max_bytes=2_000_000):
     return out
 
 
-def scan_history(repo):
+def scan_history(repo, rng=None):
     """Scan git history for committed secrets. Pre-filtered with `git log -G<alt>` so git only emits the
-    matching commits (cheap even on a monorepo). Returns [(commit:file, line, name, preview, prio)]."""
+    matching commits (cheap even on a monorepo). Returns [(commit:file, line, name, preview, prio)].
+    `rng` (e.g. 'abc123..HEAD') scans only that commit range -> incremental sweeps; default '--all'."""
     if not has_history(repo):
         return []
-    patch = git(repo, "log", "--all", "-p", "--no-color", "-G", _HISTORY_PREFILTER, "--")
+    scope = [rng] if rng else ["--all"]
+    patch = git(repo, "log", *scope, "-p", "--no-color", "-G", _HISTORY_PREFILTER, "--")
     if not patch:
         return []
     out, commit, rel = [], "?", "?"

@@ -116,6 +116,21 @@ def freshfeed_block():
             print(f"     {x[:92]}")
 
 
+def secrets_block():
+    p = os.path.join(ROOT, "hunts", "_radar", "SECRETS.md")
+    if not os.path.exists(p):
+        return
+    body = open(p, encoding="utf-8").read()
+    if "All quiet" in body:
+        return  # only surface when there's a live leak (otherwise keep the brief tight)
+    section("SECRETS  (committed keys in live-protocol repos — the Taiko enclave-key class)")
+    hits = [l.strip() for l in body.splitlines() if l.strip().startswith("### ")]
+    print(f"  >>> {len(hits)} repo(s) with NEW committed key(s) — VERIFY + responsible-disclose:")
+    for h in hits[:6]:
+        print(f"     {h[4:]}")
+    print("     full: hunts/_radar/SECRETS.md")
+
+
 def registry_block():
     reg = load("monitor/registry.json", {}).get("targets", {})
     if not reg:
@@ -176,6 +191,7 @@ def main():
     radar_block()
     freshdeploy_block()
     freshfeed_block()
+    secrets_block()
     registry_block()
     parked_block()
     fanout_block()
