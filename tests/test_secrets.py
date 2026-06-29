@@ -101,6 +101,16 @@ open(_os.path.join(_d, "sub", "deploy-key.pem"), "w").write("-----BEGIN PRIVATE 
 _st = S.scan_tree(_d)
 check(all(h[4] >= 2 for h in _st if "keystore-password" in h[0]), "placeholder-content keystore-name file downgraded (Puffer FP)")
 check(any(h[4] == 0 for h in _st if "deploy-key.pem" in h[0]), "a real .pem with real key body still fires [!]")
+# in-scope Immunefi sweep FP classes (132 dev/test/CI hits across Linea/Stacks/Enzyme/Flare/Serai):
+check(not S.scan_filename("substrate/node/src/keystore.rs"), "keystore.rs SOURCE module is not a keystore lead (Serai)")
+check(bool(S.scan_filename("docker/keystore/L2/0xabc.json")), "a real keystore.json is still a filename lead")
+check(bool(S._TEST_PATH.search("docker/web3signer/k.yaml")) and bool(S._TEST_PATH.search("integration_tests/x.py"))
+      and bool(S._TEST_PATH.search("a/__tests__/b.ts")), "docker/ + integration_tests/ + __tests__ downgraded (Linea/Stacks)")
+check(bool(S._EXAMPLE.search(".env-template")) and not S._EXAMPLE.search(".env.local"),
+      ".env-template is example; .env.local stays a real lead (Flare)")
+check(bool(S._DEV_KEYLIST.search("Devnet.toml")) and bool(S._DEV_KEYLIST.search(".gitlab-ci.yml"))
+      and bool(S._DEV_KEYLIST.search("package.json")) and not S._DEV_KEYLIST.search("Treasury.sol"),
+      "Devnet.toml + .gitlab-ci.yml + package.json downgraded; real .sol source not (Stacks/Flare/Enzyme)")
 
 print("== suppress_dev_dumps (hardhat 2k-account / *.config.* / density — the Liquity 4000-FP class) ==")
 # filename signal: a hardhat account list is downgraded even with few hits

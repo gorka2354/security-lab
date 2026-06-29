@@ -45,7 +45,7 @@ _PLACEHOLDER = re.compile(r"(?i)(\b(your[-_ ]?|example|changeme|placeholder|dumm
 FILENAME = [
     ("private-key file (.pem/.key/.p12/.pfx)", re.compile(r"(?i)\.(pem|key|p12|pfx|asc|ppk)$"), 0),
     ("ssh/enclave private key", re.compile(r"(?i)(^|/)(id_(rsa|dsa|ecdsa|ed25519)|enclave[-_]?key\w*)$"), 0),
-    ("keystore file", re.compile(r"(?i)(keystore|^UTC--.*--[0-9a-f]{40}$)"), 0),
+    ("keystore file", re.compile(r"(?i)(keystore(?!\.(?:rs|go|sol|ts|js|py|java|kt|rb|cpp|c|h|md))|^UTC--.*--[0-9a-f]{40}$)"), 0),  # not keystore.rs/.go/.sol source modules (serai node/src/keystore.rs)
     ("dotenv (live, not an example)", re.compile(r"(?i)(^|/)\.env(\.(local|prod\w*))?$"), 1),
 ]
 # git -G prefilter: an ERE-safe (no inline flags / no \b) alternation so `git log -G` only emits matching
@@ -60,10 +60,10 @@ _HISTORY_PREFILTER = (
 )
 _SKIP_DIR = re.compile(r"(^|/)(\.git|node_modules|\.yarn|\.pnp|lib|out|artifacts|cache|dist|build|vendor|"
                        r"forge-std|openzeppelin|\.venv|venv|__pycache__)(/|$)")
-_EXAMPLE = re.compile(r"(?i)\.(example|sample|template|dist)$|\.env\.(example|sample|template)")
+_EXAMPLE = re.compile(r"(?i)\.(example|sample|template|dist)$|[-.]template$|\.env[.-](example|sample|template|tmpl)")  # + `.env-template`/`-template` (Flare .env-template)
 # generated / minified / doc files are not source -> a "key=" match there is junk (minified JS in an .html,
 # integrity hashes in a lockfile). Skip CONTENT scan (filename scan still runs). (ion offchain/output.html FP.)
-_GENERATED_EXT = re.compile(r"(?i)\.(html?|min\.js|map|svg|csv|lock|ipynb)$")
+_GENERATED_EXT = re.compile(r"(?i)\.(html?|min\.js|map|svg|csv|lock|ipynb|md|markdown|rst|adoc)$")  # + docs (README/EXAMPLES.md hold example keys, not live secrets)
 # well-known PUBLIC dev keys (anvil/hardhat default mnemonic "test test ... junk" accounts 0-9). They appear
 # in deploy scripts/tests everywhere and are NOT secrets. Deny by value. (ion deploy-sim.sh/node.sh FP.)
 _KNOWN_DEV_KEYS = {
@@ -79,7 +79,9 @@ _KNOWN_DEV_KEYS = {
     "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",
 }
 # test/fixture paths hold throwaway keys (test-vectors, mocks) -> downgrade, don't cry wolf (recon _TESTRE parallel)
-_TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?|audits?|docs?)([/]|$)", re.I)
+_TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?|audits?|docs?"
+                        r"|integration[_-]?tests?|__tests__|testing|e2e|docker|devnet|local[_-]?testing|\.github|workflows"
+                        r"|test[_-]?utils?|testnet|bns-?test)([/]|$)", re.I)  # + dev-infra/test dirs (Linea docker/ + test-utils, Stacks integration_tests/testnet/bns-test, CI)
 
 # Generated dev-account / config dumps that are NOT leaks: hardhat/ganache/anvil deterministic test accounts
 # (the public 2000-key list - every install ships it), test-wallet fixtures, *.config.* dev keys. The Liquity
@@ -87,7 +89,10 @@ _TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures
 #  (1) filename (a *.js/.ts/.json named hardhat/ganache/anvil/account/wallet/mnemonic, or *.config.*);
 #  (2) per-file DENSITY - a real committed secret is 1-2 hits; a generated key dump is dozens-to-thousands.
 _DEV_KEYLIST = re.compile(r"(?i)(hardhat|ganache|anvil|truffle|foundry|genesis|devnet|"
-                          r"account|wallet|mnemonic)[-_a-z0-9]*\.(js|ts|cjs|mjs|json)$|(^|[-_.])config\.(js|ts|cjs|mjs)$")
+                          r"account|wallet|mnemonic)[-_a-z0-9]*\.(js|ts|cjs|mjs|json)$|(^|[-_.])config\.(js|ts|cjs|mjs)$"
+                          # CI configs + Clarinet/Foundry devnet TOML + npm package.json dev-script keys (Stacks Devnet.toml, Flare .gitlab-ci.yml, Enzyme package.json `deploy:dev`)
+                          r"|(^|[-_.])(devnet|clarinet)\.toml$|(^|/|\.)(gitlab-ci|circleci)[\w.-]*$|(^|/)package\.json$"
+                          r"|(^|/)makefile$|\.mk$")  # Makefile/.mk dev-target keys (Linea Makefile PRIVATE_KEY=)
 BULK_KEY_THRESHOLD = 8
 
 
@@ -230,7 +235,7 @@ def scan_history(repo, rng=None):
         if line.startswith("commit "):
             commit = line.split()[1][:10]
         elif line.startswith("+++ b/"):
-            rel = line[6:]
+            rel = line[6:].rstrip()   # git may append a trailing TAB to filenames -> strip so $-anchored ext skips work
         elif (line.startswith("+") and not line.startswith("+++") and not _SKIP_DIR.search("/" + rel)
               and not _EXAMPLE.search(os.path.basename(rel)) and not _GENERATED_EXT.search(os.path.basename(rel))):
             for (_, _l, name, preview, prio) in scan_text(line[1:], f"{commit}:{rel}"):
