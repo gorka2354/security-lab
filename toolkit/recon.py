@@ -58,8 +58,11 @@ INLINE_AUTH = re.compile(
     r"ecrecover\s*\(|\bECDSA\.(?:recover|tryRecover)\b|SignatureChecker|isValidSignature\w*|_hashTypedData\w*|"  # fix#35: signature-authenticated fns (*WithSig/permit): auth IS the EIP-712 sig, not a modifier -- bare ecrecover()+require(signer==authorizer) (Morpho setAuthorizationWithSig). det_signature still checks the sig BINDING; this only stops the access-control sibling/modifier FP. ECDSA.-qualified so it never matches a rescue `.recover(` verb.
     r"_?checkAccess\s*\(|_checkSender|"   # fix#15: selector-gating checkAccess(this.fn.selector) (Cap / OZ-AccessManager pattern)
     r"_check(?:Controller|Manager|Admin|Operator|Gov\w*|Authoriz\w*)\s*\(|"   # fix#34: Balancer/PowerPool BPool inline auth `_checkController()` (NOT input-validators like _checkAmount)
+    r"\.only\w+\s*\(|\.(?:check|require|enforce)Role\w*\s*\(|"   # fix#42: external RoleRegistry-style auth call `roleRegistry.onlyProtocolUpgrader(msg.sender)` / `acl.checkRole(...)` (Ether.fi central-RoleRegistry pattern, pervasive in modern AccessManager protocols)
     r"_?require\w*Only\b|_?check\w*Only\b|"   # e.g. requireGovernanceOnly()
     r"_?require\w*Caller\w*\s*\(|"   # fix#33: Liquity/Threshold inline caller-auth (_requireCallerIsBorrowerOperations / _requireCallerIsStabilityPool / _requireCallerIsBOorTroveM) -- the #1 fork-CDP FP source
+    r"_?require(?:Admin|Owner|Gov\w*|Governor|Manager|Operator|Keeper|Guardian|Auth\w*|Role\w*|Permission\w*|Whitelisted)\s*\(|"   # fix#41: inline role-auth helper (Ether.fi MembershipManager `_requireAdmin();`) -- NOT input validators (_requireAmount/_requireValidAddress/_requireNonZero)
+
     r"_only\w+\s*\(|"   # fix#14: inline auth-helper call, e.g. _onlyAdminOrRole(...)
     r"_is(?:Manager|Authoriz\w*|Authed|Ward|Admin|Owner|Operator|HubManager|PoolManager|PoolAdmin)\w*\s*\(|"  # fix#27: inline predicate gate (Centrifuge Hub `_isManager(poolId)`)
     r"_authorize\s*\(|_validate(?:Controller|Caller|Sender|Owner|Operator|Signature|Sig)\w*\s*\(")  # fix#30: caller-auth helpers (DRE `_authorize` EIP-712 sig, MagicSwap `_validateController`) -- NOT input validators (_validateAmount/_validateAddress sanctions)
@@ -71,7 +74,11 @@ INLINE_AUTH = re.compile(
 # trailing auth modifier (`external restricted`), not "only*"-named -> recognize it (OZ v5's recommended
 # access-control, increasingly common; Royco V2 used it on ~all privileged fns -> 47 false leads without this).
 WARD_MOD = re.compile(r"\bauth\b|\bauthOrHook\b|\bauthOrManager\b|\bonlyWards?\b|\brestricted\b|"
-                      r"\bisManager\b|\bisAuthoriz\w*|\brequiresAuth\b|\bauthenticated\b")
+                      r"\bisManager\b|\bisAuthoriz\w*|\brequiresAuth\b|\bauthenticated\b|"
+                      # fix#40: the `is<Role>` custom admin-modifier family (Ether.fi EtherFiOracle
+                      # `setConsensusVersion(...) public isAdmin` -> 5 false sibling/access leads). A trailing
+                      # is<Admin|Owner|Keeper|...> modifier is a gate, just not "only*"-named.
+                      r"\bis(Admin|Owner|Keeper|Operator|Controller|Governor|Gov|Authorized|Whitelisted|Minter|Pauser|Guardian)\b")
 
 # fix#19: a thin facet/wrapper whose body just delegates to a library call (Lib*.fn(...)) often has
 # its auth INSIDE that library (Chikn _claimEggs, Crypto Unicorns LibStaking.unstake) -> the wrapper
@@ -190,8 +197,10 @@ def det_sibling(text, rel):
                     or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]",
                                  text[m.end():min(m.end() + 280, end)])):
                 gname = "inline-auth"
+        if not gname and text[m.end():].lstrip().startswith("}"):
+            gname = "empty-stub"   # fix#37b: empty body -> no local mutation, not a real ungated lead (EtherFi LiquidityPool deprecated setStakingTargetWeights(){})
         funcs.append((name, lineno(text, m.start()), gname))
-    gates = sorted({f[2] for f in funcs if f[2] and f[2] != "inline-auth"})
+    gates = sorted({f[2] for f in funcs if f[2] and f[2] not in ("inline-auth", "empty-stub")})
     ungated_priv = [f for f in funcs if not f[2] and PRIV.search(f[0])]
     if not gates or not ungated_priv:
         return []

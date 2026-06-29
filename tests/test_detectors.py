@@ -113,6 +113,19 @@ _sigsib = ("contract C{function setFee(uint x) external onlyOwner { f=x; }"
            "{ address g=ecrecover(a,v,r,s); require(g==who); ok[g]=true; }}")
 check(not flagged(recon.det_sibling, _sigsib, "setAuthorizationWithSig"),
       "fix#35: ecrecover-gated *WithSig not sibling-inconsistent next to onlyOwner (Morpho [!] FP)")
+# Ether.fi deep-dive FP cluster (in-scope $500k program) -> custom auth patterns recon didn't know:
+check(not flagged(recon.det_access, "contract C{function setConsensusVersion(uint32 v) public isAdmin { cv=v; }}", "setConsensusVersion"),
+      "fix#40: `isAdmin` custom modifier is a gate (EtherFiOracle)")
+check(not flagged(recon.det_sibling, "contract C{function a(uint x) external onlyOwner{a=x;} function setConsensusVersion(uint32 v) public isAdmin{cv=v;}}", "setConsensusVersion"),
+      "fix#40: isAdmin-gated not sibling-inconsistent")
+check(not flagged(recon.det_access, "contract C{function addNewTier(uint40 p) external { _requireAdmin(); t.push(p); }}", "addNewTier"),
+      "fix#41: inline `_requireAdmin()` role-helper is a gate (MembershipManager)")
+check(flagged(recon.det_access, "contract C{function setFee(uint v) external { _requireAmount(v); fee=v; }}", "setFee"),
+      "fix#41 guard: `_requireAmount()` is an INPUT validator, NOT auth -> still flagged")
+check(not flagged(recon.det_access, "contract C{function upgradeNode(address n) external { roleRegistry.onlyProtocolUpgrader(msg.sender); beacon.upgradeTo(n); }}", "upgradeNode"),
+      "fix#42: external RoleRegistry auth call `roleRegistry.onlyProtocolUpgrader(msg.sender)` is a gate (Ether.fi)")
+check(not flagged(recon.det_sibling, "contract C{function setA(uint x) external onlyOwner{a=x;} function setStakingTargetWeights(uint32 a,uint32 b) external {}}", "setStakingTargetWeights"),
+      "fix#37b: empty-body deprecated stub not sibling-flagged (LiquidityPool no-op)")
 
 print("== det_mint (supply integrity, _msgSender fix) ==")
 check(flagged(recon.det_mint, "contract C{function mint(address t,uint a) external { _mint(t,a); }}", "mint"),
