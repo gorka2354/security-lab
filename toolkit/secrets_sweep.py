@@ -25,8 +25,10 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import secrets as S   # the per-repo scanner (scan_tree / scan_history / _TEST_PATH / git)
@@ -154,19 +156,57 @@ def write_queue(events, today, n_repos):
     open(p, "w", encoding="utf-8").write("\n".join(L) + "\n")
 
 
-def add_repo(slug, protocol, chain):
+def add_repo(slug, protocol, chain, extra=None):
     wl = load("monitor/repos.json", {"repos": []})
     if any(r["slug"].lower() == slug.lower() for r in wl["repos"]):
         print(f"[secrets-sweep] already watched: {slug}")
-        return
-    wl["repos"].append({"slug": slug, "protocol": protocol or slug.split("/")[-1], "chain": chain or "?"})
+        return False
+    entry = {"slug": slug, "protocol": protocol or slug.split("/")[-1], "chain": chain or "?"}
+    entry.update(extra or {})
+    wl["repos"].append(entry)
     save("monitor/repos.json", wl)
     print(f"[secrets-sweep] watching repo {slug} (protocol={protocol or '?'}, chain={chain or '?'})")
+    return True
+
+
+# repos that are docs/specs, not deployable code -> no point sweeping for committed keys
+_NONCODE = re.compile(r"(?i)(/|^)(api-?docs|docs?|spec|whitepaper|website|landing|brand|media)$")
+_IMMUNEFI_JSON = "https://immunefi.com/public-api/bounties.json"
+
+
+def from_immunefi():
+    """Harvest the GitHub repos of LIVE Immunefi programs into the watchlist. These are AUTHORITATIVE in-scope
+    repos: a committed key in one is a directly-disclosable, bountied (up to $1M) Taiko-class finding -- the
+    highest-value target for this lane. Skips inviteOnly (no access) + docs-only repos. source/bounty tagged."""
+    try:
+        req = urllib.request.Request(_IMMUNEFI_JSON, headers={"User-Agent": "Mozilla/5.0"})
+        data = json.load(urllib.request.urlopen(req, timeout=40))
+    except Exception as e:
+        print(f"[secrets-sweep] immunefi fetch failed: {e}")
+        return
+    added = 0
+    for b in data if isinstance(data, list) else []:
+        if b.get("inviteOnly"):
+            continue
+        m = re.search(r"github\.com/([\w.-]+/[\w.-]+)", b.get("githubUrl") or "")
+        if not m:
+            continue
+        slug = m.group(1).rstrip("/").removesuffix(".git")
+        if _NONCODE.search(slug):
+            continue
+        eco = b.get("ecosystem") or []
+        chain = (eco[0].lower() if isinstance(eco, list) and eco else "?")
+        if add_repo(slug, (b.get("project") or slug.split("/")[-1]), chain,
+                    extra={"source": "immunefi", "bounty": b.get("maxBounty")}):
+            added += 1
+    print(f"[secrets-sweep] +{added} in-scope Immunefi repo(s) added to the watchlist")
 
 
 def main():
     ap = argparse.ArgumentParser(description="Secrets-sweep radar over live-protocol public repos")
     ap.add_argument("--add", nargs="+", metavar="ORG/REPO [PROTOCOL] [CHAIN]")
+    ap.add_argument("--from-immunefi", action="store_true",
+                    help="harvest in-scope repos from live Immunefi programs (githubUrl) into the watchlist")
     ap.add_argument("--only", metavar="ORG/REPO", help="sweep just this repo (ad-hoc; auto-adds to watchlist)")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--no-history", action="store_true", help="working tree only (skip git history; fast)")
@@ -175,6 +215,9 @@ def main():
 
     if a.add:
         add_repo(a.add[0], a.add[1] if len(a.add) > 1 else "", a.add[2] if len(a.add) > 2 else "")
+        return
+    if a.from_immunefi:
+        from_immunefi()
         return
     if a.list:
         for r in load("monitor/repos.json", {"repos": []})["repos"]:

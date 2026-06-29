@@ -95,6 +95,181 @@
    "chain": "eth",
    "protocol": "etherfi",
    "slug": "etherfi-protocol/smart-contracts"
+  },
+  {
+   "bounty": 200000,
+   "chain": "eth",
+   "protocol": "Enzyme Blue",
+   "slug": "enzymefinance/protocol",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 250000,
+   "chain": "stacks",
+   "protocol": "Stacks",
+   "slug": "stacks-network/stacks-core",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 50000,
+   "chain": "?",
+   "protocol": "KAST",
+   "slug": "m0-foundation/solana-m-extensions",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 1000000,
+   "chain": "eth",
+   "protocol": "Balancer Foundation",
+   "slug": "balancer/balancer-v3-monorepo",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 100000,
+   "chain": "eth",
+   "protocol": "Silo Finance (v2 & v3)",
+   "slug": "silo-finance/silo-contracts-v3",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 200000,
+   "chain": "eth",
+   "protocol": "Enzyme Onyx",
+   "slug": "enzymefinance/protocol-onyx",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 5000,
+   "chain": "eth",
+   "protocol": "Autonolas",
+   "slug": "valory-xyz/autonolas-tokenomics",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 1000000,
+   "chain": "?",
+   "protocol": "Veda",
+   "slug": "Veda-Labs/boring-vault",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 100000,
+   "chain": "eth",
+   "protocol": "Linea",
+   "slug": "Consensys/linea-monorepo",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 100000,
+   "chain": "solana",
+   "protocol": "OnRe",
+   "slug": "onre-finance/onre-sol",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 250000,
+   "chain": "eth",
+   "protocol": "SSV Network",
+   "slug": "ssvlabs/ssv-network",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 20000,
+   "chain": "arbitrum",
+   "protocol": "Push Protocol",
+   "slug": "pushchain/push-smart-contracts",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 100000,
+   "chain": "stacks",
+   "protocol": "Zest Protocol V2",
+   "slug": "Zest-Protocol/zest-v2-contracts",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 30000,
+   "chain": "?",
+   "protocol": "Serai",
+   "slug": "serai-dex/serai",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 1000000,
+   "chain": "solana",
+   "protocol": "Audit Comp | Firedancer V1",
+   "slug": "firedancer-io/firedancer",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 25000,
+   "chain": "algorand",
+   "protocol": "Audit Comp | Folks Finance: Staking Contracts",
+   "slug": "Folks-Finance/algorand-ntt-contracts",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 1000000,
+   "chain": "?",
+   "protocol": "CapyFi",
+   "slug": "Capyfi/capyfi-smart-contracts",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 100000,
+   "chain": "?",
+   "protocol": "monero-oxide",
+   "slug": "monero-oxide/monero-oxide",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 50000,
+   "chain": "arbitrum",
+   "protocol": "dHEDGE",
+   "slug": "dhedge/V2-Public",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 30000,
+   "chain": "fuel network",
+   "protocol": "IOP | SwayLend Frontend",
+   "slug": "Swaylend/swaylend-monorepo",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 250000,
+   "chain": "?",
+   "protocol": "Notional Exponent",
+   "slug": "notional-finance/contracts-v2",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 25000,
+   "chain": "?",
+   "protocol": "Mitigation Audit | Flare | FAssets",
+   "slug": "flare-foundation/fassets",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 100000,
+   "chain": "?",
+   "protocol": "Audit Comp | Lombard",
+   "slug": "lombard-finance/evm-smart-contracts",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 50000,
+   "chain": "?",
+   "protocol": "Audit Comp | Acre",
+   "slug": "thesis/acre",
+   "source": "immunefi"
+  },
+  {
+   "bounty": 25000,
+   "chain": "?",
+   "protocol": "Mitigation Audit | Folks Finance",
+   "slug": "Folks-Finance/folks-finance-xchain-contracts",
+   "source": "immunefi"
   }
  ]
 }
