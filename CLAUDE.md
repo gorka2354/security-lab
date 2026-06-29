@@ -26,7 +26,11 @@
   СОРСИНГ+МАСШТАБ над secrets.py: watchlist репо живых протоколов `monitor/repos.json` → full-clone в gitignored-volume →
   reuse secrets.py tree+history → diff НОВЫХ утечек → `hunts/_radar/SECRETS.md`; инкрементально (git-fetch + scan
   `last_sha..HEAD`), первый свип репо репортит ВСЕ старые ключи (найти 2-летний), только [!] prod-path алертят;
-  weekly Actions `secrets.yml` + watch_all + brief. Урок: Taiko-класс «на виду 2 года» = дыра в МАСШТАБЕ скана, не в детекторе),
+  weekly Actions `secrets.yml` + watch_all + brief. Урок: Taiko-класс «на виду 2 года» = дыра в МАСШТАБЕ скана, не в детекторе.
+  СОРСИНГ in-scope популяции: `--from-immunefi` (githubUrl живых Immunefi-прог), `--from-contests` (репо живых
+  C4/Cantina-контестов), `--from-all` (оба → авто-в weekly Actions: лейна сама досорсивает новые bounty/contest-репо
+  каждый прогон). Урок свипа 44 in-scope репо: топ-протоколы не льют ЖИВЫХ ключей, но коммитят горы dev/test/CI —
+  поэтому 8+ FP-классов затюнено (docker-стек/devnet-toml/CI/source-keystore/test-каталоги/.md-доки/Makefile/.env-template)),
   `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
   Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST

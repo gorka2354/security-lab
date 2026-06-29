@@ -112,6 +112,17 @@ check(bool(S._DEV_KEYLIST.search("Devnet.toml")) and bool(S._DEV_KEYLIST.search(
       and bool(S._DEV_KEYLIST.search("package.json")) and not S._DEV_KEYLIST.search("Treasury.sol"),
       "Devnet.toml + .gitlab-ci.yml + package.json downgraded; real .sol source not (Stacks/Flare/Enzyme)")
 
+print("== _slug_from_url (in-scope repo harvest: Immunefi/C4 ok, Cantina org-only + docs skipped) ==")
+import secrets_sweep as SW  # noqa: E402
+check(SW._slug_from_url("https://github.com/code-423n4/2026-04-monetrix") == "code-423n4/2026-04-monetrix",
+      "C4 contest repo URL -> org/repo slug")
+check(SW._slug_from_url("https://github.com/balancer/balancer-v3-monorepo.git") == "balancer/balancer-v3-monorepo",
+      "trailing .git stripped")
+check(SW._slug_from_url("euler-xyz") is None, "Cantina org-only name (no github.com) -> None (correctly skipped)")
+check(SW._slug_from_url("https://github.com/asterdex/api-docs") is None, "docs-only repo -> None (no point sweeping)")
+check(SW._slug_from_url("") is None and SW._slug_from_url(None) is None, "empty/None -> None")
+check(callable(SW.from_contests) and callable(SW.from_immunefi), "harvest sources present")
+
 print("== suppress_dev_dumps (hardhat 2k-account / *.config.* / density — the Liquity 4000-FP class) ==")
 # filename signal: a hardhat account list is downgraded even with few hits
 dev = S.suppress_dev_dumps([("contracts/hardhatAccountsList2k.js", 4, "hardcoded private key (hex near key-context)", "x", 0)])

@@ -156,10 +156,11 @@ def write_queue(events, today, n_repos):
     open(p, "w", encoding="utf-8").write("\n".join(L) + "\n")
 
 
-def add_repo(slug, protocol, chain, extra=None):
+def add_repo(slug, protocol, chain, extra=None, quiet=False):
     wl = load("monitor/repos.json", {"repos": []})
     if any(r["slug"].lower() == slug.lower() for r in wl["repos"]):
-        print(f"[secrets-sweep] already watched: {slug}")
+        if not quiet:
+            print(f"[secrets-sweep] already watched: {slug}")
         return False
     entry = {"slug": slug, "protocol": protocol or slug.split("/")[-1], "chain": chain or "?"}
     entry.update(extra or {})
@@ -174,6 +175,17 @@ _NONCODE = re.compile(r"(?i)(/|^)(api-?docs|docs?|spec|whitepaper|website|landin
 _IMMUNEFI_JSON = "https://immunefi.com/public-api/bounties.json"
 
 
+def _slug_from_url(url):
+    """org/repo from any github URL (None if it's an org-only link or not github)."""
+    m = re.search(r"github\.com/([\w.-]+/[\w.-]+)", url or "")
+    if not m:
+        return None
+    slug = m.group(1).rstrip("/")
+    if slug.endswith(".git"):
+        slug = slug[:-4]
+    return None if _NONCODE.search(slug) else slug
+
+
 def from_immunefi():
     """Harvest the GitHub repos of LIVE Immunefi programs into the watchlist. These are AUTHORITATIVE in-scope
     repos: a committed key in one is a directly-disclosable, bountied (up to $1M) Taiko-class finding -- the
@@ -183,23 +195,52 @@ def from_immunefi():
         data = json.load(urllib.request.urlopen(req, timeout=40))
     except Exception as e:
         print(f"[secrets-sweep] immunefi fetch failed: {e}")
-        return
+        return 0
     added = 0
     for b in data if isinstance(data, list) else []:
         if b.get("inviteOnly"):
             continue
-        m = re.search(r"github\.com/([\w.-]+/[\w.-]+)", b.get("githubUrl") or "")
-        if not m:
-            continue
-        slug = m.group(1).rstrip("/").removesuffix(".git")
-        if _NONCODE.search(slug):
+        slug = _slug_from_url(b.get("githubUrl"))
+        if not slug:
             continue
         eco = b.get("ecosystem") or []
         chain = (eco[0].lower() if isinstance(eco, list) and eco else "?")
         if add_repo(slug, (b.get("project") or slug.split("/")[-1]), chain,
-                    extra={"source": "immunefi", "bounty": b.get("maxBounty")}):
+                    extra={"source": "immunefi", "bounty": b.get("maxBounty")}, quiet=True):
             added += 1
     print(f"[secrets-sweep] +{added} in-scope Immunefi repo(s) added to the watchlist")
+    return added
+
+
+def from_contests():
+    """Harvest the repos of LIVE audit contests (Code4rena + Cantina expose a repo; Sherlock doesn't). The
+    contest repo IS the in-scope code under active review -- a committed key there is in-scope. Reuses
+    contest_monitor's parsers/feeds so the source list stays in one place."""
+    try:
+        import time
+        import contest_monitor as cm
+    except Exception as e:
+        print(f"[secrets-sweep] contest_monitor unavailable: {e}")
+        return 0
+    now = int(time.time())
+    feeds = [(cm.CANTINA, cm.parse_cantina), (cm.SHERLOCK, cm.parse_sherlock), (cm.CODE4RENA, cm.parse_code4rena)]
+    added = 0
+    for url, parser in feeds:
+        try:
+            recs = parser(cm._get(url))
+        except Exception:
+            recs = []
+        for c in recs:
+            if not cm.is_live(c, now):
+                continue
+            slug = _slug_from_url(c.get("repo"))
+            if not slug:
+                continue
+            if add_repo(slug, c.get("title") or slug.split("/")[-1], c.get("platform", "contest"),
+                        extra={"source": "contest", "bounty": c.get("pot")}, quiet=True):
+                added += 1
+    print(f"[secrets-sweep] +{added} live-contest repo(s) added to the watchlist")
+    return added
 
 
 def main():
@@ -207,6 +248,10 @@ def main():
     ap.add_argument("--add", nargs="+", metavar="ORG/REPO [PROTOCOL] [CHAIN]")
     ap.add_argument("--from-immunefi", action="store_true",
                     help="harvest in-scope repos from live Immunefi programs (githubUrl) into the watchlist")
+    ap.add_argument("--from-contests", action="store_true",
+                    help="harvest repos of live audit contests (Code4rena/Cantina) into the watchlist")
+    ap.add_argument("--from-all", action="store_true",
+                    help="harvest from ALL in-scope sources (immunefi + contests), then continue to the sweep")
     ap.add_argument("--only", metavar="ORG/REPO", help="sweep just this repo (ad-hoc; auto-adds to watchlist)")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--no-history", action="store_true", help="working tree only (skip git history; fast)")
@@ -219,6 +264,12 @@ def main():
     if a.from_immunefi:
         from_immunefi()
         return
+    if a.from_contests:
+        from_contests()
+        return
+    if a.from_all:
+        n = from_immunefi() + from_contests()   # auto-source in-scope repos, then fall through to the sweep
+        print(f"[secrets-sweep] harvested {n} new in-scope repo(s) from all sources -> sweeping")
     if a.list:
         for r in load("monitor/repos.json", {"repos": []})["repos"]:
             print(f"  {r['slug']}  (protocol={r.get('protocol','?')}, chain={r.get('chain','?')})")
