@@ -91,6 +91,22 @@ _DEV_KEYLIST = re.compile(r"(?i)(hardhat|ganache|anvil|truffle|foundry|genesis|d
 BULK_KEY_THRESHOLD = 8
 
 
+# whole-FILE dummy content: an obvious placeholder secret (a sensitive-named file holding one of these is a
+# fixture, not a leak). Anchored single-token match, applied to the stripped file body.
+_DUMMY_VALUE = re.compile(r"(?i)^(super[-_ ]?secret\w*|secret\w*|passw[o0]rd\w*|p[a@]ss\w*|changeme\w*|"
+                          r"dummy\w*|example\w*|placeholder\w*|test\w*|admin\w*|root|foobar|none|todo|"
+                          r"0x0+|1234\d*|abc123)$")
+
+
+def _is_dummy_content(text):
+    s = (text or "").strip()
+    if not s or len(s) > 40 or "\n" in s:
+        return False
+    # an anchored dummy word (superSecretPassword/changeme/test...) OR the whole body is a single env-var
+    # indirection (${VAR}/$VAR). NOT the broad _PLACEHOLDER (it matches a bare `$` inside a REAL secret).
+    return bool(_DUMMY_VALUE.match(s) or re.fullmatch(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?", s))
+
+
 def _locfile(rel):
     """Strip a history commit prefix (commit:file) so per-file density groups by the real file."""
     return rel.split(":", 1)[1] if (":" in rel and not rel.startswith("0x")) else rel
@@ -181,17 +197,21 @@ def scan_tree(repo, max_bytes=2_000_000):
             continue
         for fn in fnames:
             rel = os.path.normpath(os.path.join(rel_root, fn)).replace("\\", "/").lstrip("./")
-            out.extend(scan_filename(rel))
-            if _EXAMPLE.search(fn) or _GENERATED_EXT.search(fn):
-                continue                              # *.example/sample/template OR generated/minified (.html/.min.js) -> not a real leak
-            path = os.path.join(root, fn)
+            fn_leads = scan_filename(rel)
+            skip_content = bool(_EXAMPLE.search(fn) or _GENERATED_EXT.search(fn))
+            text = None
             try:
-                if os.path.getsize(path) > max_bytes:
-                    continue
-                text = open(path, encoding="utf-8", errors="ignore").read()
+                if os.path.getsize(os.path.join(root, fn)) <= max_bytes:
+                    text = open(os.path.join(root, fn), encoding="utf-8", errors="ignore").read()
             except Exception:
-                continue
-            out.extend(scan_text(text, rel))
+                text = None
+            # content-aware filename leads: a sensitive-NAMED file whose body is an obvious placeholder is not a
+            # leak (Puffer validator-keystore-password.txt == "superSecretPassword", consumed by a key-GEN script).
+            if fn_leads and text is not None and _is_dummy_content(text):
+                fn_leads = [(r, l, n + " [placeholder content]", p, max(2, pr)) for (r, l, n, p, pr) in fn_leads]
+            out.extend(fn_leads)
+            if not skip_content and text is not None:
+                out.extend(scan_text(text, rel))
     return out
 
 

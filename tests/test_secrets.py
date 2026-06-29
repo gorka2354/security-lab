@@ -87,6 +87,20 @@ check(S.scan_text('api_key="A1b2C3d4E5f6G7h8"', "verify.sh"), "a real literal ke
 check(bool(S._SKIP_DIR.search("/.yarn/releases/yarn-4.3.1.cjs")), ".yarn vendored bundle skipped (scan_tree + history)")
 check(bool(S._TEST_PATH.search("audits/Code4rena Report.md")) and bool(S._TEST_PATH.search("docs/guide.md")),
       "audits/ + docs/ paths downgraded (example/quoted keys in reports, not live secrets)")
+# content-aware filename leads: a sensitive-NAMED file with placeholder body is a fixture (Puffer
+# validator-keystore-password.txt == "superSecretPassword", consumed by a key-GEN script).
+check(S._is_dummy_content("superSecretPassword") and S._is_dummy_content("${KEYSTORE_PW}"),
+      "dummy/env-indirection content recognized as placeholder")
+check(not S._is_dummy_content("Xk9$mQ2vLp8zR4tWnB7c") and not S._is_dummy_content("8fJ2kLp9QmZx7vWnB4tc"),
+      "a real password (even with a $) is NOT dummy -> no over-suppression")
+import tempfile as _tf, os as _os
+_d = _tf.mkdtemp()
+_os.mkdir(_os.path.join(_d, "sub"))
+open(_os.path.join(_d, "validator-keystore-password.txt"), "w").write("superSecretPassword\n")
+open(_os.path.join(_d, "sub", "deploy-key.pem"), "w").write("-----BEGIN PRIVATE KEY-----\nMReal\n-----END PRIVATE KEY-----\n")
+_st = S.scan_tree(_d)
+check(all(h[4] >= 2 for h in _st if "keystore-password" in h[0]), "placeholder-content keystore-name file downgraded (Puffer FP)")
+check(any(h[4] == 0 for h in _st if "deploy-key.pem" in h[0]), "a real .pem with real key body still fires [!]")
 
 print("== suppress_dev_dumps (hardhat 2k-account / *.config.* / density — the Liquity 4000-FP class) ==")
 # filename signal: a hardhat account list is downgraded even with few hits

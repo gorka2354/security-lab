@@ -537,6 +537,7 @@ def det_upgrade(text, rel):
         nxt = text.find("function ", m.end())
         body = text[m.end():(nxt if nxt > 0 else m.end() + 240)]
         gated = ("only" in blob.lower() or INLINE_AUTH.search(blob)   # fix#17: auth modifier in signature, e.g. checkAccess(bytes4(0))
+                 or WARD_MOD.search(blob)   # fix#39: ward/`restricted`/`auth` trailing modifier (Puffer `_authorizeUpgrade(...) override restricted {}` -- OZ AccessManaged, body empty)
                  or re.search(r"msg\.sender|hasRole|_checkRole|_checkOwner|owner\(\)|require|revert", body))
         if not gated:
             out.append((rel, lineno(text, m.start()), "function _authorizeUpgrade(...)",

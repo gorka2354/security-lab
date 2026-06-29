@@ -75,6 +75,26 @@
    "chain": "eth",
    "protocol": "reserve",
    "slug": "reserve-protocol/protocol"
+  },
+  {
+   "chain": "eth",
+   "protocol": "dinari",
+   "slug": "dinaricrypto/sbt-contracts"
+  },
+  {
+   "chain": "eth",
+   "protocol": "contango",
+   "slug": "contango-xyz/core-v2"
+  },
+  {
+   "chain": "eth",
+   "protocol": "puffer",
+   "slug": "PufferFinance/PufferPool"
+  },
+  {
+   "chain": "eth",
+   "protocol": "etherfi",
+   "slug": "etherfi-protocol/smart-contracts"
   }
  ]
 }

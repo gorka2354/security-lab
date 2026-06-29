@@ -199,6 +199,8 @@ check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(addr
       "onlyOwner _authorizeUpgrade NOT flagged")
 check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal view override checkAccess(bytes4(0)) {}}"),
       "fix#17: checkAccess(bytes4(0)) _authorizeUpgrade NOT flagged (Cap selector-gating)")
+check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(address) internal virtual override restricted {}}"),
+      "fix#39: `restricted`-gated _authorizeUpgrade NOT flagged (Puffer OZ AccessManaged, empty body)")
 check(flagged(recon.det_oracle, "contract C{ function p() external { (,int a,,,)=feed.latestRoundData(); } }"),
       "latestRoundData with missing guards flagged")
 
