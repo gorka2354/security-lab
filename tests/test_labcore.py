@@ -107,5 +107,28 @@ check(ce["result"]["isError"] and "kaboom" in ce["result"]["content"][0]["text"]
 check(M.handle({"jsonrpc": "2.0", "id": 6, "method": "bogus/method"}, tools)["error"]["code"] == -32601,
       "unknown method -> -32601")
 
+print("== lab_http bridge (pure api_get / api_post routing) ==")
+import lab_http as H   # noqa: E402
+
+code, obj = H.api_get("/api/pipeline")
+check(code == 200 and "by_stage" in obj, "GET /api/pipeline -> 200 + rollup")
+code, obj = H.api_get("/api/targets?status=DIG")
+check(code == 200 and isinstance(obj, list) and all(t["status"] == "DIG" for t in obj), "GET /api/targets?status=DIG filters")
+check(H.api_get("/api/nope")[0] == 404, "unknown read api -> 404")
+
+check(H.api_post("/api/record_verdict", {"target": "X", "verdict": "bogus", "reason": "r"})[0] == 400,
+      "POST record_verdict bad verdict -> 400 (validation)")
+check(H.api_post("/api/record_verdict", {"target": "X", "verdict": "fp", "reason": ""})[0] == 400,
+      "POST record_verdict empty reason -> 400")
+check(H.api_post("/api/nope", {})[0] == 404, "unknown write api -> 404")
+# a VALID write routes to labcore — monkeypatch so the test never touches the real ledger
+_orig = H.C.record_verdict
+H.C.record_verdict = lambda *a, **k: {"ok": True, "verdict": a[1] if len(a) > 1 else k.get("verdict")}
+try:
+    code, obj = H.api_post("/api/record_verdict", {"target": "Foo", "verdict": "fp", "reason": "gated"})
+    check(code == 200 and obj["ok"] and obj["verdict"] == "fp", "POST record_verdict valid -> 200 (routes to labcore)")
+finally:
+    H.C.record_verdict = _orig
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

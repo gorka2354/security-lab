@@ -60,6 +60,16 @@
   .st-accepted,.st-fixed-silent,.st-duplicate{color:var(--clean);border-color:var(--clean)}
   .st-withdrawn,.st-disputed{color:var(--skip);border-color:var(--skip)}
   .st-drafted,.st-parked{color:var(--dig);border-color:var(--dig)}
+  #verdictbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;
+    border-bottom:1px solid var(--line);background:var(--panel)}
+  #verdictbar .vlabel{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  #verdictbar input,#verdictbar select{background:var(--bg);color:var(--txt);border:1px solid var(--line);
+    border-radius:6px;padding:5px 8px;font:12px var(--mono)}
+  #verdictbar input#v_reason{flex:1;min-width:160px}
+  #verdictbar button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:6px 12px;
+    font:12px var(--mono);cursor:pointer}
+  #verdictbar button:disabled{opacity:.5;cursor:default}
+  .vmsg{font-size:12px}.vmsg.ok{color:var(--clean)}.vmsg.bad{color:var(--real)}
   .err{padding:40px 20px;color:var(--real)}
   .foot{color:var(--dim);padding:10px 20px 30px;font-size:11px;border-top:1px solid var(--line);margin-top:10px}
 </style>
@@ -68,8 +78,20 @@
 <header>
   <h1><b>security</b>-lab · dashboard</h1>
   <span class="gen" id="gen">loading…</span>
-  <span class="gen" style="margin-left:auto">read-only view of the lab-state contract · white-hat</span>
+  <span class="gen" style="margin-left:auto">lab-state contract · white-hat</span>
 </header>
+<div id="verdictbar">
+  <span class="vlabel">record verdict:</span>
+  <input id="v_target" placeholder="target name" list="targetlist" autocomplete="off">
+  <datalist id="targetlist"></datalist>
+  <select id="v_verdict">
+    <option value="todo">todo</option><option value="real">real</option><option value="fp">fp</option>
+    <option value="known">known</option><option value="wontfix">wontfix</option>
+  </select>
+  <input id="v_reason" placeholder="reason (why)" autocomplete="off">
+  <button id="v_btn">save → ledger</button>
+  <span id="v_msg" class="vmsg"></span>
+</div>
 <div id="app"><div class="err" id="err" style="display:none"></div></div>
 <div class="foot">
   source: <code>monitor/lab-state.json</code> (read-through projection) · serve via
@@ -146,7 +168,10 @@ function parked(P){
 }
 
 function render(s){
+  window.__state = s;
   document.getElementById("gen").textContent = "generated "+(s.generated||"?")+" · v"+(s.version||"?");
+  document.getElementById("targetlist").innerHTML =
+    (s.targets||[]).map(t=>`<option value="${esc(t.name||t.id)}">`).join("");
   const m=s.metrics||{}, p=m.precision||{}, r=m.recall||{};
   const byStatus = {};
   (s.targets||[]).forEach(t=>{const c=colOf(t);byStatus[c]=(byStatus[c]||0)+1;});
@@ -167,15 +192,42 @@ function render(s){
        </section>`;
 }
 
-fetch("/monitor/lab-state.json", {cache:"no-store"})
-  .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
-  .then(render)
-  .catch(e=>{
-    document.getElementById("app").innerHTML =
-      `<div class="err">Could not load <code>/monitor/lab-state.json</code> (${esc(e.message)}).<br><br>
-       Serve from the repo root: <code>python toolkit/dashboard.py</code> (it regenerates the contract and
-       opens this page). Opening the file directly with file:// will not work (CORS + path).</div>`;
-  });
+// Prefer the live bridge (/api/state = fresh re-derive); fall back to the static file (plain http.server).
+function loadState(){
+  return fetch("/api/state",{cache:"no-store"})
+    .then(r=>{ if(!r.ok) throw 0; return r.json(); })
+    .catch(()=>fetch("/monitor/lab-state.json",{cache:"no-store"}).then(r=>{
+      if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }));
+}
+function refresh(){ return loadState().then(render); }
+
+function showErr(e){
+  document.getElementById("app").innerHTML =
+    `<div class="err">Could not load lab-state (${esc(e&&e.message||e)}).<br><br>
+     Serve from the repo root: <code>python toolkit/dashboard.py</code> (regenerates the contract + opens this).
+     Opening the file via file:// will not work (CORS + path).</div>`;
+}
+
+// verdict mutation -> POST /api/record_verdict (the HTTP bridge over labcore) -> re-derive + re-render
+const $ = id => document.getElementById(id);
+$("v_btn").addEventListener("click", ()=>{
+  const target=$("v_target").value.trim(), verdict=$("v_verdict").value, reason=$("v_reason").value.trim();
+  const msg=$("v_msg");
+  if(!target||!reason){ msg.className="vmsg bad"; msg.textContent="target + reason required"; return; }
+  $("v_btn").disabled=true; msg.className="vmsg"; msg.textContent="saving…";
+  fetch("/api/record_verdict",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({target,verdict,reason})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j})))
+    .then(({ok,j})=>{
+      if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||"failed"); return; }
+      msg.className="vmsg ok"; msg.textContent="✓ saved ("+esc(j.verdict)+")"; $("v_reason").value="";
+      return refresh();
+    })
+    .catch(e=>{ msg.className="vmsg bad"; msg.textContent="✗ bridge offline (static view) — run dashboard.py"; })
+    .finally(()=>{ $("v_btn").disabled=false; });
+});
+
+loadState().then(render).catch(showErr);
 </script>
 </body>
 </html>
