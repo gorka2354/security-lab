@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "security-lab": {
+      "command": "python3",
+      "args": ["toolkit/lab_mcp.py"]
+    }
+  }
+}
