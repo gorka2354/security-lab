@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>security-lab · dashboard</title>
+<!--
+  Inc 2 of the platform (research/platform/DESIGN-platform.md): READ-ONLY view over the lab-state CONTRACT.
+  Self-contained (no framework, no CDN, works offline). Fetches /monitor/lab-state.json, so serve from the
+  repo root: `python toolkit/dashboard.py` (regenerates the contract + opens this). Mutations are NOT here
+  (stdio MCP can't reach a browser) — they arrive in Inc 3/4 via the localhost HTTP bridge.
+-->
+<style>
+  :root{
+    --bg:#0c0f14; --panel:#11161f; --panel2:#161d28; --line:#232c3a; --txt:#cdd6e4; --dim:#7c8aa0;
+    --real:#ff5c7a; --dig:#ffb454; --park:#5cc8ff; --skip:#5a6678; --clean:#3fb37f; --acc:#8a7cff;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.5 var(--mono);}
+  a{color:var(--park);text-decoration:none}
+  header{display:flex;align-items:baseline;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;letter-spacing:.5px}
+  header h1 b{color:var(--real)}
+  .gen{color:var(--dim);font-size:12px}
+  .tiles{display:flex;gap:10px;flex-wrap:wrap;padding:14px 20px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:120px}
+  .tile .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .tile .v{font-size:20px;font-weight:600;margin-top:2px}
+  section{padding:8px 20px 20px}
+  h2{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;font-weight:600}
+  .board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-height:60px;max-height:62vh;
+    overflow:auto;display:flex;flex-direction:column}
+  .col h3{font-size:12px;margin:0;padding:8px 10px;position:sticky;top:0;background:var(--panel2);
+    border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+  .col h3 .n{color:var(--dim)}
+  .card{padding:7px 10px;border-bottom:1px solid var(--line)}
+  .card:last-child{border-bottom:0}
+  .card .nm{font-weight:600;display:flex;gap:6px;align-items:center}
+  .card .meta{color:var(--dim);font-size:11px;margin-top:2px}
+  .badge{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--dim)}
+  .lock{color:var(--dig);border-color:var(--dig)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 auto}
+  .d-REAL{background:var(--real)} .d-DIG{background:var(--dig)} .d-PARK{background:var(--park)}
+  .d-SKIP{background:var(--skip)} .d-CLEAN{background:var(--clean)}
+  .h-REAL{color:var(--real)} .h-DIG{color:var(--dig)} .h-PARK{color:var(--park)}
+  .h-SKIP{color:var(--skip)} .h-CLEAN{color:var(--clean)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 0}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row .sub{color:var(--dim);font-size:11px}
+  .fresh{color:var(--dig)} .quiet{color:var(--clean)}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:6px 14px;border-bottom:1px solid var(--line);font-size:12px}
+  th{color:var(--dim);text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+  .pill{font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid var(--line)}
+  .st-accepted,.st-fixed-silent,.st-duplicate{color:var(--clean);border-color:var(--clean)}
+  .st-withdrawn,.st-disputed{color:var(--skip);border-color:var(--skip)}
+  .st-drafted,.st-parked{color:var(--dig);border-color:var(--dig)}
+  .err{padding:40px 20px;color:var(--real)}
+  .foot{color:var(--dim);padding:10px 20px 30px;font-size:11px;border-top:1px solid var(--line);margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1><b>security</b>-lab · dashboard</h1>
+  <span class="gen" id="gen">loading…</span>
+  <span class="gen" style="margin-left:auto">read-only view of the lab-state contract · white-hat</span>
+</header>
+<div id="app"><div class="err" id="err" style="display:none"></div></div>
+<div class="foot">
+  source: <code>monitor/lab-state.json</code> (read-through projection) · serve via
+  <code>python toolkit/dashboard.py</code> · mutations land in Inc 3/4 (MCP + HTTP bridge)
+</div>
+
+<script>
+const COLS = ["REAL","DIG","PARK","SKIP","CLEAN"];      // logical pipeline columns
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// status REAL/DIG/CLEAN is what registry emits; PARK/SKIP are folded into CLEAN and recovered via `disposition`.
+function colOf(t){
+  if(t.status==="REAL") return "REAL";
+  if(t.status==="DIG")  return "DIG";
+  if(t.disposition==="park") return "PARK";
+  if(t.disposition==="skip") return "SKIP";
+  return "CLEAN";
+}
+
+function tile(k,v){ return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
+
+function targetCard(t){
+  const meta = [t.zones&&t.zones.join(","), t.fork_base&&("fork:"+t.fork_base), t.chains&&t.chains.join(",")]
+    .filter(Boolean).join(" · ");
+  const lock = t.sensitivity==="high" ? `<span class="badge lock" title="parked exploitable lead — keep private">🔒</span>` : "";
+  const nv = (t.verdicts||[]).length;
+  return `<div class="card">
+    <div class="nm">${esc(t.name||t.id)} ${lock}</div>
+    <div class="meta">${esc(meta||"—")}${nv?` · ${nv} verdict${nv>1?"s":""}`:""}</div></div>`;
+}
+
+function board(targets){
+  const buckets = Object.fromEntries(COLS.map(c=>[c,[]]));
+  targets.forEach(t=>buckets[colOf(t)].push(t));
+  return `<section><h2>Pipeline — ${targets.length} targets</h2><div class="board">` + COLS.map(c=>{
+    const items = buckets[c];
+    const cap = (c==="CLEAN"||c==="SKIP") ? 40 : 200;
+    const cards = items.slice(0,cap).map(targetCard).join("") || `<div class="card meta" style="color:var(--dim)">—</div>`;
+    const more = items.length>cap ? `<div class="card meta" style="color:var(--dim)">+${items.length-cap} more</div>` : "";
+    return `<div class="col"><h3><span class="h-${c}"><span class="dot d-${c}"></span> ${c}</span>
+      <span class="n">${items.length}</span></h3>${cards}${more}</div>`;
+  }).join("") + `</div></section>`;
+}
+
+function radarRow(name,counts,fresh){
+  const f = (fresh&&fresh.length) ? `<span class="fresh">▲ ${fresh.length} FRESH</span>` : `<span class="quiet">quiet</span>`;
+  return `<div class="row"><div>${name}<div class="sub">${counts}</div></div><div>${f}</div></div>`;
+}
+
+function radars(rd){
+  const q=rd.queue||{}, fd=rd.freshdeploy||{}, ff=rd.freshfeed||{}, sc=rd.secrets||{};
+  return `<div class="panel">
+    ${radarRow("change radar", `impl-upgrades ${q.impl_upgrades||0} · bounty-launches ${q.bounty_launches||0}`, q.fresh_items)}
+    ${radarRow("fresh-deploy", `${fd.watched||0} watched deployer(s)`, fd.fresh_items)}
+    ${radarRow("fresh-feed", `${ff.seen||0} listed seen`, ff.fresh_items)}
+    ${radarRow("secrets-sweep", `${sc.repos||0} repos · ${sc.leaks||0} leak(s)`, sc.fresh_items)}
+  </div>`;
+}
+
+function findings(F){
+  if(!F.length) return `<div class="panel"><div class="row sub">no tracked findings</div></div>`;
+  const rows = F.map(f=>`<tr>
+    <td>${esc(f.target||"")}</td>
+    <td>${esc(f.sev_claimed||"?")}${f.sev_awarded?` → ${esc(f.sev_awarded)}`:""}</td>
+    <td><span class="pill st-${esc(f.status||"")}">${esc(f.status||"?")}</span></td>
+    <td>${f.bounty_received?("$"+f.bounty_received):"—"}</td></tr>`).join("");
+  return `<table><tr><th>target</th><th>severity</th><th>status</th><th>bounty</th></tr>${rows}</table>`;
+}
+
+function parked(P){
+  if(!P.length) return `<div class="panel"><div class="row sub">none parked</div></div>`;
+  return `<div class="panel">`+P.map(p=>`<div class="row"><div>${esc(p.title||p.id)}
+    <div class="sub">fires: ${esc(p.fire_means||"?")}</div></div></div>`).join("")+`</div>`;
+}
+
+function render(s){
+  document.getElementById("gen").textContent = "generated "+(s.generated||"?")+" · v"+(s.version||"?");
+  const m=s.metrics||{}, p=m.precision||{}, r=m.recall||{};
+  const byStatus = {};
+  (s.targets||[]).forEach(t=>{const c=colOf(t);byStatus[c]=(byStatus[c]||0)+1;});
+  const tiles = tile("targets", (s.targets||[]).length)
+    + tile("REAL / DIG", `${byStatus.REAL||0} / ${byStatus.DIG||0}`)
+    + tile("findings", (s.findings||[]).length)
+    + tile("parked", (s.parked||[]).length)
+    + tile("repos watched", (s.repos||[]).length)
+    + tile("precision", p.value==null?"n/a":p.value)
+    + tile("recall", r.value==null?"n/a":r.value);
+  document.getElementById("app").innerHTML =
+    `<div class="tiles">${tiles}</div>`
+    + board(s.targets||[])
+    + `<section><h2>Radars</h2>${radars(s.radars||{})}</section>`
+    + `<section class="grid2">
+        <div><h2>Findings (lifecycle)</h2>${findings(s.findings||[])}</div>
+        <div><h2>Parked leads</h2>${parked(s.parked||[])}</div>
+       </section>`;
+}
+
+fetch("/monitor/lab-state.json", {cache:"no-store"})
+  .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+  .then(render)
+  .catch(e=>{
+    document.getElementById("app").innerHTML =
+      `<div class="err">Could not load <code>/monitor/lab-state.json</code> (${esc(e.message)}).<br><br>
+       Serve from the repo root: <code>python toolkit/dashboard.py</code> (it regenerates the contract and
+       opens this page). Opening the file directly with file:// will not work (CORS + path).</div>`;
+  });
+</script>
+</body>
+</html>
