@@ -41,6 +41,29 @@ def section(title):
     print(f"\n\033[1m{title}\033[0m" if sys.stdout.isatty() else f"\n{title}")
 
 
+def platform_block():
+    """Rollup straight from the lab-state CONTRACT (monitor/lab-state.json) — proves the contract is a
+    consumable single source, not just a file the dashboard reads. Generates it if missing/stale."""
+    try:
+        import labstate
+        state = labstate.build()   # generate-on-read (sub-100ms); always current
+    except Exception:
+        return
+    section("PLATFORM  (lab-state contract — unified rollup)")
+    ts = state["targets"]
+    by = {}
+    for t in ts:
+        by[t["status"]] = by.get(t["status"], 0) + 1
+    order = sorted(by.items(), key=lambda kv: {"REAL": 0, "DIG": 1, "PARK": 2, "CLEAN": 3}.get(kv[0], 9))
+    print("  targets: " + ", ".join(f"{k} {v}" for k, v in order) + f"  (of {len(ts)})")
+    m = state["metrics"]
+    print(f"  findings: {len(state['findings'])} tracked (precision {m['precision']['value']}, "
+          f"recall {m['recall']['value']}) | parked: {len(state['parked'])} | repos watched: {len(state['repos'])}")
+    rd = state["radars"]
+    fresh = sum(len(rd[k].get("fresh_items", [])) for k in rd)
+    print(f"  radars: {'ALL QUIET' if not fresh else str(fresh) + ' FRESH item(s) -> see QUEUE/FRESH-*'}")
+
+
 def git_block(do_fetch):
     branch = sh("git", "rev-parse", "--abbrev-ref", "HEAD") or "?"
     if do_fetch:
@@ -188,6 +211,7 @@ def main():
     title = f"=== security-lab brief  {today} ==="
     print("\033[1m" + title + "\033[0m" if sys.stdout.isatty() else title)
     git_block(a.fetch)
+    platform_block()
     radar_block()
     freshdeploy_block()
     freshfeed_block()

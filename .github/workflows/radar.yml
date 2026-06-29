@@ -32,13 +32,14 @@ jobs:
           python toolkit/radar.py || true        # exit 10 = NEW changes queued, not a failure
           python toolkit/freshdeploy.py || true  # exit 10 = NEW fresh deploy from a watched deployer/factory
           python toolkit/freshfeed.py --days 7 || true  # exit 10 = NEW fresh-listed/verified code (wide net)
+          python toolkit/labstate.py                     # re-derive the lab-state contract from the refreshed caches
       - name: commit radar state
         run: |
           git config user.name  "radar-bot"
           git config user.email "radar@security-lab.local"
           git add -f monitor/registry.json monitor/REGISTRY.md monitor/radar-seen.json hunts/_radar/QUEUE.md \
                      monitor/deployers.json monitor/freshdeploy-seen.json hunts/_radar/FRESH-DEPLOY.md \
-                     monitor/freshfeed-seen.json hunts/_radar/FRESH-FEED.md
+                     monitor/freshfeed-seen.json hunts/_radar/FRESH-FEED.md monitor/lab-state.json
           git diff --cached --quiet || git commit -m "chore(radar): state $(date -u +%FT%TZ) [skip ci]"
           git pull --rebase --autostash || true
           git push
