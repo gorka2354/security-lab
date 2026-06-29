@@ -55,6 +55,26 @@
    "chain": "eth",
    "protocol": "sofa",
    "slug": "sofa-org/sofa-protocol"
+  },
+  {
+   "chain": "eth",
+   "protocol": "level-money",
+   "slug": "level-money/contracts"
+  },
+  {
+   "chain": "eth",
+   "protocol": "midas",
+   "slug": "midas-protocol/contracts"
+  },
+  {
+   "chain": "eth",
+   "protocol": "superform",
+   "slug": "superform-xyz/superform-core"
+  },
+  {
+   "chain": "eth",
+   "protocol": "reserve",
+   "slug": "reserve-protocol/protocol"
   }
  ]
 }

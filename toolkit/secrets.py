@@ -35,8 +35,12 @@ CONTENT = [
                      \s* [:=]{1,2} \s* (["'])([^"'\s]{12,})\2"""), 0, True),
 ]
 # obvious non-secrets that match "secret assigned to a literal" -> drop (placeholders / env indirection)
-_PLACEHOLDER = re.compile(r"(?i)\b(your[-_ ]?|example|changeme|placeholder|dummy|<[^>]+>|xxx+|\.\.\.|"
-                          r"process\.env|os\.environ|import\.meta\.env|\$\{|getenv|vault:|secret_ref)")
+# NOTE: split into \b-gated WORD alternatives + un-gated SYMBOL alternatives. The old single `\b(...)` group
+# made `\$\{` / `<...>` / `...` DEAD (no word-boundary exists before a non-word char like `$`), so shell-var
+# values `api_key="${api_keys[$i]}"` leaked as [!]. Now symbol forms match anywhere; also added bare `$VAR`.
+_PLACEHOLDER = re.compile(r"(?i)(\b(your[-_ ]?|example|changeme|placeholder|dummy|xxx+|getenv|"
+                          r"process\.env|os\.environ|import\.meta\.env|vault:|secret_ref)"
+                          r"|<[^>]+>|\.\.\.|\$\{|\$[A-Za-z_][A-Za-z0-9_]{2,})")
 # --- filename patterns: a sensitive file is a lead by its PATH alone ---
 FILENAME = [
     ("private-key file (.pem/.key/.p12/.pfx)", re.compile(r"(?i)\.(pem|key|p12|pfx|asc|ppk)$"), 0),
@@ -54,7 +58,7 @@ _HISTORY_PREFILTER = (
     "|[Mm]nemonic|[Ss]eed[_ ]?[Pp]hrase|[Pp]assw|enclave"
     "|0x?[a-fA-F0-9]{64}"
 )
-_SKIP_DIR = re.compile(r"(^|/)(\.git|node_modules|lib|out|artifacts|cache|dist|build|vendor|"
+_SKIP_DIR = re.compile(r"(^|/)(\.git|node_modules|\.yarn|\.pnp|lib|out|artifacts|cache|dist|build|vendor|"
                        r"forge-std|openzeppelin|\.venv|venv|__pycache__)(/|$)")
 _EXAMPLE = re.compile(r"(?i)\.(example|sample|template|dist)$|\.env\.(example|sample|template)")
 # generated / minified / doc files are not source -> a "key=" match there is junk (minified JS in an .html,
@@ -75,7 +79,7 @@ _KNOWN_DEV_KEYS = {
     "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6",
 }
 # test/fixture paths hold throwaway keys (test-vectors, mocks) -> downgrade, don't cry wolf (recon _TESTRE parallel)
-_TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?)([/]|$)", re.I)
+_TEST_PATH = re.compile(r"(^|[:/])(tests?|test-?suites?|mocks?|scripts?|fixtures?|test-?vectors?|testdata|examples?|audits?|docs?)([/]|$)", re.I)
 
 # Generated dev-account / config dumps that are NOT leaks: hardhat/ganache/anvil deterministic test accounts
 # (the public 2000-key list - every install ships it), test-wallet fixtures, *.config.* dev keys. The Liquity
@@ -207,7 +211,7 @@ def scan_history(repo, rng=None):
             commit = line.split()[1][:10]
         elif line.startswith("+++ b/"):
             rel = line[6:]
-        elif (line.startswith("+") and not line.startswith("+++")
+        elif (line.startswith("+") and not line.startswith("+++") and not _SKIP_DIR.search("/" + rel)
               and not _EXAMPLE.search(os.path.basename(rel)) and not _GENERATED_EXT.search(os.path.basename(rel))):
             for (_, _l, name, preview, prio) in scan_text(line[1:], f"{commit}:{rel}"):
                 out.append((f"{commit}:{rel}", 0, name + " [in git history]", preview, max(0, prio)))

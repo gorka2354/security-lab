@@ -1211,5 +1211,10 @@ check(analyze._drive_to_mnt("C:\\Users\\pesto\\repo\\src") == "/mnt/c/Users/pest
 check(analyze._drive_to_mnt("/home/x/y") == "/home/x/y",
       "analyze._drive_to_mnt: a posix path passes through (Linux/CI local-slither case)")
 
+print("== _TESTRE path downgrade (fix#36 FV-scaffolding, fix#38 deploy scripts) ==")
+check(bool(recon._TESTRE.search("certora/harness/CacheHarness.sol")), "fix#36: certora/harness path downgraded (FV plumbing)")
+check(bool(recon._TESTRE.search("config/deploy/Mainnet.sol")), "fix#38: deploy/ path downgraded (Level deploy-script initialize())")
+check(not recon._TESTRE.search("src/Vault.sol"), "production src/ path NOT downgraded")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

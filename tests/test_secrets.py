@@ -77,6 +77,16 @@ check(S.scan_text('private_key="0x' + '1' * 64 + '"', "deploy.sh"), "a NON-defau
 # generated/minified files skipped for content (ion offchain/output.html minified-JS FP)
 check(bool(S._GENERATED_EXT.search("offchain/files/output.html")) and bool(S._GENERATED_EXT.search("bundle.min.js")),
       "generated/minified extensions matched (.html/.min.js skipped in scan_tree+history)")
+# shell-var values are env indirection, not secrets (superform verify_contracts.sh `api_key="${api_keys[$i]}"`).
+# the old _PLACEHOLDER had a leading \b that made the `\$\{` branch dead -> this is the regression guard.
+check(not S.scan_text('api_key="${api_keys[$i]}"', "verify.sh"), "shell brace-var ${..} dropped (placeholder \\b fix)")
+check(not S.scan_text('api_key="$BSCSCAN_API_KEY"', "verify.sh"), "bare shell $VAR dropped")
+check(not S.scan_text('token = "<your-api-key-here>"', "x.js"), "<...> placeholder dropped (was dead under \\b)")
+check(S.scan_text('api_key="A1b2C3d4E5f6G7h8"', "verify.sh"), "a real literal key in a .sh still fires")
+# vendored yarn bundle + audit/docs reports are not protocol secrets (reserve .yarn/*.cjs + audits/*.md AKIA)
+check(bool(S._SKIP_DIR.search("/.yarn/releases/yarn-4.3.1.cjs")), ".yarn vendored bundle skipped (scan_tree + history)")
+check(bool(S._TEST_PATH.search("audits/Code4rena Report.md")) and bool(S._TEST_PATH.search("docs/guide.md")),
+      "audits/ + docs/ paths downgraded (example/quoted keys in reports, not live secrets)")
 
 print("== suppress_dev_dumps (hardhat 2k-account / *.config.* / density — the Liquity 4000-FP class) ==")
 # filename signal: a hardhat account list is downgraded even with few hits

@@ -42,7 +42,7 @@ WRITE = re.compile(r"\b\w+(\[[^\]]*\])?\s*(=|\+=|-=)(?!=)|\bdelete\s+\w+")
 GUARD = re.compile(r"nonreentrant|noreentr|reentrancyguard", re.I)
 
 # test/mock/script files are noise when hunting production bugs -> deprioritize
-_TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?|certora|harness|echidna|halmos|fuzz)/", re.I)  # fix#36: + formal-verification / fuzz scaffolding (Euler certora/harness/*Harness.sol is FV plumbing, not production)
+_TESTRE = re.compile(r"(^|/)(tests?|mocks?|scripts?|certora|harness|echidna|halmos|fuzz|deploy)/", re.I)  # fix#36: + FV/fuzz scaffolding (Euler certora/harness). fix#38: + deploy/ scripts (Level config/deploy/Mainnet.sol initialize() is deploy plumbing, not a prod target)
 
 # arbitrary external call (bridge-aggregator approval-drain class)
 ARBCALL = re.compile(r"\.call\s*[\({]|\.delegatecall\s*\(")
