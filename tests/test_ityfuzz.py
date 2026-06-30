@@ -29,7 +29,8 @@ def check(cond, msg):
 
 print("== build_cmd (onchain-fork invocation) ==")
 cmd = L.build_cmd("0xABC", "eth", 19000000, "/tmp/wd", flashloan=True, etherscan_key="K")
-check(cmd[:6] == ["ityfuzz", "evm", "-o", "-t", "0xABC", "-c"], "evm -o -t <addr> -c prefix")
+check(cmd[:7] == ["ityfuzz", "evm", "-t", "0xABC", "--target-type", "address", "-c"],
+      "evm -t <addr> --target-type address -c prefix (onchain via chain-type, no -o in this version)")
 check("ETH" in cmd, "chain alias eth -> ETH")
 check("--onchain-block-number" in cmd and "19000000" in cmd, "block passed")
 check("-f" in cmd, "flashloan/economic oracle on by default")

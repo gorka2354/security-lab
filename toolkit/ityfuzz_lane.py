@@ -45,14 +45,20 @@ def available():
     return shutil.which("ityfuzz") is not None
 
 
-def build_cmd(address, chain, block, work_dir, flashloan=True, etherscan_key=None, rpc=None):
-    """Construct the ItyFuzz onchain-fork invocation. Pure -> testable."""
+def build_cmd(address, chain, block, work_dir, flashloan=True, etherscan_key=None, rpc=None, explorer_url=None):
+    """Construct the ItyFuzz onchain-fork invocation. Pure -> testable.
+    KEY CONSTRAINT (calibrated live): ItyFuzz fetches the ABI from the chain's LEGACY explorer (eth ->
+    api.etherscan.io, bsc -> api.bscscan.com, ...). Our Etherscan-v2 multichain key is native on ETH but is
+    REJECTED by bscscan.com etc. -> non-eth chains need a chain-native key (or an --explorer-url v2 override)."""
     c = CHAIN.get(str(chain).lower(), str(chain).upper())
-    cmd = ["ityfuzz", "evm", "-o", "-t", address, "-c", c]
+    # onchain mode in this ItyFuzz (nightly fb4e87a) = chain-type + target-type address; there is NO -o flag.
+    cmd = ["ityfuzz", "evm", "-t", address, "--target-type", "address", "-c", c]
     if block:
         cmd += ["--onchain-block-number", str(block)]
     if rpc:
         cmd += ["--onchain-url", rpc]
+    if explorer_url:
+        cmd += ["--onchain-explorer-url", explorer_url]
     if etherscan_key:
         cmd += ["--onchain-etherscan-api-key", etherscan_key]
     if flashloan:
@@ -76,14 +82,15 @@ def parse_output(text):
 
 
 def run(address, chain="eth", block=None, timeout=600, flashloan=True, work_dir=None, etherscan_key=None,
-        rpc=None, _runner=subprocess.run):
+        rpc=None, explorer_url=None, _runner=subprocess.run):
     """Run ItyFuzz against a forked target, parse the result. _runner injectable for tests."""
     if not available():
         return {"ok": False, "installed": False, "hint": INSTALL}
     work_dir = work_dir or os.path.join("/tmp", "ityfuzz", str(address)[:10])
     os.makedirs(work_dir, exist_ok=True)
     key = etherscan_key or os.environ.get("ETHERSCAN_API_KEY")
-    cmd = build_cmd(address, chain, block, work_dir, flashloan=flashloan, etherscan_key=key, rpc=rpc)
+    cmd = build_cmd(address, chain, block, work_dir, flashloan=flashloan, etherscan_key=key, rpc=rpc,
+                    explorer_url=explorer_url)
     out = ""
     try:
         p = _runner(cmd, capture_output=True, text=True, timeout=timeout)
@@ -107,6 +114,8 @@ def main():
     ap.add_argument("--timeout", type=int, default=600, help="seconds to fuzz (the fuzzer runs until this)")
     ap.add_argument("--no-flashloan", action="store_true", help="disable the flashloan/economic oracle")
     ap.add_argument("--rpc", default=None, help="onchain RPC url override")
+    ap.add_argument("--explorer-url", default=None,
+                    help="ABI-explorer url override (non-eth chains need a chain-native key; our v2 key is eth-only)")
     ap.add_argument("--check", action="store_true", help="just report whether ityfuzz is installed")
     a = ap.parse_args()
 
@@ -121,8 +130,12 @@ def main():
     if not available():
         print("[ityfuzz] " + INSTALL)
         sys.exit(0)
+    if a.chain.lower() not in ("eth", "ethereum") and not a.explorer_url and os.environ.get("ETHERSCAN_API_KEY"):
+        print("[ityfuzz] NOTE: non-eth chain — our Etherscan-v2 key is rejected by the legacy explorer "
+              "(bscscan.com etc). Pass a chain-native key or --explorer-url, else ABI fetch fails.")
     print(f"[ityfuzz] fuzzing {a.address} on {a.chain} @ block {a.block or 'latest'} for {a.timeout}s ...")
-    res = run(a.address, a.chain, a.block, timeout=a.timeout, flashloan=not a.no_flashloan, rpc=a.rpc)
+    res = run(a.address, a.chain, a.block, timeout=a.timeout, flashloan=not a.no_flashloan, rpc=a.rpc,
+              explorer_url=a.explorer_url)
     print(json.dumps(res, indent=1))
     if res.get("found"):
         print(f"\n[ityfuzz] >>> {res['n_signals']} bug-signal(s)"

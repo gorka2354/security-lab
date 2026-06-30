@@ -48,10 +48,19 @@ of recon). Everything else is incremental coverage. Prioritize the three.
 - **ItyFuzz dynamic fork-fuzz lane (Tier-2 #1) = BUILT** — `toolkit/ityfuzz_lane.py`: wraps ItyFuzz as the
   post-DIG auto-confirm / auto-find step (onchain-fork fuzz of a live address+chain+block; economic oracle
   via `-f`; works on unverified bytecode). `build_cmd` + `parse_output` pure + golden-tested (15); graceful
-  when the binary is absent (prints install, never crashes). **Needs install to RUN** (prebuilt:
-  `curl -L https://ity.fuzz.land/install.sh | bash && ityfuzzup`; not installed here — Mac, no cargo). Flags
-  + bug-markers are a version-tolerant superset; calibrate against real output once installed. Follow-up:
-  wire as an MCP trigger-tool (`lab_ityfuzz`) + a `--from-dig` that pulls a target's address from labcore.
+  when the binary is absent (prints install, never crashes).
+  - **INSTALLED + PROVEN (2026-06-30):** prebuilt via `curl -L https://ity.fuzz.land/install.sh | bash &&
+    ityfuzzup` worked on Mac darwin/arm64 (nightly fb4e87a; ~/.ityfuzz/bin). Lane proven END-TO-END: run() on
+    BEGO/BSC invoked ityfuzz, captured, parsed, returned clean `{ok:true,...}` (no crash).
+  - **CALIBRATED vs real CLI:** dropped `-o` (this version has NO onchain flag; onchain = `-c <chain>` +
+    `--target-type address`); confirmed `-t/-c/-b/-f/-w/-k/-u/-e`.
+  - **KEY CONSTRAINT (found live):** ItyFuzz fetches ABI from the chain's LEGACY explorer (eth->etherscan.io,
+    bsc->bscscan.com). Our Etherscan-**v2** multichain key is native on ETH but REJECTED by bscscan.com etc ->
+    non-eth chains need a chain-native key or `--explorer-url`. Added `-e/--explorer-url` + a warning.
+  - **STILL UN-VALIDATED:** parse_output markers vs a REAL find (the BSC run found nothing: ABI fetch failed on
+    the v2-key/bscscan mismatch). Calibrate markers on the first real find on an **in-scope ETH** target (key
+    native there) -> that's a HUNT (Gate-0), not a benchmark guess.
+  - Follow-up: MCP trigger-tool `lab_ityfuzz` + `--from-dig` (pull a target address from labcore).
 
 ## Tier-1 follow-up notes (2026-06-28)
 - **registry --query DONE** — instant memory recall over monitor/registry.json (`--query <text>` + `--status/--zone/--fork/--chain/--owasp`). E.g. `registry.py --fork liquity` = the batch-CVE family. +5 tests.
