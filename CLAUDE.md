@@ -53,6 +53,15 @@
 - **СТАРТ СЕССИИ:** `source toolkit/env.sh` (ставит PATH: forge/solc/brew + Etherscan-ключ; чинит слетающий PATH)
   → `python toolkit/brief.py` (утренний дашборд: git-синк + radar `QUEUE.md` + open DIGs реестра + parked-лиды +
   last fan-out; `--fetch`/`--contests` для network). Это первое, что гоняем — заменяет ручной сбор «что свежего».
+- **ПЛАТФОРМА (визуал+взаимодействие над всем движком; 3-слойная, расширяемая; `research/platform/DESIGN-platform.md`):**
+  `labstate.py` (Layer 0 — КОНТРАКТ `monitor/lab-state.json`: read-through JOIN над кэшами registry/ledger/
+  calibration/watchlist/repos×secrets-seen/радары; `--public` = sanitized-проекция по `sensitivity`) →
+  `labcore.py` (Layer 1 — операции + мутация `record_verdict`→ledger→re-derive) → два фронта над одним ядром:
+  `lab_mcp.py` (Layer 2a — stdlib MCP-сервер, 9 тулов, без pip; `.mcp.json` регистрирует в Claude Code:
+  lab_pipeline/next_dig/targets/record_verdict/…) + `web/index.html` (Layer 2b — kanban 5-колонок+радары+
+  findings+parked) через `lab_http.py` (Layer 1.5 — localhost HTTP-bridge: GET/POST `/api/*`; `--public --token`
+  = LAN/телефон, sanitized+token-gated, без мутаций). Запуск: `python toolkit/dashboard.py` (→ :8787).
+  brief.py имеет PLATFORM-блок (читает контракт). Тяжёлые действия пока в CLI/кроне — trigger-тулы добавляем по ходу.
 - **White-hat жёстко:** тестируем только in-scope авторизованных баунти; ответственное раскрытие; **чужие средства не трогаем**. Известный/исправленный баг ≠ находка.
 - Foundry/solc не в PATH по умолчанию → `source toolkit/env.sh` (или префикс `export PATH="/opt/homebrew/bin:$HOME/.foundry/bin:$PATH"`).
 - `forge init` оставляет `script/Counter.s.sol` — удаляй вместе с `src/Counter.sol`.
