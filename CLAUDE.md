@@ -32,7 +32,10 @@
   каждый прогон). Урок свипа 44 in-scope репо: топ-протоколы не льют ЖИВЫХ ключей, но коммитят горы dev/test/CI —
   поэтому 8+ FP-классов затюнено (docker-стек/devnet-toml/CI/source-keystore/test-каталоги/.md-доки/Makefile/.env-template)),
   `ledger.py` (память вердиктов), `scaffold.py` (L3, мульти-движок:
-  Foundry/Echidna/Medusa/Halmos), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
+  Foundry/Echidna/Medusa/Halmos), `ityfuzz_lane.py` (ДИНАМИЧЕСКИЙ fork-фуз, Tier-2 #1: обёртка над ItyFuzz —
+  авто-находит эксплойты на форке live-адреса с economic-oracle `-f`, работает на unverified bytecode;
+  post-DIG auto-confirm; `build_cmd`/`parse_output` golden-тест, gracefully без бинаря; install:
+  `curl -L https://ity.fuzz.land/install.sh | bash && ityfuzzup`), `analyze.py` (L2), `deepdive.py` (per-target bespoke-workspace для
   глубокого копания: differential-модель / bespoke-инвариант / state-machine), `activity.py` (LIVE-FIRST
   Phase-0/1 гейт: code+own-totalSupply+txlist-liveness+active+value? totalSupply==0 -> EMPTY; getLogs может
   false-0 -> Etherscan-v2 txlist authoritative override (death.fun урок); park/skip — ДО чтения И как

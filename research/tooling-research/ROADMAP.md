@@ -44,6 +44,15 @@ of recon). Everything else is incremental coverage. Prioritize the three.
 4. Backlog as capacity allows.
 
 
+## Tier-2 follow-up notes (2026-06-30)
+- **ItyFuzz dynamic fork-fuzz lane (Tier-2 #1) = BUILT** — `toolkit/ityfuzz_lane.py`: wraps ItyFuzz as the
+  post-DIG auto-confirm / auto-find step (onchain-fork fuzz of a live address+chain+block; economic oracle
+  via `-f`; works on unverified bytecode). `build_cmd` + `parse_output` pure + golden-tested (15); graceful
+  when the binary is absent (prints install, never crashes). **Needs install to RUN** (prebuilt:
+  `curl -L https://ity.fuzz.land/install.sh | bash && ityfuzzup`; not installed here — Mac, no cargo). Flags
+  + bug-markers are a version-tolerant superset; calibrate against real output once installed. Follow-up:
+  wire as an MCP trigger-tool (`lab_ityfuzz`) + a `--from-dig` that pulls a target's address from labcore.
+
 ## Tier-1 follow-up notes (2026-06-28)
 - **registry --query DONE** — instant memory recall over monitor/registry.json (`--query <text>` + `--status/--zone/--fork/--chain/--owasp`). E.g. `registry.py --fork liquity` = the batch-CVE family. +5 tests.
 - **Solodit known-bug check = DEAD END** — no free public API (solodit.cyfrin.io is a SPA, /api/ 404s). Would need auth or scraping -> backlog, low priority.
