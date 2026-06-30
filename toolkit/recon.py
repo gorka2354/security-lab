@@ -91,6 +91,21 @@ LIB_DELEGATE = re.compile(r"\b(?:Lib|I?[A-Z]\w*Lib)\w*\.\w+\s*\(")
 # `_mint`/`_burn` primitive or an external `.mint()` -> downgrade [!]->[.] (fix#19 family).
 MINT_WRAPPER = re.compile(r"(?<![._A-Za-z0-9])(?:mint|burn)(?:[A-Z]\w*)?\s*\(")  # fix#31: also a bare `mint(`/`burn(` public-sibling call (Mellow mintAllocatedShares -> gated mint())
 
+# ── pause-bypass (det_paused, testmine-sourced: `paused` is tested by 9/24 projects, was an uncovered class) ──
+# does the contract have a pause mechanism at all? (else there's nothing to bypass)
+PAUSE_PRESENT = re.compile(r"whenNotPaused|whenPaused|Pausable|_?requireNotPaused|\bisPaused\b|"
+                           r"\bpaused\s*\(\)|\b_paused\b|whenNotStopped|\b_?stopped\b")
+# a function IS pause-gated (modifier or inline check)
+PAUSE_GATE = re.compile(r"whenNotPaused|whenNotStopped|notPaused\b|_?requireNotPaused\s*\(|"
+                        r"require\s*\(\s*!\s*(paused|_paused|isPaused|stopped|_stopped)\b|"
+                        r"!\s*paused\s*\(\)|paused\s*\(\)\s*==\s*false")
+# RISKY-IF-OPEN operations: open-during-pause is the actual hazard (take a loan / trade / mint / move tokens
+# during an incident). EXITS (withdraw/unstake/exit/redeem/claim) are deliberately LEFT open during a pause
+# so users aren't trapped -> NOT a bug, excluded. This is the key severity nuance (the abracadabra lesson).
+DANGER_FN = re.compile(r"(?i)^(borrow\w*|swap\w*|flash\w*|liquidat\w*|mint|leverage\w*|repay\w*|"
+                       r"transfer|transferFrom|wrap|donate|notifyReward\w*)$")
+
+
 # ── research-engine harvest (patterns/ -> detectors). Each is a LEAD, not a verdict. ──
 # Pattern 03 reward-accounting: a write to an "already-claimed" marker. If a reward payout
 # transfers value but never writes one (or writes it AFTER the transfer), suspect double-claim.
@@ -208,6 +223,38 @@ def det_sibling(text, rel):
     return [(rel, ln, f"function {name}(...)",
              f"UNGATED, but siblings here use [{glist}] -> inconsistent?", 0)
             for name, ln, _ in ungated_priv]
+
+
+# ── Detector 2d: pause-bypass (testmine-sourced — `paused` tested by 9/24 projects, was uncovered) ──
+def det_paused(text, rel):
+    """The contract has a pause mechanism AND some siblings are whenNotPaused-gated, but a USER value-moving
+    fn (withdraw/borrow/transfer/...) is NOT pause-gated -> an incident-pause won't stop that path. FP-gated:
+    needs a real pause mechanism + >=1 gated sibling; ADMIN fns excluded (admin must act WHILE paused)."""
+    if not PAUSE_PRESENT.search(text):
+        return []
+    funcs = []   # (name, ln, pause_gated, admin_gated)
+    for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
+        name, blob = m.group(1), m.group(2)
+        if not re.search(r"\b(external|public)\b", blob) or re.search(r"\b(view|pure)\b", blob):
+            continue
+        nxt = text.find("function ", m.end())
+        body = text[m.end():(nxt if nxt > 0 else m.end() + 1500)]
+        pause_gated = bool(PAUSE_GATE.search(blob) or PAUSE_GATE.search(body))
+        admin_gated = bool("only" in blob.lower() or WARD_MOD.search(blob)
+                           or INLINE_AUTH.search(blob) or INLINE_AUTH.search(body))
+        funcs.append((name, lineno(text, m.start()), pause_gated, admin_gated))
+    if not any(f[2] for f in funcs):     # pause keywords but nothing gated -> not the pattern, avoid FP
+        return []
+    out = []
+    for name, ln, pg, ag in funcs:
+        if pg or ag:                     # already pause-gated, OR admin (admin acts during pause) -> skip
+            continue
+        if DANGER_FN.match(name):        # exits (withdraw/exit/redeem) intentionally open -> not in DANGER_FN
+            out.append((rel, ln, f"function {name}(...)",
+                        "pause present + siblings use whenNotPaused, but this RISKY-if-open op is NOT "
+                        "pause-gated -> pause-bypass? an incident-pause won't stop borrow/swap/mint/transfer "
+                        "here (exits are intentionally open, so this is the dangerous asymmetry)", 0))
+    return out
 
 
 # ── Detector 2c: supply integrity (mint/burn entry points) ──
@@ -1733,6 +1780,8 @@ DETECTORS = [
      "Heuristic 3: in this contract some privileged fns ARE gated, this one is NOT."),
     ("ACCESS CONTROL leads (privileged fn, no modifier)", det_access,
      "Heuristic 3: who SHOULD call this? Compare siblings / old version."),
+    ("PAUSE-BYPASS (value-moving fn not whenNotPaused while siblings are)", det_paused,
+     "testmine-sourced: pause gates user actions; an ungated withdraw/borrow survives an incident-pause."),
     ("SUPPLY INTEGRITY (mint/burn entry points)", det_mint,
      "Heuristic 5: can the token be minted from nothing? EVM cousin of Zcash counterfeiting."),
     ("REENTRANCY (external call then state write)", det_reentrancy,
@@ -1842,7 +1891,7 @@ def det_key(title):
     verdict survives wording changes. Check 'sibling' before 'access' (the
     sibling title contains both)."""
     t = title.lower()
-    for sub, k in (("sibling", "sibling"), ("access control leads", "access"),
+    for sub, k in (("pause-bypass", "pause"), ("sibling", "sibling"), ("access control leads", "access"),
                    ("share-price rounding", "vaultsharemath"), ("supply", "supply"), ("receiver-hook", "nftcallback"),
                    ("read-only reentrancy", "roreentrancy"), ("reentrancy", "reentrancy"),
                    ("arbitrary", "arbcall"), ("signature", "signature"),

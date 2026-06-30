@@ -127,6 +127,30 @@ check(not flagged(recon.det_access, "contract C{function upgradeNode(address n) 
 check(not flagged(recon.det_sibling, "contract C{function setA(uint x) external onlyOwner{a=x;} function setStakingTargetWeights(uint32 a,uint32 b) external {}}", "setStakingTargetWeights"),
       "fix#37b: empty-body deprecated stub not sibling-flagged (LiquidityPool no-op)")
 
+print("== det_paused (pause-bypass — testmine-sourced detector) ==")
+_pb = ("contract C{function deposit() external whenNotPaused { x=1; }"
+       " function borrow(uint a) external { pay(a); }}")
+check(flagged(recon.det_paused, _pb, "borrow"),
+      "RISKY borrow NOT whenNotPaused while sibling deposit IS -> pause-bypass flagged")
+check(not flagged(recon.det_paused, "contract C{function deposit() external whenNotPaused { x=1; }"
+                  " function withdraw(uint a) external { pay(a); } function exit() external { pay(1); }}", "withdraw"),
+      "EXITS (withdraw/exit) NOT flagged — open-during-pause is intended (anti-fund-trap); the abracadabra lesson")
+check(not flagged(recon.det_paused, "contract C{function deposit() external whenNotPaused { x=1; }"
+                  " function borrow(uint a) external whenNotPaused { pay(a); }}"),
+      "borrow IS whenNotPaused -> not flagged")
+check(not flagged(recon.det_paused, "contract C{function deposit() external { x=1; } function borrow(uint a) external { pay(a); }}"),
+      "no pause mechanism at all -> not flagged (nothing to bypass)")
+check(not flagged(recon.det_paused, "contract C{function deposit() external whenNotPaused { x=1; }"
+                  " function mintFees(uint a) external onlyOwner { _mint(a); }}", "mintFees"),
+      "admin (onlyOwner) excluded -> admin must act WHILE paused")
+check(not flagged(recon.det_paused, "contract C is Pausable { function borrow(uint a) external { pay(a); }}"),
+      "pause present but NOTHING gated -> not the pattern (FP guard)")
+check(not flagged(recon.det_paused, "contract C{function deposit() external whenNotPaused { x=1; }"
+                  " function borrow(uint a) external { _requireNotPaused(); pay(a); }}"),
+      "inline _requireNotPaused() in body counts as gated -> not flagged")
+check(recon.det_key("PAUSE-BYPASS (value-moving fn not whenNotPaused while siblings are)") == "pause",
+      "det_key maps pause-bypass -> 'pause' (ledger stability)")
+
 print("== det_mint (supply integrity, _msgSender fix) ==")
 check(flagged(recon.det_mint, "contract C{function mint(address t,uint a) external { _mint(t,a); }}", "mint"),
       "public mint flagged")

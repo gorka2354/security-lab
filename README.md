@@ -16,7 +16,7 @@
 
 | | | |
 |---|---|---|
-| 🎯 **45** SOURCE-детекторов | 🧪 **640** golden-тестов (CI-гейт) | 📡 **24/7** облачные радары |
+| 🎯 **46** SOURCE-детекторов | 🧪 **640** golden-тестов (CI-гейт) | 📡 **24/7** облачные радары |
 | 🔑 secrets-sweep (Taiko-класс) | 🤖 динамический фуз (ItyFuzz) | 🖥️ дашборд + MCP-платформа |
 
 ---
@@ -72,7 +72,7 @@
 ### DETECT — найти улики
 | Тул | Что делает |
 |---|---|
-| `recon.py` | **СТАТИКА** — 45 детекторов (access-control, spot-oracle, reentrancy, supply, decimal-scale, trust-anchor, vault-share-math, …); FP-тюненные, class-gated, network-agnostic |
+| `recon.py` | **СТАТИКА** — 46 детекторов (access-control, spot-oracle, reentrancy, supply, decimal-scale, trust-anchor, vault-share-math, …); FP-тюненные, class-gated, network-agnostic |
 | `ityfuzz_lane.py` | **ДИНАМИКА** — обёртка над ItyFuzz: fork-фуз live-адреса, economic-oracle (profit), unverified bytecode. Post-DIG auto-confirm |
 | `secrets_sweep.py` | `secrets.py` на масштабе: репо живых протоколов → clone+история → утечки ключей |
 | `hypothesize.py` | инвариант-сиды (CORE/ECONOMIC/GAMEFI/BRIDGE) для фуз/символик |

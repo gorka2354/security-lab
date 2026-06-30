@@ -18,7 +18,7 @@
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
-  `recon.py` (L1, 45 детекторов; вкл. `det_trust_anchor` — verifier с одним signer/measurement без кворума,
+  `recon.py` (L1, 46 детекторов; вкл. `det_trust_anchor` — verifier с одним signer/measurement без кворума,
   Taiko/Raiko layer-B; `det_vault_share_math` — кастомный волт `X*amount/totalSupply` без floor, near-empty
   share-price manip, Thetanuts $2.1M; `det_decimal_scale` — `amount *=//= decimalsFactor` в бридже/враппере,
   dust/round-to-zero + асимметрия round-trip на non-18 токенах, ZKFair gas-token), `secrets.py` (SECRETS-лейн: закоммиченные ключи/креды в дереве + истории git —
