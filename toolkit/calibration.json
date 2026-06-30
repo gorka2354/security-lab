@@ -65,7 +65,7 @@
       "bounty_received": 0,
       "found": "2026-06-30",
       "updated": "2026-06-30",
-      "notes": "LIVE Gate-0 passed: Comptroller 0x0b9af1 -> oracle 0xfba2712d (ChainlinkPriceOracle). Low-Med conditional. Check known-issues before submit. hunts/capyfi/FINDING-oracle-staleness.md",
+      "notes": "LIVE Gate-0 passed: Comptroller 0x0b9af1 -> oracle 0xfba2712d (ChainlinkPriceOracle). Low-Med conditional. Check known-issues before submit. hunts/capyfi/FINDING-oracle-staleness.md | DEEP-DIVE done: feeds CAN stale (wARS 11d gap early) but forensics on 972 market actions vs 2010 feed updates = 0 actions on >1-day-stale price (operator kept feeds fresh during active trading) -> NOT exploited. Fixed-price collateral (LAC $1.4M no-DEX, RPC $45M @$0.01105 vs ~$0.01 dust-pool) not cleanly exploitable (illiquid, team-controlled). Closed centralized LATAM ecosystem (Ripio). Defensible = missing-staleness Low-Med; rest = centralization context. No external drain demonstrated.",
       "kind": "live"
     }
   ],
