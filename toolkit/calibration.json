@@ -13,8 +13,9 @@
       "bounty_expected": 0,
       "bounty_received": 0,
       "found": "2026-06-13",
-      "updated": "2026-06-13",
-      "notes": "scout-v2 first find; PoC invariant-lab WrappedLTokenInsolvencyPoC; no bounty -> direct disclosure | VERIFY pre-disclosure 2026-06-13: NOT live. generic WrappedLToken undeployed (deployments.json: absent); only WrappedLTokenSonic deployed (Sonic 0xeD758d19) and it is EMPTY on-chain (totalSupply=0, exchangeRate=0, totalAssets reverts). Code bug real (PoC passes) but zero live impact; HUNT multi-chain/$3M claim was protocol-level TVL, not wrapper. Latent -> fix-before-launch courtesy at most, NOT a Medium user-funds finding."
+      "updated": "2026-06-30",
+      "notes": "scout-v2 first find; PoC invariant-lab WrappedLTokenInsolvencyPoC; no bounty -> direct disclosure | VERIFY pre-disclosure 2026-06-13: NOT live. generic WrappedLToken undeployed (deployments.json: absent); only WrappedLTokenSonic deployed (Sonic 0xeD758d19) and it is EMPTY on-chain (totalSupply=0, exchangeRate=0, totalAssets reverts). Code bug real (PoC passes) but zero live impact; HUNT multi-chain/$3M claim was protocol-level TVL, not wrapper. Latent -> fix-before-launch courtesy at most, NOT a Medium user-funds finding.",
+      "kind": "non-live"
     },
     {
       "id": "heavy-helms-1",
@@ -29,8 +30,9 @@
       "bounty_expected": 0,
       "bounty_received": 0,
       "found": "2026-06-13",
-      "updated": "2026-06-13",
-      "notes": "GPL no-bounty -> responsible disclosure; on-chain criticality currently LOW/dormant"
+      "updated": "2026-06-30",
+      "notes": "GPL no-bounty -> responsible disclosure; on-chain criticality currently LOW/dormant",
+      "kind": "live"
     },
     {
       "id": "death-fun-1",
@@ -45,8 +47,9 @@
       "bounty_expected": 0,
       "bounty_received": 0,
       "found": "2026-06-14",
-      "updated": "2026-06-14",
-      "notes": "Abstract fan-out; PoC passes (51 ETH betAmount vs 1 ETH escrow); High-conditional on backend payout sizing; no bounty -> direct disclosure | On-chain callability check downgraded to informational: real bug but NON-callable in the live custodial/relayer model (on-chain player==backend relayer, not the user) + increaseBet dormant (0/6000 txns). Not disclosable as Medium/High; courtesy note only."
+      "updated": "2026-06-30",
+      "notes": "Abstract fan-out; PoC passes (51 ETH betAmount vs 1 ETH escrow); High-conditional on backend payout sizing; no bounty -> direct disclosure | On-chain callability check downgraded to informational: real bug but NON-callable in the live custodial/relayer model (on-chain player==backend relayer, not the user) + increaseBet dormant (0/6000 txns). Not disclosable as Medium/High; courtesy note only.",
+      "kind": "non-live"
     },
     {
       "id": "capyfi-1",
@@ -62,7 +65,8 @@
       "bounty_received": 0,
       "found": "2026-06-30",
       "updated": "2026-06-30",
-      "notes": "LIVE Gate-0 passed: Comptroller 0x0b9af1 -> oracle 0xfba2712d (ChainlinkPriceOracle). Low-Med conditional. Check known-issues before submit. hunts/capyfi/FINDING-oracle-staleness.md"
+      "notes": "LIVE Gate-0 passed: Comptroller 0x0b9af1 -> oracle 0xfba2712d (ChainlinkPriceOracle). Low-Med conditional. Check known-issues before submit. hunts/capyfi/FINDING-oracle-staleness.md",
+      "kind": "live"
     }
   ],
   "calibrations": [

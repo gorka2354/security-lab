@@ -39,6 +39,10 @@ STORE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "calibration.js
 # finding lifecycle: where a disclosed finding can end up
 FINDING_STATUS = ["drafted", "disclosed", "acknowledged", "accepted", "disputed",
                   "duplicate", "fixed-silent", "no-response", "withdrawn"]
+# Gate-0 class (ORTHOGONAL to the disclosure status): is the bug exploitable on a LIVE target, or a real
+# code-bug on a dead/empty/non-callable one? Keeps live findings (capyfi) from being lumped with academic
+# ones (ledgity not-deployed, death.fun non-callable). hardened/known cases aren't findings at all -> ledger.
+FINDING_KIND = ["live", "non-live"]
 # a finding "counts as correct" (true positive) if the team agreed it was real:
 ACCEPTED_LIKE = {"accepted", "fixed-silent", "duplicate"}   # duplicate = real, just not first
 REJECTED_LIKE = {"disputed", "withdrawn"}                    # we were wrong / pulled it
@@ -86,10 +90,12 @@ def finding_add(a):
         "sev_claimed": (a.sev or "").lower(), "channel": _norm(a.channel),
         "file": _norm(a.file), "line": int(a.line or 0),
         "status": a.status or "drafted", "sev_awarded": "",
+        "kind": (getattr(a, "kind", "") or "live"),    # Gate-0 class; default live (you usually log a live one)
         "bounty_expected": a.bounty_expected or 0, "bounty_received": 0,
         "found": a.date or _today(), "updated": _today(), "notes": _norm(a.notes)})
     save(d)
-    print("[calib] FINDING +%s  %s  (%s, %s)" % (fid, a.target, a.sev or "?", a.status or "drafted"))
+    print("[calib] FINDING +%s  %s  (%s, %s, %s)"
+          % (fid, a.target, a.sev or "?", getattr(a, "kind", "") or "live", a.status or "drafted"))
 
 
 def finding_outcome(a):
@@ -102,6 +108,10 @@ def finding_outcome(a):
                 f["status"] = a.status
             if a.awarded:
                 f["sev_awarded"] = a.awarded.lower()
+            if getattr(a, "kind", ""):
+                if a.kind not in FINDING_KIND:
+                    print("kind must be one of:", ", ".join(FINDING_KIND)); return
+                f["kind"] = a.kind
             if a.bounty is not None:
                 f["bounty_received"] = a.bounty
             if a.notes:
@@ -208,10 +218,12 @@ def main():
     add.add_argument("--sev", default=""); add.add_argument("--channel", default="")
     add.add_argument("--file", default=""); add.add_argument("--line", type=int, default=0)
     add.add_argument("--status", default="drafted"); add.add_argument("--bounty-expected", type=int, dest="bounty_expected", default=0)
+    add.add_argument("--kind", default="live", choices=FINDING_KIND, help="Gate-0 class: live | non-live")
     add.add_argument("--date", default=""); add.add_argument("--notes", default="")
     out = fsub.add_parser("outcome")
     out.add_argument("--id", required=True); out.add_argument("--status", default="")
     out.add_argument("--awarded", default=""); out.add_argument("--bounty", type=int, default=None)
+    out.add_argument("--kind", default="", choices=["", *FINDING_KIND], help="reclassify Gate-0: live | non-live")
     out.add_argument("--notes", default="")
 
     ca = sub.add_parser("calib", help="calibrate a verdict vs public ground truth")

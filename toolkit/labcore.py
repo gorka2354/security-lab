@@ -116,17 +116,19 @@ def record_verdict(target, verdict, reason, detector="manual", file="(labcore)",
 
 
 def record_finding(target, title, sev="?", file="", line=0, status="drafted", channel="direct",
-                   notes="", date=None, also_verdict=True, rebuild=True):
+                   notes="", date=None, kind="live", also_verdict=True, rebuild=True):
     """ONE-STEP finding log: a calibration finding (-> dashboard Findings panel) + a ledger verdict=real
     (-> the target shows REAL in the pipeline) + a registry rebuild (-> the target appears). Closes the gap
     where logging a finding took three manual steps. status in calibrate.FINDING_STATUS (drafted/disclosed/
-    accepted/disputed/...). also_verdict/rebuild toggle the side effects (off in tests)."""
+    accepted/disputed/...); kind in {live, non-live} (Gate-0 class). also_verdict/rebuild toggle side effects."""
     import calibrate
     if not target or not title:
         raise ValueError("target and title are required")
+    if kind and kind not in calibrate.FINDING_KIND:
+        raise ValueError(f"kind must be one of {calibrate.FINDING_KIND} (got {kind!r})")
     date = date or datetime.date.today().isoformat()
     a = types.SimpleNamespace(target=target, title=title, sev=sev, channel=channel, file=file, line=line,
-                              status=status, bounty_expected=0, date=date, notes=notes)
+                              status=status, kind=kind, bounty_expected=0, date=date, notes=notes)
     calibrate.finding_add(a)                                  # -> calibration.json (the Findings panel)
     if also_verdict:
         ledger.add(target, file or "(finding)", int(line or 0), "manual", "", "real", title, date)  # -> REAL
@@ -136,4 +138,5 @@ def record_finding(target, title, sev="?", file="", line=0, status="drafted", ch
                            capture_output=True, text=True, timeout=120)
         except Exception:
             pass
-    return {"ok": True, "target": target, "title": title, "sev": sev, "status": status, "date": date}
+    return {"ok": True, "target": target, "title": title, "sev": sev, "kind": kind, "status": status,
+            "date": date}

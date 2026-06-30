@@ -146,8 +146,16 @@ try:
     r = C.record_finding("capyfi", "oracle staleness", sev="low-med", file="O.sol", line=159, rebuild=False)
     check(r["ok"] and r["target"] == "capyfi" and r["sev"] == "low-med" and r["status"] == "drafted",
           "record_finding returns the logged finding")
+    check(r["kind"] == "live" and _seen["finding"].kind == "live", "kind defaults to live (Gate-0 class)")
     check(_seen.get("finding") and _seen["finding"].title == "oracle staleness", "-> calibration finding_add called")
     check("ledger" in _seen and _seen["ledger"][0][5] == "real", "-> ledger verdict=real recorded (target shows REAL)")
+    r2 = C.record_finding("ledgity", "wrapper bug", kind="non-live", rebuild=False, also_verdict=False)
+    check(r2["kind"] == "non-live" and _seen["finding"].kind == "non-live", "kind=non-live passes through (dead-target bug)")
+    try:
+        C.record_finding("z", "t", kind="bogus", rebuild=False)
+        check(False, "bad kind should raise")
+    except ValueError:
+        check(True, "bad kind rejected (must be live|non-live)")
     _seen.clear()
     C.record_finding("x", "t", rebuild=False, also_verdict=False)
     check("ledger" not in _seen, "also_verdict=False -> no ledger write")

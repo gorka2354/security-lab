@@ -77,7 +77,7 @@ def api_post(path, body):
         if name == "record_finding":                 # ONE-STEP finding log -> calibration + ledger + registry
             return 200, C.record_finding(body.get("target"), body.get("title"), sev=body.get("sev", "?"),
                                          file=body.get("file", ""), line=int(body.get("line", 0) or 0),
-                                         status=body.get("status", "drafted"),
+                                         status=body.get("status", "drafted"), kind=body.get("kind", "live"),
                                          channel=body.get("channel", "direct"), notes=body.get("notes", ""))
         return 404, {"error": f"unknown write api: {name}"}
     except ValueError as e:                           # validation -> 400 (caller's fault)

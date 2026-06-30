@@ -60,6 +60,9 @@
   .st-accepted,.st-fixed-silent,.st-duplicate{color:var(--clean);border-color:var(--clean)}
   .st-withdrawn,.st-disputed{color:var(--skip);border-color:var(--skip)}
   .st-drafted,.st-parked{color:var(--dig);border-color:var(--dig)}
+  .k-live{color:var(--clean);border-color:var(--clean)}
+  .k-non-live{color:var(--skip);border-color:var(--skip)}
+  tr.nonlive td{opacity:.62}
   #verdictbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;
     border-bottom:1px solid var(--line);background:var(--panel)}
   #verdictbar .vlabel{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
@@ -138,7 +141,8 @@ const I18N = {
     r_fresh_feed:"свежий фид", r_secrets:"свип секретов", r_impl:"апгрейды impl", r_bounty:"запуски баунти",
     r_watched:"деплоеров под наблюдением", r_listed:"листингов видено", r_repos:"репо", r_leaks:"утечек",
     fresh:"СВЕЖЕЕ", quiet:"тихо", findings_lc:"Находки (жизненный цикл)", no_findings:"нет отслеживаемых находок",
-    th_target:"цель", th_sev:"критичность", th_status:"статус", th_bounty:"баунти",
+    th_target:"цель", th_class:"класс", th_sev:"критичность", th_status:"статус", th_bounty:"баунти",
+    k_live:"live", k_nonlive:"non-live", lf_kind:"класс:", nonlive_hint:"non-live = реальный баг, но цель мёртвая/пустая/невызываемая (нет живого импакта)",
     parked_leads:"Запаркованные лиды", none_parked:"нет запаркованных", fires:"сработает",
     parked_hidden:"запаркованных — детали скрыты в публичном режиме", m_findings:"Находки",
     no_finding_t:"находок по этой цели нет", m_verdicts:"Вердикты", no_verdicts:"вердиктов пока нет",
@@ -159,7 +163,8 @@ const I18N = {
     r_fresh_feed:"fresh-feed", r_secrets:"secrets-sweep", r_impl:"impl-upgrades", r_bounty:"bounty-launches",
     r_watched:"watched deployer(s)", r_listed:"listed seen", r_repos:"repos", r_leaks:"leak(s)",
     fresh:"FRESH", quiet:"quiet", findings_lc:"Findings (lifecycle)", no_findings:"no tracked findings",
-    th_target:"target", th_sev:"severity", th_status:"status", th_bounty:"bounty",
+    th_target:"target", th_class:"class", th_sev:"severity", th_status:"status", th_bounty:"bounty",
+    k_live:"live", k_nonlive:"non-live", lf_kind:"class:", nonlive_hint:"non-live = real bug but the target is dead/empty/non-callable (no live impact)",
     parked_leads:"Parked leads", none_parked:"none parked", fires:"fires",
     parked_hidden:"parked — detail hidden in public mode", m_findings:"Findings",
     no_finding_t:"no finding logged for this target", m_verdicts:"Verdicts", no_verdicts:"no verdicts yet",
@@ -234,12 +239,18 @@ function radars(rd){
 
 function findings(F){
   if(!F.length) return `<div class="panel"><div class="row sub">${tr("no_findings")}</div></div>`;
-  const rows = F.map(f=>`<tr>
+  const sorted=[...F].sort((a,b)=>((a.kind==="non-live")-(b.kind==="non-live")));   // live first, non-live below
+  const rows = sorted.map(f=>{
+    const k=(f.kind==="non-live")?"non-live":"live";
+    return `<tr class="${k==="non-live"?"nonlive":""}">
     <td>${esc(f.target||"")}</td>
+    <td><span class="pill k-${k}">${tr(k==="non-live"?"k_nonlive":"k_live")}</span></td>
     <td>${esc(f.sev_claimed||"?")}${f.sev_awarded?` → ${esc(f.sev_awarded)}`:""}</td>
     <td><span class="pill st-${esc(f.status||"")}">${esc(f.status||"?")}</span></td>
-    <td>${f.bounty_received?("$"+f.bounty_received):"—"}</td></tr>`).join("");
-  return `<table><tr><th>${tr("th_target")}</th><th>${tr("th_sev")}</th><th>${tr("th_status")}</th><th>${tr("th_bounty")}</th></tr>${rows}</table>`;
+    <td>${f.bounty_received?("$"+f.bounty_received):"—"}</td></tr>`;}).join("");
+  const hasNon = F.some(f=>f.kind==="non-live");
+  const hint = hasNon ? `<div class="row sub" style="border:0;padding-top:4px">${tr("nonlive_hint")}</div>` : "";
+  return `<table><tr><th>${tr("th_target")}</th><th>${tr("th_class")}</th><th>${tr("th_sev")}</th><th>${tr("th_status")}</th><th>${tr("th_bounty")}</th></tr>${rows}</table>${hint}`;
 }
 
 function parked(P){
@@ -339,7 +350,8 @@ function openDetail(id){
   const s = window.__state||{}; const t = (s.targets||[]).find(x=>x.id===id); if(!t) return;
   const kv=(k,v)=> (v&&v.length)? `<div class="k">${esc(k)}</div><div>${esc(Array.isArray(v)?v.join(", "):v)}</div>`:"";
   const verds=(t.verdicts||[]).map(v=>`<div class="vi"><b>${esc(v.verdict)}</b> <span class="vt">${esc(v.detector||"")} · ${esc(v.date||"")}</span><br>${esc((v.reason||"").slice(0,220))}</div>`).join("") || `<div class="row sub">${tr("no_verdicts")}</div>`;
-  const finds=findingsFor(id).map(f=>`<div class="find">🐞 <b>${esc(f.title||"")}</b><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`).join("") || `<div class="row sub">${tr("no_finding_t")}</div>`;
+  const finds=findingsFor(id).map(f=>{const k=(f.kind==="non-live")?"non-live":"live";
+    return `<div class="find">🐞 <b>${esc(f.title||"")}</b> <span class="pill k-${k}">${tr(k==="non-live"?"k_nonlive":"k_live")}</span><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`;}).join("") || `<div class="row sub">${tr("no_finding_t")}</div>`;
   modal.innerHTML = `<div class="modal-card">
     <div class="mh"><span class="dot d-${colOf(t)}"></span><h2>${esc(t.name||t.id)}</h2>
       <span class="badge h-${colOf(t)}">${esc(t.status)}${t.disposition?"/"+esc(t.disposition):""}</span>
@@ -351,6 +363,7 @@ function openDetail(id){
       ${s._public?"":`<div class="mh2">${tr("log_finding")}</div>
         <div class="logf"><input class="t" id="lf_title" placeholder="${tr("finding_title")}" autocomplete="off">
           <select id="lf_sev"><option>low</option><option>low-med</option><option>medium</option><option>high</option><option>critical</option></select>
+          <select id="lf_kind"><option value="live">live</option><option value="non-live">non-live</option></select>
           <select id="lf_status"><option>drafted</option><option>disclosed</option><option>accepted</option><option>disputed</option></select>
           <button id="lf_btn">${tr("log_btn")}</button><span id="lf_msg" class="vmsg"></span></div>`}
     </div></div>`;
@@ -362,7 +375,7 @@ function openDetail(id){
     if(!title){ msg.className="vmsg bad"; msg.textContent=tr("title_req"); return; }
     b.disabled=true; msg.className="vmsg"; msg.textContent=tr("saving");
     fetch(apiUrl("/api/record_finding"),{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({target:t.name||t.id, title, sev:$("lf_sev").value, status:$("lf_status").value})})
+      body:JSON.stringify({target:t.name||t.id, title, sev:$("lf_sev").value, kind:$("lf_kind").value, status:$("lf_status").value})})
       .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
         if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||tr("failed")); return; }
         msg.className="vmsg ok"; msg.textContent="✓ "+tr("logged"); return refresh().then(()=>openDetail(id));

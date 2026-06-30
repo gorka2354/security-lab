@@ -175,7 +175,7 @@ def sanitize(state):
                     "verdicts": len(t.get("verdicts", []))}                # count only — NO reasons
                    for t in state.get("targets", [])]
     pub_findings = [{k: f.get(k) for k in ("id", "target", "sev_claimed", "sev_awarded", "status",
-                                           "bounty_received")} for f in state.get("findings", [])]
+                                           "kind", "bounty_received")} for f in state.get("findings", [])]
     pub_repos = [{k: r.get(k) for k in ("slug", "protocol", "source", "bounty", "leaks")}
                  for r in state.get("repos", [])]
     return {"version": state.get("version"), "generated": state.get("generated"), "_public": True,
