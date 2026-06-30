@@ -60,6 +60,12 @@ of recon). Everything else is incremental coverage. Prioritize the three.
   - **STILL UN-VALIDATED:** parse_output markers vs a REAL find (the BSC run found nothing: ABI fetch failed on
     the v2-key/bscscan mismatch). Calibrate markers on the first real find on an **in-scope ETH** target (key
     native there) -> that's a HUNT (Gate-0), not a benchmark guess.
+  - **RUN-VALIDATION (2026-06-30):** ItyFuzz runs HARD (offline planted contract: deployed, 90% instr
+    coverage, 4.8M exec @ 40k/sec) -> the binary + lane work. BUT no objective triggered: a raw `assert`
+    and a no-balance contract don't fire ItyFuzz's oracles (economic needs SEEDED value; assert isn't a
+    default objective). Triggering a find needs ItyFuzz's bug convention (echidna_ invariant / `bug()` /
+    selfdestruct / a value-seeded drain) -> set up properly next time, don't guess. parse_output still
+    un-validated vs a real objective.
   - Follow-up: MCP trigger-tool `lab_ityfuzz` + `--from-dig` (pull a target address from labcore).
 
 ## Tier-1 follow-up notes (2026-06-28)

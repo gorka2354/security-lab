@@ -1,150 +1,177 @@
-# 🛡️ security-lab — white-hat bug-hunting движок
+# 🛡️ security-lab
 
-Личная система поиска багов в смартконтрактах. Думай о ней как о **детективном агентстве для кода**: облава, металлоискатель, картотека вердиктов, лаборатория и детектив.
+> **White-hat движок для поиска багов в смарт-контрактах** — конвейер, который сам находит свежие
+> in-scope цели, прочёсывает их статикой и динамикой, помнит каждый вердикт и показывает весь хант
+> одним взглядом.
 
-## Вид сверху — как работает вся машина
+Думай о нём как о **детективном агентстве для кода**: невод сорсит дела, металлоискатель (статика) +
+динамический фузер ищут улики, картотека помнит вердикты, радары следят 24/7, а дашборд — это
+оперативный штаб.
 
 ```
-      in-scope bounty targets (targets.txt)        git-история (свежесть)
-                    |                                       |
-      orchestrate.py — ОБЛАВА                    diffscan.py — AUDIT-DRIFT
-      скан N репо → ранжирует "cream"            только КОД, изменённый
-                    |                            с аудит-тега/даты (там баги)
-                    +------------------+------------------+
-                                       v
-                        recon.py — МЕТАЛЛОИСКАТЕЛЬ (L1)
-                        45 детекторов, быстрый триаж, приоритет [!]
-                                       |
-                        ledger.py — КАРТОТЕКА ВЕРДИКТОВ
-                        гасит уже засуженные (FP/known) → вижу только НОВОЕ
-                                       | high-signal лиды
-         +-----------------------------+-----------------------------+
-         v                             v                             v
-   analyze.py+Slither           scaffold.py + fuzz             Claude  (L4)
-   (L2) AST/dataflow            (L3) краш-тест                 ДЕТЕКТИВ:
-   + кросс-корреляция           инвариантов                   реально? known?
-         +-----------------------------+-----------------------------+
-                                       |
-                       вердикт → ledger (шум падает каждый прогон)
-                                       v
-                  FINDING  →  ответственное раскрытие (bounty)
-
-  +----------------------------------------------------------+
-  |  КАРТОТЕКА ЗНАНИЙ (Obsidian "Крипто безопасность")        |
-  |  паттерны · эвристики · разборы взломов · findings        |
-  |     ^                                                     |
-  |     +-- каждый изученный баг  → новый детектор            |
-  |         каждая ложная тревога → инструмент точнее         |
-  +----------------------------------------------------------+
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│  SOURCE  →  REACH  →  TRIAGE  →  DETECT  →  L4 (я)  →  VERIFY (Gate-0)  →  DISCLOSE     │
+└──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Цикл самосовершенствования:** изучили реальный баг → добавили в картотеку + детектор → ловим класс на любом репо. Ложная тревога → подтачиваем (за разработку — **35 фиксов точности**, свежие — из живых охот: Taiko-разбор → `det_trust_anchor` + калибровки на taiko-mono/zkfair; Thetanuts → `det_vault_share_math`; ZKFair gas-token → `det_decimal_scale` · Vena (2026) → `det_pyth_oracle` (Pyth pull-oracle без price>0/conf/staleness); fix#34 `_checkController` (PowerPool BPool), fix#35 self-burn). Каждый вердикт пишется в **ledger**, поэтому уже разобранные лиды больше не всплывают — **шум падает с каждым прогоном**. Чем больше примеров — тем умнее система.
+| | | |
+|---|---|---|
+| 🎯 **45** SOURCE-детекторов | 🧪 **640** golden-тестов (CI-гейт) | 📡 **24/7** облачные радары |
+| 🔑 secrets-sweep (Taiko-класс) | 🤖 динамический фуз (ItyFuzz) | 🖥️ дашборд + MCP-платформа |
 
-**Пайплайн «паттерн → детектор → инвариант»** (`research/` → `recon.py` → `invariant-lab/`): каждый класс багов изучаем в [`research/patterns/`](research/) (T0→T3 + примеры), статически-ловимое куём в детектор recon, а reasoning-слой (T2/T3) — в **самопроверяющийся invariant-шаблон**. Прогнан на живом коде обоими плечами: детекторное (Morpho Midnight) + инвариантное (реальный OZ ERC4626).
+---
 
-**Слои:** L1 быстрый скан (regex) → L2 глубокий анализ (Slither) → L3 краш-тест математики (invariant-фаззинг) → **L4 = я (Claude)** рассуждаю и оркестрирую. Объём (orchestrate) × Свежесть (diffscan) × Глубина (L2/L3) — три оси охоты.
+## 🧭 Как работает вся машина
 
-## Два движка → я-верификатор
-Система делится на два УНИВЕРСАЛЬНЫХ движка, которые кормят меня (L4), и я подтверждаю/опровергаю:
 ```
-  АНАЛИЗАТОР  (recon/analyze) ─┐  режим РЕВЬЮЕРА: паттерны/структура (что аудит ищет)
-                               ├─► Я (L4) ─► PoC / инвариант-фаззинг ─► ✅подтверждено / ❌опровергнуто
-  ГИПОТЕЗАТОР (hypothesize)  ──┘  режим АТАКУЮЩЕГО: гипотезы из «данных» (что аудит ПРОПУСКАЕТ)
-```
-- **«Данные» для гипотез:** статика (инверсные пары, общее состояние) + **их собственные инварианты**
-  (комплемент = что они НЕ проверяют) + фаззер (синтетические «юзеры») + on-chain конфиги.
-- **Моя роль = верификатор:** гипотезу доказывать инвариантом СИЛЬНЕЕ ихнего, не чтением.
-- **Мост построен ✅ (секция 5 `hypothesize.py`):** анализатор кормит гипотезатор — recon-флаг функции
-  + общее состояние = **авто-предложение emergent-гипотезы ТЕКСТОМ** (детерминированно, без API). На agotchi
-  выдал `setERC1155Listing` (recon: access/sibling) ∩ `s.nextERC1155ListingId` (3 writer'а) → готовая гипотеза.
-  Генерация = чистая математика; верификация = L4 (я, в интерактиве бесплатно; API нужен лишь автономному режиму).
-
-## Карта папки
-```
-security-lab/
-├─ README.md / CLAUDE.md / ROADMAP.md / PLAYBOOK.md  ← вход · контекст · роадмап · цепочка охоты
-├─ .claude/skills/hunt/SKILL.md       ← `/hunt` — весь пайплайн в одной команде (source→reach→triage→detect→L4-read→verify→prove→record)
-├─ toolkit/
-│   ├─ scout.py                       ← STAGE-0 ОПТИМИЗАТОР: contests (GH) + DefiLlama (deployed-unaudited, +CORE-repo резолв) + Immunefi via **public-api JSON** (263 прог vs ~198 скрейп; in-scope addrs инлайн + chains + kyc) → ledger-supp + ранг
-│   ├─ orchestrate.py · diffscan.py   ← ОБЪЁМ (скан+ранг targets.txt) · СВЕЖЕСТЬ (audit-drift)
-│   ├─ recon.py                       ← L1 сканер: 45 детекторов наших эвристик
-│   ├─ secrets.py                     ← SECRETS-лейн: закоммиченные ключи/креды в дереве + ИСТОРИИ git (Taiko layer-A; язык-агностичен)
-│   ├─ legacy.py                      ← СОРСИНГ deprecated-но-funded (Thetanuts-класс): check/from-deployer/from-factory/sweep + --token + age-dormancy
-│   ├─ fetch_source.py · livecheck.py ← LIVE-FIRST: verified-source по адресу · дрейф impl vs аудит
-│   ├─ forkdrift.py                   ← пост-клон триаж: форк-ли base? + substantive-диф дрейфа + audited-ли? (роутер drift/out-of-scope/economic)
-│   ├─ scope.py · analyze.py          ← карта функций/ролей · L2 Slither + кросс-корреляция
-│   ├─ hypothesize.py · scaffold.py   ← теории атакующего (их инварианты как данные) · L3 invariant-харнесс
-│   ├─ ledger.py · watch.py · pdftext.py  ← память вердиктов · cron-монитор парковок · текст из аудит-PDF
-│   ├─ contest_monitor.py             ← ТАЙМИНГ-ЭДЖ: live audit-contests (Cantina/Sherlock/C4) → [NEW]/[FRESH<48ч] → хант первым
-│   ├─ registry.py · radar.py         ← **MEMORY+RADAR лейн**: авто-реестр всех триаженных таргетов (zone/chain/fork-base/OWASP-теги, cartography-модель) · радар изменений (impl-upgrade slot-diff + bounty-launch) → `hunts/_radar/QUEUE.md` с прошлыми нотами
-│   └─ watch_all.sh · com.security-lab.radar.plist  ← обёртка-планировщик (registry→radar→watch→contests) · launchd-агент (Mac; в облаке — GitHub Actions)
-├─ .github/workflows/radar.yml  ← **24/7 радар в облаке**: крон 3ч гоняет registry+radar, коммитит QUEUE.md обратно (без Mac/сна/TCC)
-├─ research/            ← БИБЛИОТЕКА ПАТТЕРНОВ (T0→T3) + разборы: паттерн → детектор → инвариант
-│   ├─ patterns/{accounting,pricing,liquidation,signatures,gamefi,trust-anchor,bridge}/  (+ bridge sector-playbook, trust-anchor)
-│   ├─ registry-radar/  ← PLAN + 11-агентный prior-art ресёрч под MEMORY+RADAR фичу
-│   └─ krait-study.md · taiko-sgx-keyleak-study.md · thetanuts-vault-rounding-study.md   ← разборы взломов → детекторы
-├─ invariant-lab/       ← T2/T3: 6 самопроверяющихся invariant-шаблонов (test/templates/) + wire к реальному OZ
-├─ hunts/               ← логи охот (HUNT.md) + склонированный код (gitignored)
-│   ├─ _radar/QUEUE.md  ← session-start work-list (радар пишет, агент читает первым)
-│   └─ _parked/parked-leads.md  ← реальные лиды без баунти (Vena/GAIB) → watchlist следит за запуском
-├─ monitor/                 ← runtime-стейт (gitignored, кроме watchlist): registry.json/REGISTRY.md · radar-seen.json · ALERTS.md
-│   └─ watchlist.json     ← припаркованные находки → watch.py следит, [FIRED] при деплое/баунти
-├─ tests/test_detectors.py ← 410 golden-fixture проверок (CI-гейт)
-└─ nomad-poc/ oracle-poc/  ← Foundry PoC
+  SOURCE  ── где искать ────────────────────────────────────────────────────────────────
+    scout.py          contests (C4/Sherlock/Cantina/Hats) + DefiLlama deployed-unaudited +
+                      Immunefi (263 прог, in-scope адреса+репо)
+    freshfeed.py      НОВО-листингнутый код (DefiLlama listedAt + Sourcify) — стена свежести
+    freshdeploy.py    новые контракты от watched-деплоеров/фактори — timing-эдж
+        │
+  REACH  ── достать код ─────────────────────────────────────────────────────────────────
+    fetch_source.py   verified-source по адресу (Etherscan-v2, 64 сети)
+    forkdrift.py      форк-ли аудированного base? + substantive-диф дрейфа (баги в audit-drift)
+        │
+  DETECT ── найти улики ─────────────────────────────────────────────────────────────────
+    recon.py          СТАТИКА: 45 детекторов по сорсу → ГДЕ риск (access/oracle/reentrancy/…)
+    ityfuzz_lane.py   ДИНАМИКА: fork-фуз с economic-oracle → ПОДТВЕРЖДАЕТ эксплойт (+ работает
+                      на unverified bytecode). recon наводит → ItyFuzz доказывает.
+    secrets_sweep.py  закоммиченные ключи в репо (дерево + ИСТОРИЯ git) — на масштабе in-scope-репо
+        │
+  L4 (я) + VERIFY ── доказать и не обмануться ──────────────────────────────────────────
+    VERIFY.md         Gate-0 LIVE-FIRST + 8 kill-gates + 10 FP-ловушек («FP хуже miss'а»)
+        │
+  DISCLOSE          только in-scope + ответственно. egor раскрывает, не я.
 ```
 
-## 45 детекторов (recon.py)
-disabled-signals · access-control · **sibling-inconsistency** · supply-integrity (mint/burn) ·
-reentrancy (CEI) · arbitrary-call (approval-drain) · **signature/ecrecover** (replay) ·
-**domain-separator** (cross-chain/fork replay) · **UUPS upgrade-safety** · **unchecked ERC20 return** ·
-**ERC4626 inflation** · **reward/claim-accounting** (double-claim) · oracle 3-guard (+spot-reserve sub-check) ·
-**interest-index inflation** (Aave-fork empty-market) · **liquidation-math** · **weak-randomness** (predictable on-chain RNG, GameFi) ·
-**swap-slippage/deadline** (sandwich/MEV) · **mapping-default-trust** (Nomad) · **strict-balance-equality** (force-feed DoS) ·
-dangerous primitives · **L2/AA-footguns** (zkSync) · **NFT-receiver-hook-reentrancy** (safeMint/safeTransfer callback, #1 GameFi class) ·
-downcast-truncation · divide-before-multiply · encodePacked-collision · fee-on-transfer · spot-AMM-as-oracle · self-transfer · pair-reserve ·
-unprotected-init · caller-supplied-authority · **trust-anchor** (Taiko: verifier с одним signer/measurement без кворума; zk-SNARK ≠ TEE) ·
-**vault-share-math** (Thetanuts: `X*amount/totalSupply` без floor, near-empty manip) · **decimal-scale** (ZKFair: `amount *=//= decimalsFactor` в бридже).
-Access-control (sibling+access) объединены в группу — один вердикт гасит оба. Каждый детектор — **lead, не verdict**.
-Vyper-файлы recon НЕ сканит, а **громко предупреждает** (не выдаёт false-clean). Закалён **fix#1–#35**
-(последние: **#34 `_checkController`** PowerPool BPool, **#35 self-burn** ≠ «anyone can mint»).
+**Память сшивает всё:** каждый вердикт триажа → `ledger.py`; авто-реестр целей → `registry.py`;
+радары пишут work-list в `hunts/_radar/QUEUE.md`, который читается первым делом следующей сессии.
 
-## База знаний — отдельно (Obsidian)
-`...\Obsidian Vault\Крипто безопасность\` — паттерны, разборы, findings, шаблоны.
-**Принцип:** код и охоты → здесь (репо); знания → в Obsidian.
+---
 
-## Быстрый старт
+## 🧰 Инструменты по лейнам
+
+### SOURCE — сорсинг целей
+| Тул | Что делает |
+|---|---|
+| `scout.py` | contests + DefiLlama (deployed-unaudited) + Immunefi (`--from-immunefi` in-scope репо) |
+| `freshfeed.py` | DefiLlama listedAt + Sourcify newest-verified → `FRESH-FEED.md` |
+| `freshdeploy.py` | watched-деплоеры/фактори → новые контракты → `FRESH-DEPLOY.md` |
+| `contest_monitor.py` | C4/Sherlock/Cantina — алерт на свежий our-zone контест (timing-эдж) |
+| `legacy.py` | СОРСИНГ dormant+funded контрактов (инверсия activity; Thetanuts-класс) |
+
+### REACH — достать и сориентироваться
+| Тул | Что делает |
+|---|---|
+| `fetch_source.py` | verified-source по адресу через Etherscan-v2 (64 сети) |
+| `forkdrift.py` | форк-ли base (Aave/Compound/Liquity…) + диф дрейфа → роутер |
+| `activity.py` | LIVE-FIRST гейт (deployed + active + value? txlist-liveness) |
+
+### DETECT — найти улики
+| Тул | Что делает |
+|---|---|
+| `recon.py` | **СТАТИКА** — 45 детекторов (access-control, spot-oracle, reentrancy, supply, decimal-scale, trust-anchor, vault-share-math, …); FP-тюненные, class-gated, network-agnostic |
+| `ityfuzz_lane.py` | **ДИНАМИКА** — обёртка над ItyFuzz: fork-фуз live-адреса, economic-oracle (profit), unverified bytecode. Post-DIG auto-confirm |
+| `secrets_sweep.py` | `secrets.py` на масштабе: репо живых протоколов → clone+история → утечки ключей |
+| `hypothesize.py` | инвариант-сиды (CORE/ECONOMIC/GAMEFI/BRIDGE) для фуз/символик |
+| `scaffold.py` | L3 мульти-движок (Foundry/Echidna/Medusa/Halmos) |
+
+### MEMORY + RADAR — не копать дважды
+| Тул | Что делает |
+|---|---|
+| `ledger.py` | персист-вердикты (fp/known/wontfix/real/todo) — гасит повторный шум |
+| `registry.py` | авто-реестр всех триаженных целей (cartography; `--query`, fork-индекс под батч-CVE) |
+| `radar.py` | 24/7 радар: impl-upgrade (EIP-1967 slot-diff) + bounty-launch → `QUEUE.md` |
+| `calibrate.py` | FEEDBACK-LOOP: исход находок + калибровка clean-вердиктов → precision/recall |
+
+---
+
+## 📡 Радары 24/7 (облако, без Mac/сна)
+
+GitHub Actions крутят радары по крону и коммитят состояние обратно — следующая сессия видит свежее:
+
+| Workflow | Крон | Что сторожит |
+|---|---|---|
+| `radar.yml` | каждые 3ч | impl-upgrade + bounty-launch по реестру + fresh-deploy + fresh-feed + **lab-state** |
+| `secrets.yml` | weekly | secrets-sweep по in-scope репо (`--from-all`: Immunefi + контесты авто-сорс) |
+| `watch.yml` | — | parked-лиды: FIRE когда откроется баунти/контест по запаркованной гипотезе |
+
+Утром: `source toolkit/env.sh && python toolkit/brief.py` — дашборд «что свежего» (git + радары +
+open-DIG реестра + parked + last fan-out).
+
+---
+
+## 🖥️ Платформа (визуал + взаимодействие над всем движком)
+
+3-слойная, расширяемая (`research/platform/DESIGN-platform.md`): новый тул пишет JSON → виден везде.
+
+```
+ КОНТРАКТ   labstate.py → monitor/lab-state.json   (read-through JOIN над всеми кэшами)
+   │
+ labcore    операции + record_verdict (→ ledger → re-derive)
+   │
+   ├── lab_mcp.py    MCP-сервер (stdlib, 9 тулов, без pip) — я/claude.ai рулим как инструменты
+   └── web/          kanban 5-колонок + радары + findings + parked, через lab_http.py (bridge)
+```
+
 ```bash
-# /hunt — весь конвейер в одной команде (см. .claude/skills/hunt/SKILL.md): source→reach→triage→detect→L4→verify
-export PATH="$HOME/.foundry/bin:$PATH"; export ETHERSCAN_API_KEY="<key>"   # ключ → fetch_source шире Sourcify; на macOS — Foundry+solc через brew (см. toolkit/MAC-LANE.md)
-python toolkit/contest_monitor.py                  # ТАЙМИНГ: свежие live-контесты ([NEW]/[FRESH]); cron'абельно
-python toolkit/scout.py --source defillama --resolve-top 12   # SOURCE: deployed-unaudited + CORE-repo резолв
-python toolkit/scout.py --source immunefi          # SOURCE: in-scope адреса + выплата
-python toolkit/fetch_source.py <addr> --chain 1 --proxy --out hunts/_volume/<x>   # REACH: verified-source
-python toolkit/forkdrift.py fingerprint <src>      # TRIAGE: форк? audited? → роутер
-python toolkit/orchestrate.py                      # ОБЛАВА: скан targets.txt → очередь (с ledger-подавлением)
-python toolkit/recon.py <repo>                     # L1 скан одного репо (45 детекторов)
-python toolkit/secrets.py <repo>                   # SECRETS: закоммиченные ключи в дереве + истории git (Taiko layer-A)
-python toolkit/legacy.py sweep --file <addrs>      # СОРСИНГ deprecated-funded (Thetanuts-класс): ранг по value
-python toolkit/diffscan.py <repo> --since-days 120 # СВЕЖЕСТЬ: только изменённое за 120 дней
-python toolkit/ledger.py add --target X --file F --detector sibling --snippet "function f(...)" --verdict fp --reason "..."
-python toolkit/ledger.py stats                     # сколько вердиктов / что гасится
-python toolkit/scaffold.py <Contract.sol> <Name>   # сгенерить invariant-харнесс
-forge test --root invariant-lab -vvv               # прогнать фаззинг
+python toolkit/dashboard.py          # → http://127.0.0.1:8787  (дашборд + bridge)
+python toolkit/lab_http.py --public --token <секрет>   # LAN/телефон: sanitized, token-gated, без мутаций
 ```
-> `diffscan` нужна git-история: orchestrate клонит `--depth 1`, перед diff углубляй
-> `git -C <clone> fetch --unshallow --tags`.
 
-## Статус
-- ✅ Полный движок: **VOLUME** (orchestrate) × **СВЕЖЕСТЬ** (diffscan) × **DEPTH** (recon → Slither → scaffold+fuzz → L4)
-- ✅ **45 детекторов**; закалён **35 фиксами** (fix#1–#35; последние: #34 `_checkController` PowerPool BPool, #35 self-burn ≠ mint); recon громко предупреждает на Vyper (анти-false-clean)
-- ✅ **Сорсинг-лейны:** `secrets.py` (закоммиченные ключи в дереве+истории git, Taiko layer-A) · `legacy.py` (deprecated-funded, Thetanuts-класс: check/from-deployer/from-factory/sweep + --token) · `scout` bridge-зона
-- ✅ **Разборы взломов → детекторы:** Taiko ($1.7M) → `det_trust_anchor` · Thetanuts ($2.1M) → `det_vault_share_math` · ZKFair gas-token → `det_decimal_scale` · Vena (2026) → `det_pyth_oracle` (Pyth pull-oracle без price>0/conf/staleness); **bridge sector-playbook** (Nomad/Wormhole/Ronin/Taiko, detector-vs-L4 карта)
-- ✅ **research/** — библиотека из 6 баг-паттернов (T0→T3) + TEMPLATE; пайплайн паттерн → детектор → инвариант
-- ✅ **invariant-lab/** — 6 самопроверяющихся invariant-шаблонов + wire к реальному OZ ERC4626 (25 тестов, fmt-чисто)
-- ✅ **Регресс-тесты** (`tests/test_detectors.py`, **394** golden-fixture проверки) — жёсткий гейт: фикс не сломает другой детектор молча
-- ✅ **ledger** (память вердиктов) — шум падает каждый прогон; **diffscan** — хантинг по audit-drift
-- 🎯 Живые тесты пайплайна: **Morpho Midnight** (детекторное плечо → fix#21/#22/#23) · **реальный OZ ERC4626** (инвариантное → находка «экономическая vs абсолютная защита»)
-- 🎯 Охоты: Nomad (учебная) + Exactly/YO/Cap/Likwid/TermMax/Crypto-Unicorns/Morpho-Midnight (триаж — все добротны)
-- 🔎 Парковка: `monitor/watchlist.json` (Malda LZ bridge + Cap upgrades; Vena/GAIB лиды) → `watch.py` следит
-- 🛰️ **MEMORY+RADAR лейн** (новое): `registry.py` — авто-реестр 79 триаженных протоколов (status/zone/chain/fork-base/OWASP + fork-индекс под батч-CVE) · `radar.py` — 24/7 радар (impl-upgrade slot-diff + bounty-launch) → `hunts/_radar/QUEUE.md` с прошлыми нотами; крутится в **GitHub Actions** (крон 3ч). Рециклит утопленный контекст триажа → срезает SOURCE+REACH. Источник усилен: Immunefi via public-api JSON (+33% покрытия, addrs инлайн)
-- 📌 Бэклог в `ROADMAP.md` (MCP-сервер отложен)
+Дашборд **мутирует** состояние (вердикты пишутся в ledger → re-derive). Один `labcore` под MCP и web →
+фронты не дрейфуют. White-hat: remote-режим механически санитайзит чувствительные лиды.
+
+---
+
+## 🔁 Петля самоулучшения
+
+```
+  реальный хак  →  переносимый паттерн  →  детектор + golden-тест  →  test/tune на ЖИВОМ коде
+                                                      ↑                          │
+                                          FP → фикс точности  ←──────────────────┘
+```
+
+`shadow.py` меряет ЧЕСТНЫЙ recall на реальных victim-контрактах (DeFiHackLabs/DeFiVulnLabs).
+`calibrate.py` калибрует clean-вердикты против публичного ground-truth → precision/recall + слепые пятна.
+
+---
+
+## 🚀 Быстрый старт
+
+```bash
+source toolkit/env.sh                 # PATH (forge/solc/brew) + Etherscan-ключ
+python toolkit/brief.py               # утренний дашборд: что свежего
+python toolkit/scout.py --source all  # сорсить свежую волну целей
+python toolkit/recon.py <repo>        # статика по склонированному репо
+python toolkit/ityfuzz_lane.py <addr> --chain eth --block N   # динамический фуз (in-scope!)
+python toolkit/dashboard.py           # визуальный штаб
+python tests/test_detectors.py        # 640 golden-тестов (CI-гейт)
+```
+
+---
+
+## 🎯 Честный статус
+
+- **Движок:** собран end-to-end, упакован в скилл `/hunt`, **640 golden-тестов** зелёные (CI-гейт).
+- **Находки:** НОЛЬ live-находок с impact на счету — все при строгом VERIFY свелись к
+  non-live / hardened / non-callable. Это **честная калибровка**, не маркетинг.
+- **Урок:** достижимое пространство доминируют закалённые/аудированные деплои → плотность находок
+  упирается в **СВЕЖЕСТЬ**, не в тулинг. Реальный рычаг — быть ПЕРВЫМИ на свежем in-scope коде
+  (на это и работают радары), + динамический авто-find (ItyFuzz) на fresh/keyable таргетах.
+- **Что реально построено:** reach-ключ (64 сети), fan-out-невод, txlist-liveness, callability-gates,
+  DeFiHackLabs-mining, secrets-sweep на масштабе in-scope, и **платформа** (контракт+MCP+web).
+
+---
+
+## ⚖️ White-hat (жёстко)
+
+Только in-scope авторизованные баунти · ответственное раскрытие · **чужие средства не трогаем** ·
+динамический фуз — только на ФОРКЕ · известный/исправленный баг ≠ находка · **egor раскрывает, не я**.
+
+---
+
+*Контекст для Claude Code — `CLAUDE.md`. Методология L4 — `toolkit/L4-READ.md` + `toolkit/VERIFY.md`.
+Роадмап тулинга — `research/tooling-research/ROADMAP.md`.*
