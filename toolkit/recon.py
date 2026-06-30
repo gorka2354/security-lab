@@ -309,7 +309,13 @@ def det_oracle(text, rel):
     out = []
     for m in re.finditer(r"\b(latestRoundData|latestAnswer|getRoundData)\b", text):
         miss = [n for n, ok in (
-            ("staleness", bool(re.search(r"updatedAt|block\.timestamp\s*-|heartbeat", text))),
+            # staleness must be ACTUALLY USED, not just present: a commented `/*uint256 updatedAt*/` or a
+            # destructured-but-ignored updatedAt is NOT a check (the CapyFi miss). Require updatedAt in a
+            # require/comparison/block.timestamp arithmetic, or a heartbeat/stale keyword.
+            ("staleness", bool(re.search(
+                r"require\s*\([^;{}]*updatedAt|updatedAt\s*[<>!=]|[<>!=]=?\s*\w*[Uu]pdatedAt"
+                r"|block\.timestamp\s*-\s*\w*(?:[Uu]pdated|[Tt]imestamp|[Tt]ime)"
+                r"|heartbeat|stale[a-z]*|maxAge|maxDelay|_?requireFresh|checkStale", text, re.I))),
             ("price>0", bool(re.search(r"(<=\s*0|>\s*0|==\s*0|InvalidPrice|InvalidFeedPrice)", text))),
             ("decimals()", "decimals(" in text)) if not ok]
         note = "file has all 3 guards (likely OK)" if not miss else "MISSING in file: " + ", ".join(miss)

@@ -240,6 +240,17 @@ check(not flagged(recon.det_upgrade, "contract C{function _authorizeUpgrade(addr
       "fix#39: `restricted`-gated _authorizeUpgrade NOT flagged (Puffer OZ AccessManaged, empty body)")
 check(flagged(recon.det_oracle, "contract C{ function p() external { (,int a,,,)=feed.latestRoundData(); } }"),
       "latestRoundData with missing guards flagged")
+# CapyFi regression: a COMMENTED `/*updatedAt*/` (or destructured-but-ignored) is NOT a staleness check.
+# Old det_oracle matched the bare word `updatedAt` -> false-negative; now staleness must be USED.
+_capy = ("contract C{function getUnderlyingPrice() external view returns(uint){"
+         "(,int answer,/*uint256 updatedAt*/,)=feed.latestRoundData(); if(answer<=0)return 0;"
+         " feed.decimals(); return uint(answer);}}")
+check(any("staleness" in r[3] for r in recon.det_oracle(_capy, "O.sol")),
+      "hunt-fix: commented/ignored updatedAt -> MISSING staleness flagged (CapyFi ChainlinkPriceOracle miss)")
+_ostale = ("contract C{function p() external view returns(uint){(,int a,,uint256 updatedAt,)=feed.latestRoundData();"
+           " require(block.timestamp - updatedAt <= 3600); require(a>0); feed.decimals(); return uint(a);}}")
+check(not any("staleness" in r[3] for r in recon.det_oracle(_ostale, "O.sol")),
+      "a REAL staleness check (block.timestamp - updatedAt) is not flagged (no over-fire)")
 
 print("== det_pyth_oracle (Pyth/pull-oracle missing guards; Vena 2026 class) ==")
 check(flagged(recon.det_pyth_oracle, "contract C{function v(bytes32 id) public { Price p=pyth.getPriceUnsafe(id); x=uint(int(p.price)); }}", "getPriceUnsafe"),
