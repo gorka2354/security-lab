@@ -16,7 +16,7 @@
 
 | | | |
 |---|---|---|
-| 🎯 **46** SOURCE-детекторов | 🧪 **640** golden-тестов (CI-гейт) | 📡 **24/7** облачные радары |
+| 🎯 **46** SOURCE-детекторов | 🧪 **658** golden-тестов (CI-гейт) | 📡 **24/7** облачные радары |
 | 🔑 secrets-sweep (Taiko-класс) | 🤖 динамический фуз (ItyFuzz) | 🖥️ дашборд + MCP-платформа |
 
 ---
@@ -35,7 +35,7 @@
     forkdrift.py      форк-ли аудированного base? + substantive-диф дрейфа (баги в audit-drift)
         │
   DETECT ── найти улики ─────────────────────────────────────────────────────────────────
-    recon.py          СТАТИКА: 45 детекторов по сорсу → ГДЕ риск (access/oracle/reentrancy/…)
+    recon.py          СТАТИКА: 46 детекторов по сорсу → ГДЕ риск (access/oracle/reentrancy/…)
     ityfuzz_lane.py   ДИНАМИКА: fork-фуз с economic-oracle → ПОДТВЕРЖДАЕТ эксплойт (+ работает
                       на unverified bytecode). recon наводит → ItyFuzz доказывает.
     secrets_sweep.py  закоммиченные ключи в репо (дерево + ИСТОРИЯ git) — на масштабе in-scope-репо
@@ -148,14 +148,14 @@ python toolkit/scout.py --source all  # сорсить свежую волну �
 python toolkit/recon.py <repo>        # статика по склонированному репо
 python toolkit/ityfuzz_lane.py <addr> --chain eth --block N   # динамический фуз (in-scope!)
 python toolkit/dashboard.py           # визуальный штаб
-python tests/test_detectors.py        # 640 golden-тестов (CI-гейт)
+python tests/test_detectors.py        # 658 golden-тестов (CI-гейт)
 ```
 
 ---
 
 ## 🎯 Честный статус
 
-- **Движок:** собран end-to-end, упакован в скилл `/hunt`, **640 golden-тестов** зелёные (CI-гейт).
+- **Движок:** собран end-to-end, упакован в скилл `/hunt`, **658 golden-тестов** зелёные (CI-гейт).
 - **Находки:** НОЛЬ live-находок с impact на счету — все при строгом VERIFY свелись к
   non-live / hardened / non-callable. Это **честная калибровка**, не маркетинг.
 - **Урок:** достижимое пространство доминируют закалённые/аудированные деплои → плотность находок
