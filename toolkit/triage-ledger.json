@@ -502,8 +502,8 @@
       "line": 159,
       "detector": "oracle",
       "snippet": "",
-      "verdict": "todo",
-      "reason": "MISSING staleness: getUnderlyingPrice() reads priceFeed.latestRoundData() but updatedAt+answeredInRound are BOTH commented out (lines 159-160) -> no freshness/round-completeness check. price>0 IS present. Compound-fork consuming a CUSTOM PUSH oracle (CapyfiAggregatorV3, deployed for UXD/LAC) whose updateAnswer has no bounds (optional, off). Stale price (Chainlink past heartbeat OR push-operator stops) -> mispriced collateral -> wrongful liquidation / undercollateralized borrow. SEVERITY: Low-Med + CONDITIONAL (operator/heartbeat negligence, not attacker-triggerable) + common audit class. BEFORE disclose: Gate-0 (is THIS oracle wired to the LIVE Comptroller with value? confirm on-chain) + known-issue check. det_oracle GAP: flagged the interface, missed this consumer (updatedAt commented-out).",
+      "verdict": "real",
+      "reason": "CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle 0xfba2712d3bbcf32c6e0178a21955b61fe1ff424a = ChainlinkPriceOracle (verified); its LIVE getUnderlyingPrice has updatedAt+answeredInRound COMMENTED OUT -> no staleness check (price>0 present). cTokens have non-zero totalSupply (active markets, real value). Custom push oracle CapyfiAggregatorV3 (UXD/LAC). SEVERITY Low-Med, CONDITIONAL (heartbeat lapse / operator negligence, not attacker-triggerable). CAVEAT: missing-staleness is a common Compound-fork finding -> CHECK known-issues/out-of-scope before submit. Write-up: hunts/capyfi/FINDING-oracle-staleness.md. egor discloses.",
       "date": "2026-06-30"
     },
     {
