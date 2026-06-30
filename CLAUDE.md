@@ -43,7 +43,7 @@
   custodial-caller check), `legacy.py` (СОРСИНГ deprecated-но-с-деньгами контрактов — инверсия activity:
   ищет dormant+funded = Thetanuts-класс; `check`/`from-deployer`/`from-factory`(txlistinternal)/`sweep`(ранг
   по value), age-based dormancy, keyless RPC, скип EIP-7702 EOA; урок: класс редкий — нужен широкий свип),
-  `calibrate.py` (FEEDBACK-LOOP:
+  `testmine.py` (ДЕТЕКТОРЫ ИЗ ТЕСТОВ ПРОЕКТОВ: майнит собственные тест-сьюты (assert-субъекты + invariant_/echidna_ имена) -> КРОСС-ПРОЕКТНАЯ стата частоты `monitor/test-stats.json` (count = #проектов) -> `--backlog` = частые свойства без детектора = data-driven кандидаты-детекторы/ItyFuzz-сиды ('что тестируют многие = что важно'; напр. `paused` 9 проектов -> детектор pause-bypass). Майним после КАЖДОГО тронутого проекта -> компаундится. Тай в hypothesize/ItyFuzz-echidna), `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
   ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`
   (ПЕРСИСТ fan-out-невода: типизированная таблица `hunts/_fanout/<date>-<label>.md` по type+chain +
