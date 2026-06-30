@@ -97,10 +97,11 @@
 <header>
   <h1><b>security</b>-lab · dashboard</h1>
   <span class="gen" id="gen">loading…</span>
-  <span class="gen" style="margin-left:auto">lab-state contract · white-hat</span>
+  <span class="gen" style="margin-left:auto" id="subtitle">lab-state contract · white-hat</span>
+  <button id="langbtn" class="badge" style="cursor:pointer" title="язык / language">RU</button>
 </header>
 <div id="verdictbar">
-  <span class="vlabel">record verdict:</span>
+  <span class="vlabel" id="lbl_rv">record verdict:</span>
   <input id="v_target" placeholder="target name" list="targetlist" autocomplete="off">
   <datalist id="targetlist"></datalist>
   <select id="v_verdict">
@@ -112,7 +113,7 @@
   <span id="v_msg" class="vmsg"></span>
 </div>
 <div id="app"><div class="err" id="err" style="display:none"></div></div>
-<div class="foot">
+<div class="foot" id="foot">
   source: <code>monitor/lab-state.json</code> (read-through projection) · serve via
   <code>python toolkit/dashboard.py</code> · mutations land in Inc 3/4 (MCP + HTTP bridge)
 </div>
@@ -122,6 +123,64 @@ const COLS = ["REAL","DIG","PARK","SKIP","CLEAN"];      // logical pipeline colu
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const TOKEN = new URLSearchParams(location.search).get("token") || "";  // for the public/LAN bridge
 const apiUrl = p => p + (TOKEN ? (p.includes("?")?"&":"?")+"token="+encodeURIComponent(TOKEN) : "");
+
+// --- i18n: an extensible string map (ru default + en). Translate the UI CHROME only; data (target names,
+// zones, verdict codes) stays as-is. Add a language by adding a key block; t() falls back ru->en->key. ---
+const I18N = {
+  ru:{ subtitle:"контракт lab-state · white-hat", loading:"загрузка…", generated:"сгенерировано",
+    pub:"ПУБЛИЧНЫЙ (очищено)", record_verdict:"записать вердикт:", target_name:"имя цели",
+    reason_why:"причина (почему)", save_ledger:"в ledger →", reason_req:"нужны цель + причина",
+    saving:"сохранение…", saved:"сохранено", bridge_off:"мост офлайн — запусти dashboard.py",
+    t_targets:"цели", t_real_dig:"REAL / DIG", t_findings:"находки", t_parked:"паркинг",
+    t_repos:"репо под наблюдением", t_precision:"точность", t_recall:"полнота",
+    pipeline:"Конвейер", targets_n:"целей", verdict_one:"вердикт", verdict_few:"вердикта", verdict_many:"вердиктов",
+    more:"ещё", radars:"Радары", r_change:"радар изменений", r_fresh_deploy:"свежие деплои",
+    r_fresh_feed:"свежий фид", r_secrets:"свип секретов", r_impl:"апгрейды impl", r_bounty:"запуски баунти",
+    r_watched:"деплоеров под наблюдением", r_listed:"листингов видено", r_repos:"репо", r_leaks:"утечек",
+    fresh:"СВЕЖЕЕ", quiet:"тихо", findings_lc:"Находки (жизненный цикл)", no_findings:"нет отслеживаемых находок",
+    th_target:"цель", th_sev:"критичность", th_status:"статус", th_bounty:"баунти",
+    parked_leads:"Запаркованные лиды", none_parked:"нет запаркованных", fires:"сработает",
+    parked_hidden:"запаркованных — детали скрыты в публичном режиме", m_findings:"Находки",
+    no_finding_t:"находок по этой цели нет", m_verdicts:"Вердикты", no_verdicts:"вердиктов пока нет",
+    kv_zones:"зоны", kv_chains:"сети", kv_fork:"форк-база", kv_owasp:"owasp", kv_sources:"источники",
+    kv_first:"впервые", kv_updated:"обновлено", log_finding:"Записать находку (→ ledger + дашборд, один шаг)",
+    finding_title:"название находки", log_btn:"записать → находку", title_req:"нужно название",
+    logged:"записано", failed:"ошибка", err_load:"Не удалось загрузить lab-state",
+    err_serve:"Запусти из корня репо:", err_file:"Открытие через file:// не сработает (CORS + путь).",
+    foot:'источник: <code>monitor/lab-state.json</code> (read-through проекция) · запуск через <code>python toolkit/dashboard.py</code> · мутации идут через MCP + HTTP-мост' },
+  en:{ subtitle:"lab-state contract · white-hat", loading:"loading…", generated:"generated",
+    pub:"PUBLIC (sanitized)", record_verdict:"record verdict:", target_name:"target name",
+    reason_why:"reason (why)", save_ledger:"save → ledger", reason_req:"target + reason required",
+    saving:"saving…", saved:"saved", bridge_off:"bridge offline — run dashboard.py",
+    t_targets:"targets", t_real_dig:"REAL / DIG", t_findings:"findings", t_parked:"parked",
+    t_repos:"repos watched", t_precision:"precision", t_recall:"recall",
+    pipeline:"Pipeline", targets_n:"targets", verdict_one:"verdict", verdict_few:"verdicts", verdict_many:"verdicts",
+    more:"more", radars:"Radars", r_change:"change radar", r_fresh_deploy:"fresh-deploy",
+    r_fresh_feed:"fresh-feed", r_secrets:"secrets-sweep", r_impl:"impl-upgrades", r_bounty:"bounty-launches",
+    r_watched:"watched deployer(s)", r_listed:"listed seen", r_repos:"repos", r_leaks:"leak(s)",
+    fresh:"FRESH", quiet:"quiet", findings_lc:"Findings (lifecycle)", no_findings:"no tracked findings",
+    th_target:"target", th_sev:"severity", th_status:"status", th_bounty:"bounty",
+    parked_leads:"Parked leads", none_parked:"none parked", fires:"fires",
+    parked_hidden:"parked — detail hidden in public mode", m_findings:"Findings",
+    no_finding_t:"no finding logged for this target", m_verdicts:"Verdicts", no_verdicts:"no verdicts yet",
+    kv_zones:"zones", kv_chains:"chains", kv_fork:"fork base", kv_owasp:"owasp", kv_sources:"sources",
+    kv_first:"first seen", kv_updated:"updated", log_finding:"Log a finding (→ ledger + dashboard, one step)",
+    finding_title:"finding title", log_btn:"log → finding", title_req:"title required",
+    logged:"logged", failed:"failed", err_load:"Could not load lab-state",
+    err_serve:"Serve from the repo root:", err_file:"Opening via file:// will not work (CORS + path).",
+    foot:'source: <code>monitor/lab-state.json</code> (read-through projection) · serve via <code>python toolkit/dashboard.py</code> · mutations via MCP + HTTP bridge' }
+};
+let LANG = localStorage.getItem("lab_lang") || "ru";   // default Russian
+// `tr` (not `t`) — several functions bind `t` to a TARGET object; this name avoids shadowing the translator.
+const tr = k => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
+// russian plural for "verdicts" (1 вердикт, 2-4 вердикта, 5+ вердиктов; en just adds s)
+function verdictWord(n){
+  if(LANG!=="ru") return n===1?tr("verdict_one"):tr("verdict_many");
+  const m10=n%10, m100=n%100;
+  if(m10===1&&m100!==11) return tr("verdict_one");
+  if(m10>=2&&m10<=4&&(m100<10||m100>=20)) return tr("verdict_few");
+  return tr("verdict_many");
+}
 
 // status REAL/DIG/CLEAN is what registry emits; PARK/SKIP are folded into CLEAN and recovered via `disposition`.
 function colOf(t){
@@ -142,79 +201,79 @@ function targetCard(t){
   const fn = (window.__state&&(window.__state.findings||[]).some(f=>(f.target||"").toLowerCase()===(t.id||"").toLowerCase()))?' 🐞':'';
   return `<div class="card clickable" data-id="${esc(t.id)}">
     <div class="nm">${esc(t.name||t.id)} ${lock}${fn}</div>
-    <div class="meta">${esc(meta||"—")}${nv?` · ${nv} verdict${nv>1?"s":""}`:""}</div></div>`;
+    <div class="meta">${esc(meta||"—")}${nv?` · ${nv} ${verdictWord(nv)}`:""}</div></div>`;
 }
 
 function board(targets){
   const buckets = Object.fromEntries(COLS.map(c=>[c,[]]));
   targets.forEach(t=>buckets[colOf(t)].push(t));
-  return `<section><h2>Pipeline — ${targets.length} targets</h2><div class="board">` + COLS.map(c=>{
+  return `<section><h2>${tr("pipeline")} — ${targets.length} ${tr("targets_n")}</h2><div class="board">` + COLS.map(c=>{
     const items = buckets[c];
     const cap = (c==="CLEAN"||c==="SKIP") ? 40 : 200;
     const cards = items.slice(0,cap).map(targetCard).join("") || `<div class="card meta" style="color:var(--dim)">—</div>`;
-    const more = items.length>cap ? `<div class="card meta" style="color:var(--dim)">+${items.length-cap} more</div>` : "";
+    const more = items.length>cap ? `<div class="card meta" style="color:var(--dim)">+${items.length-cap} ${tr("more")}</div>` : "";
     return `<div class="col"><h3><span class="h-${c}"><span class="dot d-${c}"></span> ${c}</span>
       <span class="n">${items.length}</span></h3>${cards}${more}</div>`;
   }).join("") + `</div></section>`;
 }
 
 function radarRow(name,counts,fresh){
-  const f = (fresh&&fresh.length) ? `<span class="fresh">▲ ${fresh.length} FRESH</span>` : `<span class="quiet">quiet</span>`;
+  const f = (fresh&&fresh.length) ? `<span class="fresh">▲ ${fresh.length} ${tr("fresh")}</span>` : `<span class="quiet">${tr("quiet")}</span>`;
   return `<div class="row"><div>${name}<div class="sub">${counts}</div></div><div>${f}</div></div>`;
 }
 
 function radars(rd){
   const q=rd.queue||{}, fd=rd.freshdeploy||{}, ff=rd.freshfeed||{}, sc=rd.secrets||{};
   return `<div class="panel">
-    ${radarRow("change radar", `impl-upgrades ${q.impl_upgrades||0} · bounty-launches ${q.bounty_launches||0}`, q.fresh_items)}
-    ${radarRow("fresh-deploy", `${fd.watched||0} watched deployer(s)`, fd.fresh_items)}
-    ${radarRow("fresh-feed", `${ff.seen||0} listed seen`, ff.fresh_items)}
-    ${radarRow("secrets-sweep", `${sc.repos||0} repos · ${sc.leaks||0} leak(s)`, sc.fresh_items)}
+    ${radarRow(tr("r_change"), `${tr("r_impl")} ${q.impl_upgrades||0} · ${tr("r_bounty")} ${q.bounty_launches||0}`, q.fresh_items)}
+    ${radarRow(tr("r_fresh_deploy"), `${fd.watched||0} ${tr("r_watched")}`, fd.fresh_items)}
+    ${radarRow(tr("r_fresh_feed"), `${ff.seen||0} ${tr("r_listed")}`, ff.fresh_items)}
+    ${radarRow(tr("r_secrets"), `${sc.repos||0} ${tr("r_repos")} · ${sc.leaks||0} ${tr("r_leaks")}`, sc.fresh_items)}
   </div>`;
 }
 
 function findings(F){
-  if(!F.length) return `<div class="panel"><div class="row sub">no tracked findings</div></div>`;
+  if(!F.length) return `<div class="panel"><div class="row sub">${tr("no_findings")}</div></div>`;
   const rows = F.map(f=>`<tr>
     <td>${esc(f.target||"")}</td>
     <td>${esc(f.sev_claimed||"?")}${f.sev_awarded?` → ${esc(f.sev_awarded)}`:""}</td>
     <td><span class="pill st-${esc(f.status||"")}">${esc(f.status||"?")}</span></td>
     <td>${f.bounty_received?("$"+f.bounty_received):"—"}</td></tr>`).join("");
-  return `<table><tr><th>target</th><th>severity</th><th>status</th><th>bounty</th></tr>${rows}</table>`;
+  return `<table><tr><th>${tr("th_target")}</th><th>${tr("th_sev")}</th><th>${tr("th_status")}</th><th>${tr("th_bounty")}</th></tr>${rows}</table>`;
 }
 
 function parked(P){
-  if(!P.length) return `<div class="panel"><div class="row sub">none parked</div></div>`;
+  if(!P.length) return `<div class="panel"><div class="row sub">${tr("none_parked")}</div></div>`;
   return `<div class="panel">`+P.map(p=>`<div class="row"><div>${esc(p.title||p.id)}
-    <div class="sub">fires: ${esc(p.fire_means||"?")}</div></div></div>`).join("")+`</div>`;
+    <div class="sub">${tr("fires")}: ${esc(p.fire_means||"?")}</div></div></div>`).join("")+`</div>`;
 }
 
 function render(s){
   window.__state = s;
-  document.getElementById("gen").textContent = "generated "+(s.generated||"?")+" · v"+(s.version||"?");
+  document.getElementById("gen").textContent = tr("generated")+" "+(s.generated||"?")+" · v"+(s.version||"?");
   document.getElementById("targetlist").innerHTML =
     (s.targets||[]).map(t=>`<option value="${esc(t.name||t.id)}">`).join("");
   const pub = !!s._public;
   document.getElementById("verdictbar").style.display = pub ? "none" : "";   // no mutations in public mode
-  if(pub) document.getElementById("gen").textContent += "  ·  PUBLIC (sanitized)";
+  if(pub) document.getElementById("gen").textContent += "  ·  "+tr("pub");
   const m=s.metrics||{}, p=m.precision||{}, r=m.recall||{};
   const byStatus = {};
   (s.targets||[]).forEach(t=>{const c=colOf(t);byStatus[c]=(byStatus[c]||0)+1;});
-  const tiles = tile("targets", (s.targets||[]).length)
-    + tile("REAL / DIG", `${byStatus.REAL||0} / ${byStatus.DIG||0}`)
-    + tile("findings", (s.findings||[]).length)
-    + tile("parked", (s.parked||[]).length)
-    + tile("repos watched", (s.repos||[]).length)
-    + tile("precision", p.value==null?"n/a":p.value)
-    + tile("recall", r.value==null?"n/a":r.value);
+  const tiles = tile(tr("t_targets"), (s.targets||[]).length)
+    + tile(tr("t_real_dig"), `${byStatus.REAL||0} / ${byStatus.DIG||0}`)
+    + tile(tr("t_findings"), (s.findings||[]).length)
+    + tile(tr("t_parked"), (s.parked||[]).length)
+    + tile(tr("t_repos"), (s.repos||[]).length)
+    + tile(tr("t_precision"), p.value==null?"n/a":p.value)
+    + tile(tr("t_recall"), r.value==null?"n/a":r.value);
   document.getElementById("app").innerHTML =
     `<div class="tiles">${tiles}</div>`
     + board(s.targets||[])
-    + `<section><h2>Radars</h2>${radars(s.radars||{})}</section>`
+    + `<section><h2>${tr("radars")}</h2>${radars(s.radars||{})}</section>`
     + `<section class="grid2">
-        <div><h2>Findings (lifecycle)</h2>${findings(s.findings||[])}</div>
-        <div><h2>Parked leads</h2>${pub
-            ? `<div class="panel"><div class="row sub">${s.parked_count||0} parked — detail hidden in public mode</div></div>`
+        <div><h2>${tr("findings_lc")}</h2>${findings(s.findings||[])}</div>
+        <div><h2>${tr("parked_leads")}</h2>${pub
+            ? `<div class="panel"><div class="row sub">${s.parked_count||0} ${tr("parked_hidden")}</div></div>`
             : parked(s.parked||[])}</div>
        </section>`;
 }
@@ -230,9 +289,8 @@ function refresh(){ return loadState().then(render); }
 
 function showErr(e){
   document.getElementById("app").innerHTML =
-    `<div class="err">Could not load lab-state (${esc(e&&e.message||e)}).<br><br>
-     Serve from the repo root: <code>python toolkit/dashboard.py</code> (regenerates the contract + opens this).
-     Opening the file via file:// will not work (CORS + path).</div>`;
+    `<div class="err">${tr("err_load")} (${esc(e&&e.message||e)}).<br><br>
+     ${tr("err_serve")} <code>python toolkit/dashboard.py</code>.<br>${tr("err_file")}</div>`;
 }
 
 // verdict mutation -> POST /api/record_verdict (the HTTP bridge over labcore) -> re-derive + re-render
@@ -240,19 +298,38 @@ const $ = id => document.getElementById(id);
 $("v_btn").addEventListener("click", ()=>{
   const target=$("v_target").value.trim(), verdict=$("v_verdict").value, reason=$("v_reason").value.trim();
   const msg=$("v_msg");
-  if(!target||!reason){ msg.className="vmsg bad"; msg.textContent="target + reason required"; return; }
-  $("v_btn").disabled=true; msg.className="vmsg"; msg.textContent="saving…";
+  if(!target||!reason){ msg.className="vmsg bad"; msg.textContent=tr("reason_req"); return; }
+  $("v_btn").disabled=true; msg.className="vmsg"; msg.textContent=tr("saving");
   fetch("/api/record_verdict",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({target,verdict,reason})})
     .then(r=>r.json().then(j=>({ok:r.ok,j})))
     .then(({ok,j})=>{
-      if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||"failed"); return; }
-      msg.className="vmsg ok"; msg.textContent="✓ saved ("+esc(j.verdict)+")"; $("v_reason").value="";
+      if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||tr("failed")); return; }
+      msg.className="vmsg ok"; msg.textContent="✓ "+tr("saved")+" ("+esc(j.verdict)+")"; $("v_reason").value="";
       return refresh();
     })
-    .catch(e=>{ msg.className="vmsg bad"; msg.textContent="✗ bridge offline (static view) — run dashboard.py"; })
+    .catch(e=>{ msg.className="vmsg bad"; msg.textContent="✗ "+tr("bridge_off"); })
     .finally(()=>{ $("v_btn").disabled=false; });
 });
+
+// --- apply the static chrome (header/verdictbar/footer) + language toggle (default ru, persisted) ---
+function applyChrome(){
+  $("subtitle").textContent = tr("subtitle");
+  $("lbl_rv").textContent = tr("record_verdict");
+  $("v_target").placeholder = tr("target_name");
+  $("v_reason").placeholder = tr("reason_why");
+  $("v_btn").textContent = tr("save_ledger");
+  $("foot").innerHTML = tr("foot");
+  $("langbtn").textContent = LANG==="ru" ? "EN" : "RU";   // shows the language you'll switch TO
+  document.documentElement.lang = LANG;
+}
+$("langbtn").addEventListener("click", ()=>{
+  LANG = LANG==="ru" ? "en" : "ru";
+  localStorage.setItem("lab_lang", LANG);
+  applyChrome();
+  if(window.__state) render(window.__state); else loadState().then(render).catch(showErr);
+});
+applyChrome();
 
 // --- clickable target card -> detail modal: project info + verdicts + its bug + one-step log-finding ---
 const modal = document.createElement("div"); modal.className = "modal"; document.body.appendChild(modal);
@@ -261,35 +338,35 @@ function findingsFor(id){ return (((window.__state||{}).findings)||[]).filter(f=
 function openDetail(id){
   const s = window.__state||{}; const t = (s.targets||[]).find(x=>x.id===id); if(!t) return;
   const kv=(k,v)=> (v&&v.length)? `<div class="k">${esc(k)}</div><div>${esc(Array.isArray(v)?v.join(", "):v)}</div>`:"";
-  const verds=(t.verdicts||[]).map(v=>`<div class="vi"><b>${esc(v.verdict)}</b> <span class="vt">${esc(v.detector||"")} · ${esc(v.date||"")}</span><br>${esc((v.reason||"").slice(0,220))}</div>`).join("") || `<div class="row sub">no verdicts yet</div>`;
-  const finds=findingsFor(id).map(f=>`<div class="find">🐞 <b>${esc(f.title||"")}</b><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`).join("") || `<div class="row sub">no finding logged for this target</div>`;
+  const verds=(t.verdicts||[]).map(v=>`<div class="vi"><b>${esc(v.verdict)}</b> <span class="vt">${esc(v.detector||"")} · ${esc(v.date||"")}</span><br>${esc((v.reason||"").slice(0,220))}</div>`).join("") || `<div class="row sub">${tr("no_verdicts")}</div>`;
+  const finds=findingsFor(id).map(f=>`<div class="find">🐞 <b>${esc(f.title||"")}</b><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`).join("") || `<div class="row sub">${tr("no_finding_t")}</div>`;
   modal.innerHTML = `<div class="modal-card">
     <div class="mh"><span class="dot d-${colOf(t)}"></span><h2>${esc(t.name||t.id)}</h2>
       <span class="badge h-${colOf(t)}">${esc(t.status)}${t.disposition?"/"+esc(t.disposition):""}</span>
       ${t.sensitivity==="high"?'<span class="badge lock">🔒 high</span>':""}<button class="x" id="mx">✕</button></div>
     <div class="mb">
-      <div class="kv">${kv("zones",t.zones)}${kv("chains",t.chains)}${kv("fork base",t.fork_base)}${kv("owasp",t.owasp)}${kv("sources",t.sources)}${kv("first seen",t.firstseen)}${kv("updated",t.lastupdated)}</div>
-      <div class="mh2">Findings</div>${finds}
-      <div class="mh2">Verdicts (${(t.verdicts||[]).length})</div><div class="vlist">${verds}</div>
-      ${s._public?"":`<div class="mh2">Log a finding (→ ledger + dashboard, one step)</div>
-        <div class="logf"><input class="t" id="lf_title" placeholder="finding title" autocomplete="off">
+      <div class="kv">${kv(tr("kv_zones"),t.zones)}${kv(tr("kv_chains"),t.chains)}${kv(tr("kv_fork"),t.fork_base)}${kv(tr("kv_owasp"),t.owasp)}${kv(tr("kv_sources"),t.sources)}${kv(tr("kv_first"),t.firstseen)}${kv(tr("kv_updated"),t.lastupdated)}</div>
+      <div class="mh2">${tr("m_findings")}</div>${finds}
+      <div class="mh2">${tr("m_verdicts")} (${(t.verdicts||[]).length})</div><div class="vlist">${verds}</div>
+      ${s._public?"":`<div class="mh2">${tr("log_finding")}</div>
+        <div class="logf"><input class="t" id="lf_title" placeholder="${tr("finding_title")}" autocomplete="off">
           <select id="lf_sev"><option>low</option><option>low-med</option><option>medium</option><option>high</option><option>critical</option></select>
           <select id="lf_status"><option>drafted</option><option>disclosed</option><option>accepted</option><option>disputed</option></select>
-          <button id="lf_btn">log → finding</button><span id="lf_msg" class="vmsg"></span></div>`}
+          <button id="lf_btn">${tr("log_btn")}</button><span id="lf_msg" class="vmsg"></span></div>`}
     </div></div>`;
   modal.classList.add("show");
   document.getElementById("mx").onclick = ()=>modal.classList.remove("show");
   const b = document.getElementById("lf_btn");
   if(b) b.onclick = ()=>{
     const title=$("lf_title").value.trim(), msg=$("lf_msg");
-    if(!title){ msg.className="vmsg bad"; msg.textContent="title required"; return; }
-    b.disabled=true; msg.className="vmsg"; msg.textContent="saving…";
+    if(!title){ msg.className="vmsg bad"; msg.textContent=tr("title_req"); return; }
+    b.disabled=true; msg.className="vmsg"; msg.textContent=tr("saving");
     fetch(apiUrl("/api/record_finding"),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({target:t.name||t.id, title, sev:$("lf_sev").value, status:$("lf_status").value})})
       .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
-        if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||"failed"); return; }
-        msg.className="vmsg ok"; msg.textContent="✓ logged"; return refresh().then(()=>openDetail(id));
-      }).catch(()=>{ msg.className="vmsg bad"; msg.textContent="✗ bridge offline — run dashboard.py"; })
+        if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||tr("failed")); return; }
+        msg.className="vmsg ok"; msg.textContent="✓ "+tr("logged"); return refresh().then(()=>openDetail(id));
+      }).catch(()=>{ msg.className="vmsg bad"; msg.textContent="✗ "+tr("bridge_off"); })
       .finally(()=>{ b.disabled=false; });
   };
 }
