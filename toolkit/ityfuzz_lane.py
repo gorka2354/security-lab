@@ -30,9 +30,12 @@ CHAIN = {"eth": "ETH", "ethereum": "ETH", "bsc": "BSC", "bnb": "BSC", "polygon":
          "avalanche": "AVALANCHE", "avax": "AVALANCHE", "fantom": "FANTOM", "ftm": "FANTOM", "blast": "BLAST"}
 
 # bug/objective markers ItyFuzz prints when it finds something (heuristic, version-tolerant superset)
+# calibrated against REAL ItyFuzz find output (echidna invariant: "Found vulnerabilities! [Echidna]: Invariant
+# "x" violated"). `violat` + `vulnerab` + `echidna` all fire on it.
 BUG_MARKERS = re.compile(
-    r"(?i)(found\s+a?\s*solution|\[bug\]|bug\s*type|objective\s+found|fund\s*loss|arbitrary\s*call|"
-    r"self.?destruct|price\s*manip|reentran|echidna|invariant\s*viol|typed_?bug|assertion\s*fail|vulnerab)")
+    r"(?i)(found\s+a?\s*solution|found\s+vulnerab|\[bug\]|bug\s*type|objective\s+found|fund\s*loss|"
+    r"arbitrary\s*call|self.?destruct|price\s*manip|reentran|echidna|violat|typed_?bug|"
+    r"assertion\s*fail|vulnerab)")
 # economic-oracle profit ("Earned 1000000000000000000 wei", "profit: 5 ETH", ...)
 PROFIT = re.compile(r"(?i)(?:earned|profit|gain|stolen)\D{0,12}(-?\d[\d,]*)\s*(wei|eth|gwei)?")
 

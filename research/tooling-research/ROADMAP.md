@@ -64,8 +64,9 @@ of recon). Everything else is incremental coverage. Prioritize the three.
     coverage, 4.8M exec @ 40k/sec) -> the binary + lane work. BUT no objective triggered: a raw `assert`
     and a no-balance contract don't fire ItyFuzz's oracles (economic needs SEEDED value; assert isn't a
     default objective). Triggering a find needs ItyFuzz's bug convention (echidna_ invariant / `bug()` /
-    selfdestruct / a value-seeded drain) -> set up properly next time, don't guess. parse_output still
-    un-validated vs a real objective.
+    selfdestruct / a value-seeded drain). **DONE (echidna invariant): ItyFuzz printed `😊 Found
+    vulnerabilities! [Echidna]: Invariant violated` and parse_output CAUGHT it (found=True) — full chain
+    VALIDATED end-to-end + pinned by a golden test on the real output.**
   - Follow-up: MCP trigger-tool `lab_ityfuzz` + `--from-dig` (pull a target address from labcore).
 
 ## Tier-1 follow-up notes (2026-06-28)
