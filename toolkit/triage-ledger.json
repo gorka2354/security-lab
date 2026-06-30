@@ -496,6 +496,17 @@
       "date": "2026-06-08"
     },
     {
+      "sig": "capyfi (Capyfi-smart-contracts, Compound-V2 fork, Immunefi $1M)|src/contracts/PriceOracle/ChainlinkPriceOracle.sol|oracle|",
+      "target": "capyfi (Capyfi-smart-contracts, Compound-V2 fork, Immunefi $1M)",
+      "file": "src/contracts/PriceOracle/ChainlinkPriceOracle.sol",
+      "line": 159,
+      "detector": "oracle",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "MISSING staleness: getUnderlyingPrice() reads priceFeed.latestRoundData() but updatedAt+answeredInRound are BOTH commented out (lines 159-160) -> no freshness/round-completeness check. price>0 IS present. Compound-fork consuming a CUSTOM PUSH oracle (CapyfiAggregatorV3, deployed for UXD/LAC) whose updateAnswer has no bounds (optional, off). Stale price (Chainlink past heartbeat OR push-operator stops) -> mispriced collateral -> wrongful liquidation / undercollateralized borrow. SEVERITY: Low-Med + CONDITIONAL (operator/heartbeat negligence, not attacker-triggerable) + common audit class. BEFORE disclose: Gate-0 (is THIS oracle wired to the LIVE Comptroller with value? confirm on-chain) + known-issue check. det_oracle GAP: flagged the interface, missed this consumer (updatedAt commented-out).",
+      "date": "2026-06-30"
+    },
+    {
       "sig": "centrifuge|src/core/messaging/Gateway.sol|arbcall|function withBatch(bytes data, uint callbackValue, address refund)",
       "target": "centrifuge",
       "file": "src/core/messaging/Gateway.sol",
