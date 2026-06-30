@@ -159,11 +159,42 @@ def build(root=ROOT, today=None):
             "parked": parked, "repos": repo_rows, "radars": radars, "metrics": metrics}
 
 
+def sanitize(state):
+    """PUBLIC projection (Inc 5): strip everything that would tip off an ACTIVE hunt, keep the aggregate
+    shape. Mechanical, driven by per-target `sensitivity`. Safe for a phone glance / any non-local exposure:
+      - verdict REASONS (the exploit hypotheses) dropped on every target -> count only;
+      - parked leads (active exploitable hypotheses on live unfixed contracts) -> count only, no detail;
+      - findings keep the KPI (target/sev/status/bounty), drop file/line/notes;
+      - repos keep slug/protocol/bounty, drop head_sha;
+      - radars + metrics (aggregate) pass through.
+    NOTE: even sanitized, target NAMES remain (a phone glance wants the pipeline) -> only serve over a
+    token-gated LAN bridge, do NOT publish publicly. The private-boundary precondition still holds."""
+    pub_targets = [{"id": t.get("id"), "name": t.get("name"), "status": t.get("status"),
+                    "disposition": t.get("disposition"), "zones": t.get("zones", []),
+                    "fork_base": t.get("fork_base"), "sensitivity": t.get("sensitivity"),
+                    "verdicts": len(t.get("verdicts", []))}                # count only — NO reasons
+                   for t in state.get("targets", [])]
+    pub_findings = [{k: f.get(k) for k in ("id", "target", "sev_claimed", "sev_awarded", "status",
+                                           "bounty_received")} for f in state.get("findings", [])]
+    pub_repos = [{k: r.get(k) for k in ("slug", "protocol", "source", "bounty", "leaks")}
+                 for r in state.get("repos", [])]
+    return {"version": state.get("version"), "generated": state.get("generated"), "_public": True,
+            "targets": pub_targets, "findings": pub_findings, "parked": [],
+            "parked_count": len(state.get("parked", [])), "repos": pub_repos,
+            "radars": state.get("radars", {}), "metrics": state.get("metrics", {})}
+
+
 def main():
     ap = argparse.ArgumentParser(description="lab-state contract (read-through projection over the caches)")
     ap.add_argument("--print", action="store_true", help="print the state, don't write the file")
+    ap.add_argument("--public", action="store_true",
+                    help="also write monitor/lab-state-public.json (sensitivity-sanitized projection)")
     a = ap.parse_args()
     state = build()
+    if a.public:
+        pubp = os.path.join(ROOT, "monitor", "lab-state-public.json")
+        json.dump(sanitize(state), open(pubp, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+        print(f"[labstate] monitor/lab-state-public.json (sanitized: parked->count, verdict reasons dropped)")
     if a.print:
         print(json.dumps(state, indent=1, ensure_ascii=False))
         return

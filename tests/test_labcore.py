@@ -115,6 +115,12 @@ check(code == 200 and "by_stage" in obj, "GET /api/pipeline -> 200 + rollup")
 code, obj = H.api_get("/api/targets?status=DIG")
 check(code == 200 and isinstance(obj, list) and all(t["status"] == "DIG" for t in obj), "GET /api/targets?status=DIG filters")
 check(H.api_get("/api/nope")[0] == 404, "unknown read api -> 404")
+# public mode (Inc 5): sanitized aggregate only, sensitive reads blocked
+code, obj = H.api_get("/api/state", public=True)
+check(code == 200 and obj.get("_public") and "parked_count" in obj, "public /api/state -> sanitized projection")
+check(H.api_get("/api/pipeline", public=True)[0] == 200, "public allows /api/pipeline (aggregate)")
+check(H.api_get("/api/targets?status=DIG", public=True)[0] == 403, "public BLOCKS /api/targets (403)")
+check(H.api_get("/api/parked", public=True)[0] == 403, "public BLOCKS /api/parked (403)")
 
 check(H.api_post("/api/record_verdict", {"target": "X", "verdict": "bogus", "reason": "r"})[0] == 400,
       "POST record_verdict bad verdict -> 400 (validation)")

@@ -42,16 +42,26 @@ _READS = {
 }
 
 
-def api_get(path):
-    """Pure: '/api/<name>?q=..' -> (http_status, jsonable). No sockets."""
+# in PUBLIC mode only these aggregate-safe reads are served, and `state` is sensitivity-sanitized
+_PUBLIC_READS = {"state", "pipeline", "metrics", "radars"}
+
+
+def api_get(path, public=False):
+    """Pure: '/api/<name>?q=..' -> (http_status, jsonable). No sockets. In public mode only the aggregate-safe
+    reads are allowed and `state` is sanitized (parked->count, verdict reasons dropped)."""
     raw = path[len("/api/"):]
     name, _, qs = raw.partition("?")
     q = {k: v[0] for k, v in urllib.parse.parse_qs(qs).items()}
+    if public and name not in _PUBLIC_READS:
+        return 403, {"error": f"'{name}' not available in public mode (sanitized aggregate only)"}
     fn = _READS.get(name)
     if not fn:
         return 404, {"error": f"unknown read api: {name}"}
     try:
-        return 200, fn(q)
+        res = fn(q)
+        if public and name == "state":
+            res = labstate.sanitize(res)
+        return 200, res
     except Exception as e:
         return 500, {"error": str(e)}
 
@@ -73,6 +83,9 @@ def api_post(path, body):
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    public = False      # set by serve(): sanitized aggregate-only + no mutations
+    token = None        # set by serve(): required bearer/query token when public
+
     def _send(self, code, obj):
         data = json.dumps(obj, ensure_ascii=False, default=str).encode("utf-8")
         self.send_response(code)
@@ -81,12 +94,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _authed(self):
+        """Token gate (public mode only). Token via `Authorization: Bearer <t>` or `?token=<t>`. Static
+        files (the view code, non-sensitive) are NOT gated — only /api/ data is."""
+        if not self.public or not self.token:
+            return True
+        got = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+        if not got:
+            got = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("token", [""])[0]
+        return got == self.token
+
     def do_GET(self):
         if self.path.startswith("/api/"):
-            return self._send(*api_get(self.path))
-        return super().do_GET()                      # static files from ROOT
+            if not self._authed():
+                return self._send(401, {"error": "unauthorized (token required in public mode)"})
+            return self._send(*api_get(self.path, public=self.public))
+        return super().do_GET()                      # static files from ROOT (not gated)
 
     def do_POST(self):
+        if self.public:
+            return self._send(403, {"error": "read-only in public mode (no remote mutations)"})
         if not self.path.startswith("/api/"):
             return self._send(404, {"error": "not found"})
         try:
@@ -100,18 +127,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def serve(port=8787, open_browser=True):
+def serve(port=8787, open_browser=True, host="127.0.0.1", public=False, token=None):
     state = labstate.build()                          # regenerate the contract before serving
     p = os.path.join(ROOT, "monitor", "lab-state.json")
     os.makedirs(os.path.dirname(p), exist_ok=True)
     json.dump(state, open(p, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-    print(f"[lab-http] contract regenerated ({len(state['targets'])} targets); bridge GET/POST /api/* live")
+    print(f"[lab-http] contract regenerated ({len(state['targets'])} targets)")
 
+    Handler.public, Handler.token = public, token
     socketserver.TCPServer.allow_reuse_address = True
     handler = functools.partial(Handler, directory=ROOT)
-    url = f"http://127.0.0.1:{port}/web/index.html"
-    with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:   # 127.0.0.1 only -> never network-exposed
-        print(f"[lab-http] serving {ROOT}\n[lab-http] open -> {url}   (Ctrl-C to stop)")
+    tq = f"?token={token}" if (public and token) else ""
+    url = f"http://{host}:{port}/web/index.html{tq}"
+    with socketserver.TCPServer((host, port), handler) as httpd:
+        if public:
+            print("[lab-http] *** PUBLIC mode: sanitized aggregate only, no mutations, token-gated ***")
+            print(f"[lab-http] bound {host}:{port}  (LAN/phone) -- private boundary: never publish this snapshot")
+            if not token:
+                print("[lab-http] WARNING: --public with NO --token = open on the LAN. Set --token <secret>.")
+        else:
+            print(f"[lab-http] serving {ROOT}  (localhost, full + mutations)")
+        print(f"[lab-http] open -> {url}   (Ctrl-C to stop)")
         if open_browser:
             try:
                 webbrowser.open(url)
@@ -127,8 +163,13 @@ def main():
     ap = argparse.ArgumentParser(description="localhost HTTP bridge + dashboard (static + labcore /api/*)")
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--no-open", action="store_true")
+    ap.add_argument("--public", action="store_true",
+                    help="remote/phone mode: sanitized aggregate only, no mutations, token-gated")
+    ap.add_argument("--host", default=None, help="bind host (default 127.0.0.1; use 0.0.0.0 with --public for LAN)")
+    ap.add_argument("--token", default=os.environ.get("LAB_TOKEN"), help="required token in --public mode")
     a = ap.parse_args()
-    serve(a.port, not a.no_open)
+    host = a.host or ("0.0.0.0" if a.public else "127.0.0.1")
+    serve(a.port, not a.no_open, host=host, public=a.public, token=a.token)
 
 
 if __name__ == "__main__":

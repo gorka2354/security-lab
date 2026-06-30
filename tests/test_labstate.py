@@ -110,6 +110,27 @@ check(L._ledger_rows({"only": [{"target": "x"}]}) == [{"target": "x"}], "single 
 check(L._ledger_rows({"sigA": {"target": "x"}}) == [{"target": "x"}], "{sig: entry} map")
 check(L._ledger_rows({}) == [], "empty -> []")
 
+print("== labstate.sanitize (public projection — Inc 5) ==")
+full = {"version": 1, "generated": "2026-06-30",
+        "targets": [{"id": "a", "name": "A", "status": "DIG", "disposition": None, "zones": ["lend"],
+                     "fork_base": "euler", "sensitivity": "high",
+                     "verdicts": [{"verdict": "todo", "reason": "EXPLOIT: stale oracle -> overborrow"}]}],
+        "findings": [{"id": "f", "target": "a", "sev_claimed": "high", "sev_awarded": "", "status": "drafted",
+                      "bounty_received": 0, "file": "src/X.sol", "line": 42, "notes": "PoC reentrancy drain"}],
+        "parked": [{"id": "p", "title": "secret lead", "fire_means": "x", "where": "src/Y.sol:9"}],
+        "repos": [{"slug": "o/r", "protocol": "P", "source": "immunefi", "bounty": 1000, "head_sha": "deadbeef",
+                   "leaks": 0}],
+        "radars": {"queue": {"impl_upgrades": 1}}, "metrics": {"precision": {"value": 0.5}}}
+pub = L.sanitize(full)
+check(pub["_public"] is True, "_public flag set")
+check(pub["targets"][0]["verdicts"] == 1 and "reason" not in json.dumps(pub["targets"]),
+      "verdict REASONS dropped (count only) — the exploit hypotheses don't leak")
+check(pub["parked"] == [] and pub["parked_count"] == 1, "parked detail dropped -> count only")
+fk = pub["findings"][0]
+check("file" not in fk and "notes" not in fk and fk["sev_claimed"] == "high", "findings keep KPI, drop file/line/notes")
+check("head_sha" not in pub["repos"][0] and pub["repos"][0]["slug"] == "o/r", "repos drop head_sha")
+check(pub["radars"] == full["radars"] and pub["metrics"] == full["metrics"], "radars + metrics pass through")
+
 print("== helpers ==")
 check(L._disposition("[SKIP/wave] foo") == "skip" and L._disposition("no tag") is None, "_disposition")
 
