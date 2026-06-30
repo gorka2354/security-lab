@@ -67,16 +67,20 @@ def api_get(path, public=False):
 
 
 def api_post(path, body):
-    """Pure: '/api/record_verdict' + parsed body -> (http_status, jsonable). No sockets."""
+    """Pure: '/api/record_verdict' or '/api/record_finding' + parsed body -> (http_status, jsonable)."""
     name = path[len("/api/"):]
-    if name != "record_verdict":
-        return 404, {"error": f"unknown write api: {name}"}
     try:
-        res = C.record_verdict(body.get("target"), body.get("verdict"), body.get("reason"),
-                               detector=body.get("detector", "manual"),
-                               file=body.get("file", "(dashboard)"), line=int(body.get("line", 0) or 0))
-        return 200, res
-    except ValueError as e:                          # validation -> 400 (caller's fault)
+        if name == "record_verdict":
+            return 200, C.record_verdict(body.get("target"), body.get("verdict"), body.get("reason"),
+                                         detector=body.get("detector", "manual"),
+                                         file=body.get("file", "(dashboard)"), line=int(body.get("line", 0) or 0))
+        if name == "record_finding":                 # ONE-STEP finding log -> calibration + ledger + registry
+            return 200, C.record_finding(body.get("target"), body.get("title"), sev=body.get("sev", "?"),
+                                         file=body.get("file", ""), line=int(body.get("line", 0) or 0),
+                                         status=body.get("status", "drafted"),
+                                         channel=body.get("channel", "direct"), notes=body.get("notes", ""))
+        return 404, {"error": f"unknown write api: {name}"}
+    except ValueError as e:                           # validation -> 400 (caller's fault)
         return 400, {"error": str(e)}
     except Exception as e:
         return 500, {"error": str(e)}

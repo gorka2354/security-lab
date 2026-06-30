@@ -70,6 +70,25 @@
     font:12px var(--mono);cursor:pointer}
   #verdictbar button:disabled{opacity:.5;cursor:default}
   .vmsg{font-size:12px}.vmsg.ok{color:var(--clean)}.vmsg.bad{color:var(--real)}
+  .card.clickable{cursor:pointer} .card.clickable:hover{background:var(--panel2)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:20;padding:40px 16px;overflow:auto}
+  .modal.show{display:flex;justify-content:center;align-items:flex-start}
+  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:720px;width:100%;
+    padding:0;box-shadow:0 12px 48px rgba(0,0,0,.5)}
+  .modal-card .mh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .modal-card .mh h2{margin:0;font-size:15px;text-transform:none;letter-spacing:0;color:var(--txt)}
+  .modal-card .mh .x{margin-left:auto;cursor:pointer;color:var(--dim);font-size:18px;border:0;background:none}
+  .modal-card .mb{padding:14px 18px}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;font-size:12px;margin-bottom:12px}
+  .kv .k{color:var(--dim)}
+  .vlist .vi{padding:6px 10px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;font-size:12px}
+  .vlist .vi .vt{color:var(--dim)}
+  .find{border:1px solid var(--clean);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px}
+  .mh2{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
+  .logf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .logf input,.logf select{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;
+    padding:5px 8px;font:12px var(--mono)} .logf input.t{flex:1;min-width:180px}
+  .logf button{background:var(--clean);color:#06281c;border:0;border-radius:6px;padding:6px 12px;font:12px var(--mono);cursor:pointer;font-weight:600}
   .err{padding:40px 20px;color:var(--real)}
   .foot{color:var(--dim);padding:10px 20px 30px;font-size:11px;border-top:1px solid var(--line);margin-top:10px}
 </style>
@@ -120,8 +139,9 @@ function targetCard(t){
     .filter(Boolean).join(" · ");
   const lock = t.sensitivity==="high" ? `<span class="badge lock" title="parked exploitable lead — keep private">🔒</span>` : "";
   const nv = (t.verdicts||[]).length;
-  return `<div class="card">
-    <div class="nm">${esc(t.name||t.id)} ${lock}</div>
+  const fn = (window.__state&&(window.__state.findings||[]).some(f=>(f.target||"").toLowerCase()===(t.id||"").toLowerCase()))?' 🐞':'';
+  return `<div class="card clickable" data-id="${esc(t.id)}">
+    <div class="nm">${esc(t.name||t.id)} ${lock}${fn}</div>
     <div class="meta">${esc(meta||"—")}${nv?` · ${nv} verdict${nv>1?"s":""}`:""}</div></div>`;
 }
 
@@ -233,6 +253,47 @@ $("v_btn").addEventListener("click", ()=>{
     .catch(e=>{ msg.className="vmsg bad"; msg.textContent="✗ bridge offline (static view) — run dashboard.py"; })
     .finally(()=>{ $("v_btn").disabled=false; });
 });
+
+// --- clickable target card -> detail modal: project info + verdicts + its bug + one-step log-finding ---
+const modal = document.createElement("div"); modal.className = "modal"; document.body.appendChild(modal);
+modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("show"); });
+function findingsFor(id){ return (((window.__state||{}).findings)||[]).filter(f=>(f.target||"").toLowerCase()===(id||"").toLowerCase()); }
+function openDetail(id){
+  const s = window.__state||{}; const t = (s.targets||[]).find(x=>x.id===id); if(!t) return;
+  const kv=(k,v)=> (v&&v.length)? `<div class="k">${esc(k)}</div><div>${esc(Array.isArray(v)?v.join(", "):v)}</div>`:"";
+  const verds=(t.verdicts||[]).map(v=>`<div class="vi"><b>${esc(v.verdict)}</b> <span class="vt">${esc(v.detector||"")} · ${esc(v.date||"")}</span><br>${esc((v.reason||"").slice(0,220))}</div>`).join("") || `<div class="row sub">no verdicts yet</div>`;
+  const finds=findingsFor(id).map(f=>`<div class="find">🐞 <b>${esc(f.title||"")}</b><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`).join("") || `<div class="row sub">no finding logged for this target</div>`;
+  modal.innerHTML = `<div class="modal-card">
+    <div class="mh"><span class="dot d-${colOf(t)}"></span><h2>${esc(t.name||t.id)}</h2>
+      <span class="badge h-${colOf(t)}">${esc(t.status)}${t.disposition?"/"+esc(t.disposition):""}</span>
+      ${t.sensitivity==="high"?'<span class="badge lock">🔒 high</span>':""}<button class="x" id="mx">✕</button></div>
+    <div class="mb">
+      <div class="kv">${kv("zones",t.zones)}${kv("chains",t.chains)}${kv("fork base",t.fork_base)}${kv("owasp",t.owasp)}${kv("sources",t.sources)}${kv("first seen",t.firstseen)}${kv("updated",t.lastupdated)}</div>
+      <div class="mh2">Findings</div>${finds}
+      <div class="mh2">Verdicts (${(t.verdicts||[]).length})</div><div class="vlist">${verds}</div>
+      ${s._public?"":`<div class="mh2">Log a finding (→ ledger + dashboard, one step)</div>
+        <div class="logf"><input class="t" id="lf_title" placeholder="finding title" autocomplete="off">
+          <select id="lf_sev"><option>low</option><option>low-med</option><option>medium</option><option>high</option><option>critical</option></select>
+          <select id="lf_status"><option>drafted</option><option>disclosed</option><option>accepted</option><option>disputed</option></select>
+          <button id="lf_btn">log → finding</button><span id="lf_msg" class="vmsg"></span></div>`}
+    </div></div>`;
+  modal.classList.add("show");
+  document.getElementById("mx").onclick = ()=>modal.classList.remove("show");
+  const b = document.getElementById("lf_btn");
+  if(b) b.onclick = ()=>{
+    const title=$("lf_title").value.trim(), msg=$("lf_msg");
+    if(!title){ msg.className="vmsg bad"; msg.textContent="title required"; return; }
+    b.disabled=true; msg.className="vmsg"; msg.textContent="saving…";
+    fetch(apiUrl("/api/record_finding"),{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({target:t.name||t.id, title, sev:$("lf_sev").value, status:$("lf_status").value})})
+      .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+        if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||"failed"); return; }
+        msg.className="vmsg ok"; msg.textContent="✓ logged"; return refresh().then(()=>openDetail(id));
+      }).catch(()=>{ msg.className="vmsg bad"; msg.textContent="✗ bridge offline — run dashboard.py"; })
+      .finally(()=>{ b.disabled=false; });
+  };
+}
+document.addEventListener("click", e=>{ const c=e.target.closest(".card.clickable[data-id]"); if(c) openDetail(c.getAttribute("data-id")); });
 
 loadState().then(render).catch(showErr);
 </script>

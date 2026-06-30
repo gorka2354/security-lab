@@ -136,5 +136,38 @@ try:
 finally:
     H.C.record_verdict = _orig
 
+print("== labcore.record_finding (ONE-STEP: calibration + ledger + registry) ==")
+import calibrate as _cal   # noqa: E402
+_seen = {}
+_of, _ol = _cal.finding_add, C.ledger.add
+_cal.finding_add = lambda a: _seen.__setitem__("finding", a)
+C.ledger.add = lambda *aa, **kk: _seen.__setitem__("ledger", (aa, kk)) or "sig"
+try:
+    r = C.record_finding("capyfi", "oracle staleness", sev="low-med", file="O.sol", line=159, rebuild=False)
+    check(r["ok"] and r["target"] == "capyfi" and r["sev"] == "low-med" and r["status"] == "drafted",
+          "record_finding returns the logged finding")
+    check(_seen.get("finding") and _seen["finding"].title == "oracle staleness", "-> calibration finding_add called")
+    check("ledger" in _seen and _seen["ledger"][0][5] == "real", "-> ledger verdict=real recorded (target shows REAL)")
+    _seen.clear()
+    C.record_finding("x", "t", rebuild=False, also_verdict=False)
+    check("ledger" not in _seen, "also_verdict=False -> no ledger write")
+    try:
+        C.record_finding("", "t", rebuild=False)
+        check(False, "empty target should raise")
+    except ValueError:
+        check(True, "empty target/title rejected")
+finally:
+    _cal.finding_add, C.ledger.add = _of, _ol
+
+print("== lab_http: POST /api/record_finding routing ==")
+_orf = H.C.record_finding
+H.C.record_finding = lambda *a, **k: {"ok": True, "target": a[0], "title": a[1], "status": "drafted"}
+try:
+    code, obj = H.api_post("/api/record_finding", {"target": "capyfi", "title": "oracle staleness", "sev": "low"})
+    check(code == 200 and obj["ok"] and obj["target"] == "capyfi", "POST /api/record_finding routes to labcore")
+finally:
+    H.C.record_finding = _orf
+check(H.api_post("/api/nope", {})[0] == 404, "unknown write api still -> 404")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
