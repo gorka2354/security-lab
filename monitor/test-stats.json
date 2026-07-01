@@ -287,6 +287,12 @@
     "euler-vault-kit"
    ]
   },
+  "escrowbalance": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "everyoptionisalwaysbacked": {
    "count": 1,
    "projects": [
@@ -327,6 +333,12 @@
    "count": 1,
    "projects": [
     "boring-vault"
+   ]
+  },
+  "feeratecapped": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "feescanonlydecreaseviaclaimfees": {
@@ -615,6 +627,12 @@
     "boring-vault"
    ]
   },
+  "pendingsharesvalid": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "pool_01": {
    "count": 1,
    "projects": [
@@ -683,6 +701,12 @@
     "PufferPool"
    ]
   },
+  "queueheadvalid": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "rate_never_decreases": {
    "count": 1,
    "projects": [
@@ -729,6 +753,12 @@
    "count": 1,
    "projects": [
     "boring-vault"
+   ]
+  },
+  "sharevalueconservation": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "silo_invariant": {
@@ -870,6 +900,12 @@
     "euler-vault-kit"
    ]
   },
+  "totalsupplyconsistent": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "totalsupplyisalwayscorrect": {
    "count": 1,
    "projects": [
@@ -892,6 +928,12 @@
    "count": 1,
    "projects": [
     "capyfi-smart-contracts"
+   ]
+  },
+  "uniformshareprice": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "usdcproceedsaddup": {
@@ -1079,6 +1121,11 @@
    "mined": "2026-06-30",
    "n_assertions": 1365,
    "n_test_files": 104
+  },
+  "lazy-vault": {
+   "mined": "2026-07-01",
+   "n_assertions": 173,
+   "n_test_files": 19
   },
   "linea-monorepo": {
    "mined": "2026-06-30",
@@ -2019,6 +2066,12 @@
     "smart-contracts"
    ]
   },
+  "accumulatedyield": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "acquirenonce": {
    "count": 1,
    "projects": [
@@ -2833,7 +2886,7 @@
    ]
   },
   "balanceof": {
-   "count": 24,
+   "count": 25,
    "projects": [
     "abracadabra-money-contracts",
     "balancer-v3-monorepo",
@@ -2858,7 +2911,8 @@
     "superform-core",
     "core",
     "autonolas-tokenomics",
-    "boring-vault"
+    "boring-vault",
+    "lazy-vault"
    ]
   },
   "balanceofat": {
@@ -4414,6 +4468,12 @@
    "count": 1,
    "projects": [
     "core-v3"
+   ]
+  },
+  "cooldownperiod": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "core_state_registry_processor_role": {
@@ -6334,6 +6394,12 @@
    "count": 1,
    "projects": [
     "ion-protocol"
+   ]
+  },
+  "feerate": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "feereceiver": {
@@ -13103,6 +13169,12 @@
     "ion-protocol"
    ]
   },
+  "max_fee_rate": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "max_redeem_ratio": {
    "count": 2,
    "projects": [
@@ -13874,6 +13946,12 @@
    "count": 1,
    "projects": [
     "contracts"
+   ]
+  },
+  "multisig": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "mulup": {
@@ -14808,6 +14886,18 @@
    "projects": [
     "silo-contracts-v2",
     "silo-contracts-v3"
+   ]
+  },
+  "pendingwithdrawals": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
+  "pendingwithdrawalshares": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "pendingwithdrawers": {
@@ -16173,6 +16263,12 @@
     "euler-vault-kit"
    ]
   },
+  "rolemanager": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "roleregistry": {
    "count": 1,
    "projects": [
@@ -16590,6 +16686,12 @@
    "projects": [
     "silo-contracts-v2",
     "silo-contracts-v3"
+   ]
+  },
+  "shareprice": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "shareremaindersplittotreasuryinbps": {
@@ -18009,6 +18111,12 @@
     "balancer-v3-monorepo"
    ]
   },
+  "toshares": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
   "tostrictequal": {
    "count": 1,
    "projects": [
@@ -18029,7 +18137,7 @@
    ]
   },
   "totalassets": {
-   "count": 9,
+   "count": 10,
    "projects": [
     "abracadabra-money-contracts",
     "balancer-v3-monorepo",
@@ -18039,7 +18147,8 @@
     "PufferPool",
     "silo-contracts-v2",
     "silo-contracts-v3",
-    "boring-vault"
+    "boring-vault",
+    "lazy-vault"
    ]
   },
   "totalbalanceof": {
@@ -18131,9 +18240,10 @@
    ]
   },
   "totaldeposited": {
-   "count": 1,
+   "count": 2,
    "projects": [
-    "smart-contracts"
+    "smart-contracts",
+    "lazy-vault"
    ]
   },
   "totaldeposits": {
@@ -18229,11 +18339,12 @@
    ]
   },
   "totalshares": {
-   "count": 3,
+   "count": 4,
    "projects": [
     "smart-contracts",
     "silo-contracts-v2",
-    "silo-contracts-v3"
+    "silo-contracts-v3",
+    "lazy-vault"
    ]
   },
   "totalstake": {
@@ -18249,7 +18360,7 @@
    ]
   },
   "totalsupply": {
-   "count": 19,
+   "count": 20,
    "projects": [
     "abracadabra-money-contracts",
     "balancer-v3-monorepo",
@@ -18269,7 +18380,8 @@
     "silo-contracts-v3",
     "core",
     "autonolas-tokenomics",
-    "boring-vault"
+    "boring-vault",
+    "lazy-vault"
    ]
   },
   "totalsupplyat": {
@@ -18306,6 +18418,12 @@
    "count": 1,
    "projects": [
     "smart-contracts"
+   ]
+  },
+  "totalwithdrawn": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "tothrow": {
@@ -18417,7 +18535,7 @@
    ]
   },
   "treasury": {
-   "count": 7,
+   "count": 8,
    "projects": [
     "abracadabra-money-contracts",
     "V2-Public",
@@ -18425,7 +18543,8 @@
     "smart-contracts",
     "core-v3",
     "ion-protocol",
-    "autonolas-tokenomics"
+    "autonolas-tokenomics",
+    "lazy-vault"
    ]
   },
   "trim": {
@@ -19300,6 +19419,18 @@
    "count": 1,
    "projects": [
     "mellow-lrt"
+   ]
+  },
+  "withdrawalqueuehead": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
+   ]
+  },
+  "withdrawalqueuelength": {
+   "count": 1,
+   "projects": [
+    "lazy-vault"
    ]
   },
   "withdrawalrequest": {

@@ -936,6 +936,17 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "lazy (Lazy USD Vault, ERC4626-ish USDC vault, ETH $1M)|src/LazyUSDVault.sol|danger|",
+      "target": "lazy (Lazy USD Vault, ERC4626-ish USDC vault, ETH $1M)",
+      "file": "src/LazyUSDVault.sol",
+      "line": 495,
+      "detector": "danger",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "REACHED via /browse (getlazy.xyz -> contract 0xd53b68fb4eb907c3c1e348cd7d7bede34f763805 + repo Lazy-Protocol/lazy). LIVE: totalAssets=$1.02M. Triaged full repo (small: Vault/RoleManager/FeeDistributor/ReferralRegistry). All recon leads FP/centralization: FeeDistributor.distributeForKOL permissionless-by-design + payout well-guarded (epoch-guard CEI, min(current,recorded) shares anti-inflation); vault transfer/transferFrom pause-bypass = FP (share transfer not a USDC drain); reportYieldAndCollectFees onlyOperatorOrOwner + interval+maxYieldChange bounds; withdrawal queue = escrow+FIFO+cooldown+graceful+escrow-balance invariant. Code carries audit-fix markers V-2/M-1/H-2/I.1/I.2/I.5 -> REVIEWED despite DefiLlama audits=0. NAV = virtual (totalDeposited-totalWithdrawn+accumulatedYield), operator-reported yield = centralization not external bug. No external exploit found. Clean/hardened.",
+      "date": "2026-07-01"
+    },
+    {
       "sig": "lazy (LazyUSD Vault \u2014 getlazy.xyz)|(fanout)|fanout|fanout triage: -",
       "target": "lazy (LazyUSD Vault \u2014 getlazy.xyz)",
       "file": "(fanout)",
