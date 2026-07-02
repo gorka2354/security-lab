@@ -1,0 +1,29 @@
+{
+  "_doc": "Fast known-bug liveness checks. Each entry is a CONFIRMED finding of ours turned into a discriminator: `relevant` = ALL patterns that must be present for the bug CLASS to even apply (absent -> N/A, structurally impossible, fast refute); `guard` = ANY fix pattern that, if present, means the bug is MITIGATED (-> SAFE). Relevant + no guard -> VULN? (confirm by hand). Add a fingerprint whenever we confirm a real bug -> every future similar target is auto-checked. Regexes are Python re, JSON-escaped.",
+  "fingerprints": [
+    {
+      "id": "deathfun-increasebet-replay",
+      "family": "gambling",
+      "finding": "hunts/death-fun/DISCLOSURE-increasebet-free-inflation.md",
+      "desc": "increaseBet raises a backend-SIGNED betAmount but never checks msg.value escrow + the signature is replayable (no nonce) -> free bet inflation, betAmount decoupled from held ETH",
+      "relevant": ["function\\s+increaseBet", "(ecrecover|_verify\\w*[Ss]ignature|serverSignature|adminSignature)"],
+      "guard": ["require\\s*\\([^;{}]*msg\\.value\\s*==", "\\bnonce\\b", "(usedSig|consumedSig|signatureUsed|_usedSignature|_consumed)"]
+    },
+    {
+      "id": "chainlink-missing-staleness",
+      "family": "oracle",
+      "finding": "hunts/capyfi/FINDING-oracle-staleness.md",
+      "desc": "a price consumer calls latestRoundData() but never checks updatedAt freshness -> a stale oracle price is accepted as current (mispriced collateral)",
+      "relevant": ["latestRoundData\\s*\\("],
+      "guard": ["block\\.timestamp\\s*-\\s*\\w*[Uu]pdated", "require\\s*\\([^;{}]*updatedAt", "(heartbeat|stale[a-z]*|maxAge|maxDelay|_?requireFresh)"]
+    },
+    {
+      "id": "vault-pausable-share-transfer",
+      "family": "pause",
+      "finding": "toolkit/recon.py det_paused (Lazy tuning)",
+      "desc": "a value-moving op (borrow/swap/mint) is reachable while the protocol is paused though sibling ops are whenNotPaused-gated -> an incident-pause does not stop that path",
+      "relevant": ["whenNotPaused", "function\\s+(borrow|swap|flashLoan|mint)\\w*\\s*\\([^;{}]*\\)\\s*(external|public)"],
+      "guard": ["function\\s+(borrow|swap|flashLoan|mint)\\w*\\s*\\([^;{}]*\\)\\s*(external|public)[^{]*whenNotPaused"]
+    }
+  ]
+}
