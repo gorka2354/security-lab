@@ -90,6 +90,9 @@
   .fchip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;padding:3px 8px;margin:3px 4px 0 0;
     border:1px solid var(--line);border-radius:6px;background:var(--bg)}
   .fchip:hover{background:var(--panel2);border-color:var(--acc)}
+  .dchip{display:inline-block;font-size:11px;padding:2px 7px;margin:3px 4px 0 0;border-radius:6px;border:1px solid var(--line)}
+  .dchip.d-v{color:var(--real);border-color:var(--real)} .dchip.d-s{color:var(--clean);border-color:var(--clean)}
+  .dchip.d-n{color:var(--dim)}
   .mh2{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
   .logf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
   .logf input,.logf select{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;
@@ -150,6 +153,7 @@ const I18N = {
     parked_hidden:"запаркованных — детали скрыты в публичном режиме", m_findings:"Находки",
     no_finding_t:"находок по этой цели нет", m_verdicts:"Вердикты", no_verdicts:"вердиктов пока нет",
     fork_family:"форк-семья", no_siblings:"нет сиблингов в реестре", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
+    known_bugs:"известные баги (fingerprint)",
     kv_zones:"зоны", kv_chains:"сети", kv_fork:"форк-база", kv_owasp:"owasp", kv_sources:"источники",
     kv_first:"впервые", kv_updated:"обновлено", log_finding:"Записать находку (→ ledger + дашборд, один шаг)",
     finding_title:"название находки", log_btn:"записать → находку", title_req:"нужно название",
@@ -173,6 +177,7 @@ const I18N = {
     parked_hidden:"parked — detail hidden in public mode", m_findings:"Findings",
     no_finding_t:"no finding logged for this target", m_verdicts:"Verdicts", no_verdicts:"no verdicts yet",
     fork_family:"fork family", no_siblings:"no siblings in registry", jump_hint:"click a sibling to jump (batch-CVE)",
+    known_bugs:"known-bug rechecks (fingerprint)",
     kv_zones:"zones", kv_chains:"chains", kv_fork:"fork base", kv_owasp:"owasp", kv_sources:"sources",
     kv_first:"first seen", kv_updated:"updated", log_finding:"Log a finding (→ ledger + dashboard, one step)",
     finding_title:"finding title", log_btn:"log → finding", title_req:"title required",
@@ -358,6 +363,11 @@ function openDetail(id){
   const sibs=t.fork_base ? (s.targets||[]).filter(x=>x.fork_base===t.fork_base && x.id!==t.id) : [];
   const forkfam=t.fork_base ? `<div class="mh2">${tr("fork_family")}: <span class="badge">${esc(t.fork_base)}</span> <span class="vt">${tr("jump_hint")}</span></div>`
     + (sibs.length ? `<div>`+sibs.map(x=>`<span class="fchip" data-id="${esc(x.id)}"><span class="dot d-${colOf(x)}"></span> ${esc(x.name||x.id)}</span>`).join("")+`</div>` : `<div class="row sub">${tr("no_siblings")}</div>`) : "";
+  const det=t.detect, fpr=(det&&det.fingerprints)||[];
+  const dch=f=>`<span class="dchip d-${f.verdict==='vuln?'?'v':(f.verdict==='safe'?'s':'n')}" title="${esc(f.desc||'')}">${f.verdict==='vuln?'?'⚠ ':''}${esc(f.id)} · ${esc(f.verdict)}</span>`;
+  const naCount=fpr.filter(f=>f.verdict==='n/a').length;
+  const detect=det ? `<div class="mh2">${tr("known_bugs")} <span class="vt">${esc(det.generated||'')}</span></div>`
+    + fpr.filter(f=>f.verdict!=='n/a').map(dch).join("") + (naCount?`<span class="dchip d-n">n/a · ${naCount}</span>`:"") : "";
   const finds=findingsFor(id).map(f=>{const k=(f.kind==="non-live")?"non-live":"live";
     return `<div class="find">🐞 <b>${esc(f.title||"")}</b> <span class="pill k-${k}">${tr(k==="non-live"?"k_nonlive":"k_live")}</span><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`;}).join("") || `<div class="row sub">${tr("no_finding_t")}</div>`;
   modal.innerHTML = `<div class="modal-card">
@@ -367,6 +377,7 @@ function openDetail(id){
     <div class="mb">
       <div class="kv">${kv(tr("kv_zones"),t.zones)}${kv(tr("kv_chains"),t.chains)}${kv(tr("kv_fork"),t.fork_base)}${kv(tr("kv_owasp"),t.owasp)}${kv(tr("kv_sources"),t.sources)}${kv(tr("kv_first"),t.firstseen)}${kv(tr("kv_updated"),t.lastupdated)}</div>
       <div class="mh2">${tr("m_findings")}</div>${finds}
+      ${detect}
       <div class="mh2">${tr("m_verdicts")} (${(t.verdicts||[]).length})</div><div class="vlist">${verds}</div>
       ${forkfam}
       ${s._public?"":`<div class="mh2">${tr("log_finding")}</div>

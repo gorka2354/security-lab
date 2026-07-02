@@ -1,0 +1,28 @@
+{
+ "target": "lazy",
+ "generated": "2026-07-02",
+ "src": "lazy",
+ "fingerprints": [
+  {
+   "id": "deathfun-increasebet-replay",
+   "family": "gambling",
+   "verdict": "n/a",
+   "desc": "increaseBet raises a backend-SIGNED betAmount but never checks msg.value escrow + the signature is replayable (no nonce) -> free bet inflation, betAmount decoupled from held ETH",
+   "files": []
+  },
+  {
+   "id": "chainlink-missing-staleness",
+   "family": "oracle",
+   "verdict": "n/a",
+   "desc": "a price consumer calls latestRoundData() but never checks updatedAt freshness -> a stale oracle price is accepted as current (mispriced collateral)",
+   "files": []
+  },
+  {
+   "id": "vault-pausable-share-transfer",
+   "family": "pause",
+   "verdict": "n/a",
+   "desc": "a value-moving op (borrow/swap/mint) is reachable while the protocol is paused though sibling ops are whenNotPaused-gated -> an incident-pause does not stop that path",
+   "files": []
+  }
+ ]
+}

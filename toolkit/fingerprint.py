@@ -18,12 +18,14 @@ Add a fingerprint each time we confirm a real bug -> every future similar target
 like recon detectors + testmine). Pure verdict() -> golden-tested. Stdlib only.
 """
 import argparse
+import datetime
 import json
 import os
 import re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 LIB = "monitor/fingerprints.json"
+CACHE = "monitor/detect-cache"      # per-target detect results the dashboard JOINs (keyed by registry norm_key)
 
 # dependency / non-own-code paths -> skip (a guard in OZ shouldn't mark the target safe)
 _SKIP = re.compile(r"(@openzeppelin|@layerzero|node_modules|/lib/|forge-std|solmate|solady|/test/|\.t\.sol"
@@ -85,6 +87,8 @@ def main():
     ap.add_argument("src", nargs="?", help="target source dir (fetched/cloned)")
     ap.add_argument("--family", help="only run fingerprints of this family (oracle/gambling/pause/...)")
     ap.add_argument("--list", action="store_true", help="list the fingerprint library")
+    ap.add_argument("--save", help="registry norm_key -> also write monitor/detect-cache/<key>.json (dashboard JOINs it)")
+    ap.add_argument("--date", default=datetime.date.today().isoformat())
     a = ap.parse_args()
     fps = load()
     if a.family:
@@ -96,6 +100,14 @@ def main():
             print(f"      from: {f.get('finding','?')}")
         return
     res = scan(a.src, fps)
+    if a.save:
+        os.makedirs(os.path.join(ROOT, CACHE), exist_ok=True)
+        rows = [{"id": r["fp"]["id"], "family": r["fp"].get("family"), "verdict": r["verdict"],
+                 "desc": r["fp"].get("desc", ""), "files": list(r["files"].keys())[:4]} for r in res.values()]
+        out = {"target": a.save, "generated": a.date, "src": os.path.basename(a.src.rstrip("/")), "fingerprints": rows}
+        json.dump(out, open(os.path.join(ROOT, CACHE, a.save + ".json"), "w", encoding="utf-8"), indent=1)
+        n = sum(1 for r in rows if r["verdict"] != "n/a")
+        print(f"[fingerprint] saved {len(rows)} verdict(s) ({n} relevant) -> {CACHE}/{a.save}.json (dashboard JOINs it)")
     hits = [r for r in res.values() if r["verdict"] == "vuln?"]
     safe = [r for r in res.values() if r["verdict"] == "safe"]
     print(f"# fingerprint scan: {os.path.basename(a.src.rstrip('/'))}  ({len(fps)} fingerprints)")

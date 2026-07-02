@@ -100,6 +100,17 @@ def build(root=ROOT, today=None):
 
     led_by = _ledger_by_target(ledger)
 
+    # detect-cache: fingerprint.py --save writes per-target known-bug rechecks; JOIN by registry key
+    detect_by = {}
+    dc = os.path.join(root, "monitor", "detect-cache")
+    if os.path.isdir(dc):
+        for fn in os.listdir(dc):
+            if fn.endswith(".json"):
+                try:
+                    detect_by[fn[:-5]] = json.load(open(os.path.join(dc, fn), encoding="utf-8"))
+                except Exception:
+                    pass
+
     # --- targets (registry is already derived from ledger; we READ it, JOIN verdicts, derive disposition) ---
     targets = []
     for k, t in (reg.get("targets") or {}).items():
@@ -111,6 +122,7 @@ def build(root=ROOT, today=None):
             "owasp": t.get("owasp_classes", []), "sources": t.get("sources", []),
             "firstseen": t.get("firstseen"), "lastupdated": t.get("lastupdated"),
             "verdicts": led_by.get(R.norm_key(t.get("name") or k), []),
+            "detect": detect_by.get(t.get("key", k)) or detect_by.get(k),   # known-bug fingerprint rechecks (if run)
             "sensitivity": "high" if st in ("DIG", "REAL") else "normal",  # mechanical sanitize seam (Inc 5)
         })
 
