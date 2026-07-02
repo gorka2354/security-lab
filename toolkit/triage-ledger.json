@@ -466,11 +466,11 @@
       "sig": "ape-church-deathfun (DeathFun tower/minefield game, ApeChain 33139)|DeathFun.sol|danger|",
       "target": "ape-church-deathfun (DeathFun tower/minefield game, ApeChain 33139)",
       "file": "DeathFun.sol",
-      "line": 745,
+      "line": 605,
       "detector": "danger",
       "snippet": "",
-      "verdict": "todo",
-      "reason": "CALLABLE variant of egor's death.fun bug-family (original was non-callable/custodial; THIS is directly callable: guess/cashOut require games[gameId].user==msg.sender). Multi-round tower game: guess-then-VRF (mine committed before reveal = fair), parlay via newBetAmount=currentPayout, intricate MIDGAME-PAYOUT accounting (_handleMidgamePayout pulls diff from House into game via claimer to back growing currentPayout; on loss houseProfit returns amountForHouse; House.payout caps 2.5% = self-limiting). STATIC TRIAGE: traced survive/lose/cashOut/midgame paths -> house net reconciles in 2-round examples; guess-before-VRF ordering correct; no clean static bug found. BUT the virtual-currentPayout <-> real-funds(game<->house via claimer) accounting is complex enough that confirm/refute needs a FORK PoC (deepdive.py differential model of the midgame-pull vs loss-return invariant across many rounds + edge cases: partial claim amountOut<amount at line 845 ignores shortfall; fee compounding on house-backed winnings). PARKED for deep-dive -- egor's known family + now callable = worth the Foundry session. Framework (VRF/onlyRNG/onlyGame/cap) already verified hardened on Slots/Baccarat/House.",
+      "verdict": "known",
+      "reason": "RESOLVED (no fork-PoC needed): checked the ORIGINAL death.fun bug (hunts/death-fun/DISCLOSURE-increasebet-free-inflation.md = increaseBet signed-amount replay + no msg.value escrow check, BACKEND-SIGNATURE architecture) against THIS code. ApeChurch DeathFun is a DIFFERENT architecture: VRF-on-chain (Pyth Entropy, in-contract resolution), NO increaseBet / NO serverSignature / NO ecrecover (0 matches). The bet is properly escrowed: totalBetAmount=msg.value-vrfFee (DeathFun.sol:605), currentPayout/initialBetAmount = totalBetAmount, parlay re-bets real house-backed winnings. The free-inflation (bet decoupled from ETH) bug is STRUCTURALLY IMPOSSIBLE here (no signed betAmount, bet==msg.value). My earlier 'callable variant of same family' framing was wrong -- same GAME concept, fundamentally different+safer implementation. Static VRF-accounting trace also reconciled (survive/lose/cashOut). CLEAN wrt the death.fun bug class. Disciplined win: used the existing PoC to pin the exact bug, then a 1-check architecture diff ruled it out (no blind fork-PoC).",
       "date": "2026-07-01"
     },
     {
