@@ -150,6 +150,13 @@ check(not flagged(recon.det_paused, "contract C{function deposit() external when
       "inline _requireNotPaused() in body counts as gated -> not flagged")
 check(recon.det_key("PAUSE-BYPASS (value-moving fn not whenNotPaused while siblings are)") == "pause",
       "det_key maps pause-bypass -> 'pause' (ledger stability)")
+check(not flagged(recon.det_paused, "contract V{function totalAssets() public view returns(uint){return 1;}"
+                  " function deposit(uint a) external whenNotPaused { x=a; }"
+                  " function transfer(address t,uint a) public { _move(t,a); }}", "transfer"),
+      "Lazy FP fix: vault (totalAssets) share transfer NOT flagged (share move != USDC drain)")
+check(flagged(recon.det_paused, "contract Tok{function deposit(uint a) external whenNotPaused { x=a; }"
+              " function transfer(address t,uint a) public { _move(t,a); }}", "transfer"),
+      "non-vault token: transfer IS the asset -> still flagged as pause-bypass")
 
 print("== det_mint (supply integrity, _msgSender fix) ==")
 check(flagged(recon.det_mint, "contract C{function mint(address t,uint a) external { _mint(t,a); }}", "mint"),

@@ -232,6 +232,9 @@ def det_paused(text, rel):
     needs a real pause mechanism + >=1 gated sibling; ADMIN fns excluded (admin must act WHILE paused)."""
     if not PAUSE_PRESENT.search(text):
         return []
+    # ERC4626-like? then plain share transfer/transferFrom is a CLAIM move, not a value drain (Lazy lesson) ->
+    # don't flag them; the drain path is the underlying (deposit/withdraw), gated separately.
+    is_vault = bool(re.search(r"\btotalAssets\s*\(|\bconvertToShares\s*\(|\bconvertToAssets\s*\(|ERC4626", text))
     funcs = []   # (name, ln, pause_gated, admin_gated)
     for m in re.finditer(r"function\s+(\w+)\s*(\([^{};]*?)\{", text, re.S):
         name, blob = m.group(1), m.group(2)
@@ -249,6 +252,8 @@ def det_paused(text, rel):
     for name, ln, pg, ag in funcs:
         if pg or ag:                     # already pause-gated, OR admin (admin acts during pause) -> skip
             continue
+        if is_vault and name.lower() in ("transfer", "transferfrom"):
+            continue                     # vault SHARE transfer is not a value drain (Lazy FP fix)
         if DANGER_FN.match(name):        # exits (withdraw/exit/redeem) intentionally open -> not in DANGER_FN
             out.append((rel, ln, f"function {name}(...)",
                         "pause present + siblings use whenNotPaused, but this RISKY-if-open op is NOT "
