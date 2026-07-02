@@ -452,6 +452,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "ape-church (Ape Church casino, House bankroll, ApeChain 33139)|House.sol|danger|",
+      "target": "ape-church (Ape Church casino, House bankroll, ApeChain 33139)",
+      "file": "House.sol",
+      "line": 699,
+      "detector": "danger",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "REACHED via /browse->deployer-enum (0x48f704... -> House 0xe61ece03/Slots/Baccarat, verified ApeChain). LIVE finding: enableInGamePausing is FALSE on-chain (confirmed Etherscan-v2 eth_call + cast/apechain-rpc), but the SOURCE defaults it =true (House.sol:449) with elaborate resolutionsPending machinery + a withdraw guard (House.sol:699-703 require(resolutionsPending==0)) -> the team's own pending-game LP protection is DISABLED. Effect: LP withdraw() during a pending game is allowed; since payout is capped at 2.5%*balance AT payout-time, LP withdrawals during pending shrink the pool -> shrink the cap -> pending WINNERS underpaid. HONEST: not a clean external drain -- the bet sits in the GAME contract not House (House balance unchanged during pending), and VRF fulfillRandomWords settles atomically (no known-but-unsettled window). Impact = fairness/underpayment of pending winners when LPs pull the bankroll; a disabled safety mechanism. Severity Low-Med. lockTime=900s (short). House bal=244 APE. Disclose as 'your enableInGamePausing protection is off'. VRF onlyRNG-gated + onlyGame + payout-cap all CORRECT (rest of casino hardened).",
+      "date": "2026-07-01"
+    },
+    {
       "sig": "ape-church-house|fetched/33139_0x2054709F89F18a4CCAC6132acE7b812E32608469/House.sol|concurrency-maxpayout-aggregation|",
       "target": "ape-church-house",
       "file": "fetched/33139_0x2054709F89F18a4CCAC6132acE7b812E32608469/House.sol",
