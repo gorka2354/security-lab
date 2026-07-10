@@ -2,8 +2,14 @@
 
 **Repo:** `fenestbuc/wager-chess` (GitHub); the identical `ChessLogic.sol` is in `Kubar-Labs/wager-chess`
 (same 20,107-byte file) so BOTH are affected. **Training rep** (egor's edge: wager PvP). PoC: `wager-chess-poc/`
-(forge 3/3, on the REAL ChessLogic code). **LIVE-FIRST caveat:** hobby repo — verify on-chain deployment / real
-wagers before treating as a live finding; as-is it's a real High-severity logic bug + a training find.
+(forge 5/5 — 3 on ChessLogic + 2 end-to-end on the real WagerChessEngine).
+
+**Deployment (LIVE-FIRST):** `WagerChessEngine` is deployed at `0x0b0a6a9a49ab20c18c14a84964a82f520c5af874` on
+**Monad TESTNET (chain 10143)**, with a frontend. So it is LIVE but on TESTNET — no real money at risk (testnet
+tokens). The bug is real + reachable through the deployed `makeMove(gameId, from, to, promotion)` entrypoint; the
+IMPACT is testnet-only unless/until the team ships to mainnet. -> Responsible disclosure to the dev (fix before any
+mainnet launch); no bounty (hobby repo). Self-confirmation on the testnet against your OWN 2 accounts is fine
+(your own funds, no one else harmed); do NOT run the exploit against other real players' stakes.
 
 ## 🎯 FINDING (HIGH, PoC-proven) — free piece promotion on any non-pawn move → steal the wager
 
