@@ -294,6 +294,7 @@ INVARIANT_MENU = [
         "outcome integrity: on-chain RNG outcome (rarity/loot/battle/raffle) not predictable AND not revert-to-reroll-able AND VRF-callback not retry-gameable",
         "asset-locking: a locked/staked NFT can't transfer/sell externally (cross-contract state synced on _update/transfer)",
         "callback safety: ERC721/1155 receiver hook during claim/mint/transfer can't reenter (the #1 NFT root cause, 35%+)",
+        "move/action-input VALIDATION-GAP: every state-transition arg (promotion/target/piece/dir/amount) is validated for EVERY case it is CONSUMED in, not just some -- a param checked inside one type/case branch but APPLIED unconditionally downstream is a free-action bug. Grep-tell: `if (type==X) validate(param); ... use(param)` where use runs for all types. wager-chess: `isValidMove` checks `promotion` only for pawns (pt==1) but `executeMove` applies it to ANY piece -> non-pawn move + promotion=5 -> free Queen -> checkmate -> steal the wager (PoC 5/5). Reasoning-tier (dataflow: validated-in-branch-X, consumed-everywhere), NOT a clean T0 regex.",
     ]),
     ("BRIDGE / CROSS-CHAIN", [
         "minted <= proven-locked: SUM(minted on dst) <= SUM(proven-locked on src); used[txid] dedup blocks replay; "
