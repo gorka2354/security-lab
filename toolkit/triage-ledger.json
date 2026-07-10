@@ -1805,6 +1805,28 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "wager-chess-fenestbuc|ChessLogic.sol|ac|",
+      "target": "wager-chess-fenestbuc",
+      "file": "ChessLogic.sol",
+      "line": 483,
+      "detector": "access",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "wager-chess (fenestbuc) ChessLogic -- HIGH, PoC-proven (wager-chess-poc/ 3/3 on the REAL code). FREE PROMOTION on any non-pawn move: isValidMove validates the promotion arg ONLY for pawns (pt==1 -> _isPawnMove requires promotion==NONE off the last rank / _isValidPromotion on it); for knight/bishop/rook/queen/king the promotion arg is IGNORED, yet executeMove line 483 applies it unconditionally: board[to] = promotion!=NONE ? (white?promotion:promotion+8) : piece. So a LEGAL non-pawn move carrying promotion=5 turns the moved piece into a QUEEN (WQ=5). Exploit: spawn a Queen army over a few moves -> trivial checkmate -> _finalizeGame pays the winner totalPot -> STEAL the opponent wager. Every wagered game is winnable by the cheater. PoC: knight b1(1)->c3(18) promo=5 -> board[18]==5 (Queen); rook variant too; control (no promo) stays a knight. FIX: in isValidMove/executeMove reject promotion!=NONE unless pt==1 AND last rank (gate line 483 on pt==1). Same gap likely in the Kubar-Labs variant (shared ChessLogic). LIVE-FIRST caveat: GitHub hobby repo -- verify on-chain deployment/real wagers before treating as live; as-is a real High-severity logic bug + training find.",
+      "date": "2026-07-10"
+    },
+    {
+      "sig": "wager-chess-fenestbuc|WagerChessEngine.sol|reward|",
+      "target": "wager-chess-fenestbuc",
+      "file": "WagerChessEngine.sol",
+      "line": 204,
+      "detector": "reward",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "wager-chess (fenestbuc, GitHub, on-chain wager chess; TRAINING rep, egor edge). Reentrancy CLOSED (claimPayout/withdrawUnmatchedWager/claimTimeout all CEI + pull-payment pendingWithdrawals). Lead KILLED: claimTimeout insta-steal -- lastMoveTimestamp IS initialized in both createGame(99) and joinGame(115) so a joiner cannot claim before the first move (needs a real 1h stall). FINDING (Low, accounting): fee DOUBLE-DEDUCTION. totalPot = wagers only (2*wager); move fees are paid as SEPARATE msg.value into totalFeesCollected/claimableFees, NOT added to totalPot. But payout = totalPot - totalFeesCollected = 2*wager - fees -> winner UNDERPAID by fees; protocol also withdraws the same fees via claimableFees (the actual fee payments) -> the fee amount is deducted twice and totalFeesCollected worth of ETH is STRANDED in the contract per game (received 2*wager+fees, pays out 2*wager). Not a drain (stranded + winner-loss). FIX: payout should be totalPot (full 2*wager) since fees are paid on top, OR add fees to totalPot. Deep surface TODO: ChessLogic (555L) checkmate/winner detection correctness (win a game you did not) + _finalizeGame reverts if gameOver but not checkmate/stalemate -> stuck-pot if ChessLogic sets gameOver on other draws. K (Kubar-Labs) variant lacks claimTimeout -> stalled games stuck.",
+      "date": "2026-07-10"
+    },
+    {
       "sig": "witty|src/Arcade.sol|signature|Arcade coin/solve escrow+balance accounting + ERC-6492 VerifySig arbitrary call",
       "target": "witty",
       "file": "src/Arcade.sol",
