@@ -1,0 +1,11 @@
+# security-lab — Python dependencies for the toolkit + tests.
+# The engine core (recon.py static detectors, tests) is pure-stdlib and needs NOTHING here;
+# these are only for the network/dynamic lanes.
+
+web3>=6.0            # eth ABI/keccak helpers used by activity.py / selector hashing
+requests>=2.28       # HTTP for a few sourcing helpers (most use urllib from stdlib)
+
+# Optional / lane-specific (install as needed):
+#   git-filter-repo   # history maintenance
+#   slither-analyzer  # L2 static pass (analyze.py); CI installs it on Linux
+#   panoramix-decompiler  # decompile lane — WSL/Linux only (Unix signals); NOT on Windows
