@@ -85,4 +85,4 @@ provably fails on buggy). 6 templates, all verified both ways. recon surfaces th
 **Backlog (not yet written):** interest/fee rounding (mulDivUp/Down asymmetry — Monolith soft-spot) · init/upgrade/storage
 (front-run init, uninitialized impl, storage-collision, transitive proxy).
 
-> Sync the transferable lessons into the Obsidian "Крипто безопасность" vault (heuristics + pattern notes) — that's the public/study face; this dir is the toolkit-feeding face.
+> Sync the transferable lessons into a knowledge base (heuristics + pattern notes) — the study face; this dir is the toolkit-feeding face.

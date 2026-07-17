@@ -50,3 +50,6 @@ hunts/**/_*/
 
 # crash dumps
 *.stackdump
+
+# Claude Code local config (kept local; not part of the tool-agnostic showcase)
+.claude/

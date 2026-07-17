@@ -51,4 +51,4 @@ is reasoning-tier; the T0 regex either floods or misses.)
 - Every intervening flow has a **compensating term** in the settlement (Tizi's `nftQueueUSDC` is the *correct* template; the bug is only that the liquid path lacks the analogous term).
 - All writers share one guarded entrypoint (single adapter, or a modifier that all paths route through).
 
-> Sync to the Obsidian vault under Паттерны уязвимостей. Feeds `hypothesize.py` INVARIANT_MENU (CORE: split-brain reconciliation) + a candidate `det_split_accounting`.
+> Sync to the knowledge base (vulnerability-patterns section). Feeds `hypothesize.py` INVARIANT_MENU (CORE: split-brain reconciliation) + a candidate `det_split_accounting`.
