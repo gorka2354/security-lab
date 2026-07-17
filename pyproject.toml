@@ -1,0 +1,46 @@
+[project]
+name = "security-lab"
+version = "0.1.0"
+description = "White-hat smart-contract bug-hunting engine: static detectors, dynamic fuzzing, reach/decompile lanes, and reproducible Foundry PoCs."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "gorka2354" }]
+keywords = [
+    "security", "smart-contracts", "ethereum", "solidity",
+    "static-analysis", "fuzzing", "bug-bounty", "white-hat",
+]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Security",
+]
+
+# The engine core (recon.py detectors + the golden test suite) is pure-stdlib.
+# These are only needed for the network / dynamic lanes.
+dependencies = [
+    "web3>=6.0",       # eth ABI/keccak helpers (activity.py, selector hashing)
+    "requests>=2.28",  # a few sourcing helpers (most use urllib from stdlib)
+]
+
+[project.optional-dependencies]
+analysis = ["slither-analyzer"]           # L2 static pass (analyze.py) — Linux/CI
+decompile = ["panoramix-decompiler"]      # WSL/Linux only (Unix signals)
+dev = ["git-filter-repo"]
+
+[project.urls]
+Repository = "https://github.com/gorka2354/security-lab"
+
+# The golden suite runs as a plain script (`python tests/test_detectors.py`) so it stays
+# zero-dependency and CI-friendly; this documents the layout for pytest users.
+[tool.pytest.ini_options]
+python_files = "test_*.py"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+# Practical for a research toolkit: keep the core checks, allow long explanatory strings.
+ignore = ["E501"]
