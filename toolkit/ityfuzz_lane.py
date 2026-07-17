@@ -143,7 +143,7 @@ def main():
     if res.get("found"):
         print(f"\n[ityfuzz] >>> {res['n_signals']} bug-signal(s)"
               + (f", profit ~{res['profit']} wei" if res.get("profit") else "")
-              + " -> VERIFY by hand (Gate-0 live+in-scope) before any disclosure. egor discloses.")
+              + " -> VERIFY by hand (Gate-0 live+in-scope) before any disclosure. the researcher discloses.")
     sys.exit(10 if res.get("found") else 0)
 
 

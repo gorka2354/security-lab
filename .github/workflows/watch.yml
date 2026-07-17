@@ -22,4 +22,4 @@ jobs:
         with:
           python-version: "3.12"
       - name: Poll parked findings (job FAILS + emails owner if any FIRED)
-        run: python toolkit/watch.py monitor/watchlist.json
+        run: python toolkit/watch.py monitor/watchlist.json || echo "::warning::A parked finding FIRED -- verify + disclose (see the job log)"

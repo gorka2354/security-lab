@@ -5,7 +5,7 @@ The dynamic + symbolic layer (Slither, Echidna/Medusa, Halmos) does NOT install 
 L2 + symbolic from "aspirational / CI-only" into runnable locally. Verified 2026-06-10 (Ubuntu 22.04,
 Python 3.10, gcc 11.4, forge 1.7.1, slither 0.11.5, halmos 0.1.13, solc 0.8.24).
 
-The repo is reachable from WSL at `/mnt/c/Users/pesto/Desktop/security-lab` (run the Python toolkit straight
+The repo is reachable from WSL at `/mnt/c/Users/dev/Desktop/security-lab` (run the Python toolkit straight
 off the Windows checkout -- no copy). Per-target clones live under `hunts/_volume/`.
 
 ## One-time setup (in WSL)
@@ -30,7 +30,7 @@ explicitly is the reliable form.)
 
 ## L2 -- Slither + the L1n L2 corroboration (`analyze.py`)
 ```sh
-R=/mnt/c/Users/pesto/Desktop/security-lab
+R=/mnt/c/Users/dev/Desktop/security-lab
 python3 $R/toolkit/analyze.py <repo>          # recon (L1) + slither (L2) + spots flagged by BOTH (high-confidence)
 slither <file.sol>                            # raw slither on a single standalone file
 ```
@@ -104,13 +104,13 @@ slot-based pass (which `storN` is the supply counter, incremented on mint?) is t
 
 ## heimdall -- the MODERN-bytecode decompiler (Ubuntu-24.04, manual binary, 2026-06-16)
 heimdall can't auto-install here (native Windows = no cargo/MSVC; WSL = no outbound net; github
-release-asset CDN blocked) -> egor downloaded `heimdall-linux-amd64` by browser. **Version<->glibc
+release-asset CDN blocked) -> the operator downloaded `heimdall-linux-amd64` by browser. **Version<->glibc
 matters:** heimdall 0.9.x is built on Ubuntu 24.04 (needs GLIBC_2.39); the original WSL "Ubuntu" is
 22.04 (glibc 2.35) -> `GLIBC_2.39 not found`. Either use heimdall 0.8.x (built on 22.04) OR a 24.04
-distro. egor added an **`Ubuntu-24.04`** distro (glibc 2.39) where heimdall 0.9.2 runs.
+distro. the operator added an **`Ubuntu-24.04`** distro (glibc 2.39) where heimdall 0.9.2 runs.
 ```sh
 # install (in the 24.04 distro): copy the browser-downloaded binary, chmod
-wsl -d Ubuntu-24.04 bash -c 'cp "/mnt/c/Users/pesto/Downloads/.../heimdall-linux-amd64" ~/heimdall && chmod +x ~/heimdall && ~/heimdall --version'
+wsl -d Ubuntu-24.04 bash -c 'cp "/mnt/c/Users/dev/Downloads/.../heimdall-linux-amd64" ~/heimdall && chmod +x ~/heimdall && ~/heimdall --version'
 # decompile a local bytecode file OFFLINE (no RPC), Solidity output to a /mnt/c dir:
 wsl -d Ubuntu-24.04 bash -c '~/heimdall decompile "/mnt/c/.../code.hex" --include-sol --skip-resolving -d -o "/mnt/c/.../out"'
 python toolkit/decompile_match.py <out>/decompiled.sol          # WINDOWS matcher (handles both decompilers)
@@ -123,11 +123,11 @@ panoramix NAME form (`/ totalSupply`) and the heimdall SELECTOR form (`* unresol
 Use `--skip-resolving` for offline runs (the distro may have no net). So: panoramix for older
 bytecode (names totalSupply), heimdall for modern (selector form) -- the matcher spans both.
 
-> [!] **SAFETY -- egor's project lives in BOTH `Ubuntu` (default) AND `Ubuntu-24.04`.** Always target
+> [!] **SAFETY -- the dev's project lives in BOTH `Ubuntu` (default) AND `Ubuntu-24.04`.** Always target
 > the decompile with `-d Ubuntu-24.04` (NOT the default, which is the old `Ubuntu`). Do NOT
 > apt-install, kill processes, run long/parallel jobs (shared host CPU vs his running update), or
 > touch any project dir. heimdall is an isolated `~/heimdall` binary; decompile reads bytecode from
-> and writes output to `/mnt/c/...security-lab` ONLY. egor will delete the old `Ubuntu` distro himself.
+> and writes output to `/mnt/c/...security-lab` ONLY. the operator will delete the old `Ubuntu` distro himself.
 
 ## Proven decompile (2026-06-16, the ThetaNuts frontier)
 - `reach_bytecode.py 0xC2C3AE0a` (Windows) -> recovered **36/50 signatures** from raw unverified bytecode

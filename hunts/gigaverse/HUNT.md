@@ -1,6 +1,6 @@
 # HUNT — Gigaverse (active on-chain RPG, Abstract chain 2741, Proof-of-Play GameRegistry arch)
 
-Sourced from the Abstract Discover ecosystem (egor's GameFi edge). 8 gameplay systems triaged via an 8-agent
+Sourced from the Abstract Discover ecosystem (the GameFi focus). 8 gameplay systems triaged via an 8-agent
 fan-out (`hunts/_fanout/2026-06-15-gigaverse-systems.md`); RandomSystem/PetRacing/ItemMarket/Account/Vendor = PARK
 (RNG is a solid Proof-of-Play off-chain VRF, economics conserved). Two live signature-binding leads survived; this
 deep-dive proves the sharpest.
@@ -67,7 +67,7 @@ A real, PoC-proven (3/3), **gate-CONFIRMED** (live len-5 export batches signed) 
 over-mint on a LIVE, ACTIVE, a16z/Proof-of-Play-backed game — the strongest GameFi find of the session. Honest
 severity: **Medium** (impact bounded by the signed batch's word magnitudes; tradeable item economy). **Scope: NO
 public bug-bounty** (no Immunefi listing, no SECURITY.md on proofofplay/gigaverse-games/GLHFers, no disclosure page
-in docs) → no reward; the white-hat move is a **goodwill responsible disclosure** to the team (egor sends via their
+in docs) → no reward; the white-hat move is a **goodwill responsible disclosure** to the team (the operator sends via their
 Discord/contact) with the PoC + the honest bounded-severity framing. Recommended fix: bind the signature to a
 hashed-struct (EIP-712 with explicit field types incl. array lengths) or `abi.encode` (length-prefixed) instead of
 `abi.encodePacked`, and add `require(itemIds.length == itemAmounts.length)` + chainid/address(this) in the digest.

@@ -1,31 +1,31 @@
 ---
 name: hunt
 description: >
-  White-hat smart-contract bug hunt — the full security-lab pipeline in one command. Use when egor says
+  White-hat smart-contract bug hunt — the full security-lab pipeline in one command. Use when the user says
   "hunt <target>", "/hunt", "найди баги в <repo/address/protocol>", or "насёрчи свежий таргет". Sources a
   target (or takes one), reaches its live code, triages (fork? audited? novel?), runs the detectors +
   hypothesizer, does the L4 multi-mindset read, kill-gates every candidate, and only then proposes a finding.
-  Orchestrates toolkit/ + the L4-READ / VERIFY methodology. White-hat only; egor discloses, never me.
+  Orchestrates toolkit/ + the L4-READ / VERIFY methodology. White-hat only; the researcher discloses, never the tool.
 ---
 
 # /hunt — one-command bug hunt (MVP)
 
 A thin orchestrator over the security-lab engine. Run the phases in order; STOP early when a phase says clean.
 Foundry not on PATH -> prefix `export PATH="$HOME/.foundry/bin:$PATH"`. Etherscan: `export ETHERSCAN_API_KEY=…`
-(egor's free key) so `fetch_source` reaches Etherscan-verified source beyond Sourcify. ASCII output only.
+(a free key) so `fetch_source` reaches Etherscan-verified source beyond Sourcify. ASCII output only.
 
 ## Hard rules (never break)
 - **White-hat:** only in-scope authorised bounties/contests; responsible disclosure; never touch others' funds.
-- **Known/fixed ≠ finding.** **egor discloses, never me.** **FPs are worse than misses** (see VERIFY).
+- **Known/fixed ≠ finding.** **the researcher discloses, never the tool.** **FPs are worse than misses** (see VERIFY).
 - **LIVE-FIRST:** a bug matters only in DEPLOYED + active + in-scope code (verify deploy in Phase 1).
 
-## Phase 0 — SOURCE a target (skip if egor gave one)
+## Phase 0 — SOURCE a target (skip if one is given)
 - Fresh live contest (best EV — guaranteed-unaudited + paid): `python toolkit/contest_monitor.py` -> pick a
   [FRESH] our-zone contest (hunt it first-hours). It's cron'd to alert on launches.
 - Deployed-but-unaudited: `python toolkit/scout.py --source defillama --resolve-top 12` (CORE-repo resolve);
   for closed-source, get core addrs from the DefiLlama adapter (`projects/<module>/index.js`).
 - In-scope + paid: `python toolkit/scout.py --source immunefi`.
-- GameFi/gamble (egor's edge): scout covers Gambling/Luck Games/Lottery/Betting now; or a fresh game launch he names.
+- GameFi/gamble: scout covers Gambling/Luck Games/Lottery/Betting now; or a fresh game launch that is named.
 - DEPRECATED-but-funded (the Thetanuts class scout/contest STRUCTURALLY miss — de-listed, no bounty):
   `python toolkit/legacy.py check <addr>[,...] --chain <id>` (also `from-deployer`/`from-factory` w/ ETHERSCAN_API_KEY,
   or `sweep --file <addrs>` to rank a big list by residual value -- the class is RARE, prefer a broad sweep)
@@ -87,7 +87,7 @@ Numbers before/after; a runnable WHO/WHAT/HOW-MUCH scenario.
 - EVERY verdict -> `python toolkit/ledger.py add --target … --detector … --verdict fp|known|wontfix|real|todo --reason "…"`.
   FP-by-pattern -> also a recon precision fix (the self-improvement loop).
 - Hunt log -> `hunts/<target>/HUNT.md`. New transferable pattern -> `research/patterns/<class>/`.
-- TP/LT -> disclosure draft (`hunts/<target>/DISCLOSURE-*.md`); confirm scope + bounty; **egor sends it.**
+- TP/LT -> disclosure draft (`hunts/<target>/DISCLOSURE-*.md`); confirm scope + bounty; **the researcher sends it.**
 
 ## Knowledge & memory
 After each hunt, update the Obsidian vault (pattern + heuristic) per the project CLAUDE.md, and the project

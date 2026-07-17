@@ -1,6 +1,6 @@
 # HUNT: death.fun (DeathFun, Abstract) -- fan-out DIG -> deep L4 -> FINDING (2026-06-15)
 
-- **Surfaced by the Abstract fan-out triage** (luck-games zone, egor's edge). Live gambling dapp on Abstract
+- **Surfaced by the Abstract fan-out triage** (luck-games zone, the GameFi/gambling focus). Live gambling dapp on Abstract
   (zkSync, chain 2741): proxy `0x27EDd16eE56958fddCBA08947f12C43DDeC2B20C`, impl
   `0x2c133230cfca00b9bf78c46dae03a97019d96551`, holds ~**20.79 ETH**, gameCounter ~4.65M, 323 events/5k blocks.
 - Original greenfield (forkdrift: no base), no audit evidence, no Immunefi/bounty.

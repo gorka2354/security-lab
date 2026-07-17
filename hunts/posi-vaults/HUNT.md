@@ -47,7 +47,7 @@ amount`. -> `sum(userInfo.amount) != totalSupply`, and `rewardPerToken = rewards
   pattern hits -- a reminder that recon AIMS, the read FINDS.
 - LIVE-FIRST: deployment/TVL NOT confirmed (no addresses in the repo; POSI has a rough history -> these vaults
   may be deprecated). Severity is gated on that -> ledger F2 = `todo` (PoC + live-check), F1 = `real` (clear but Low).
-- White-hat: read-only. If confirmed live + in-scope, egor confirms + discloses (PositionExchange has no public
+- White-hat: read-only. If confirmed live + in-scope, the operator confirms + discloses (PositionExchange has no public
   bounty visible -> responsible disclosure direct).
 
 ## Phase-0 LIVE-FIRST verdict (2026-06-13) -- DEAD TARGET, closed (wontfix)

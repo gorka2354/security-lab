@@ -4,7 +4,7 @@
 Когда работаешь здесь — держи в голове следующее.
 
 ## Что это и кто я (пользователь)
-- egor (`gorka2354`) — быстрый «вайбкодер», осваивает smart-contract security как хобби.
+- Оператор — быстрый вайбкодер, осваивает smart-contract security как хобби.
 - Тянет азарт поиска багов и «обходов». Сильная тема: gaming / on-chain games. Знает крипту с пользовательской стороны (фарм аирдропов).
 - Пишет по-русски (иногда слетает раскладка — `lf lfdfq` = `да давай`; декодируй).
 
@@ -14,7 +14,7 @@
 **Всё записываем в Obsidian-vault** (см. ниже).
 
 ## Где что лежит
-- **База знаний (Obsidian):** `C:\Users\pesto\OneDrive\Документы\Obsidian Vault\Крипто безопасность\`
+- **База знаний (Obsidian):** `C:\Users\dev\OneDrive\Документы\Obsidian Vault\Крипто безопасность\`
   (MOC + Взломы и разборы / Паттерны уязвимостей / Аудиты разборы / Findings / Инструменты / Ресурсы / Шаблоны).
 - **PoC-проекты (здесь):** `security-lab/<case>` (Foundry). Уже есть `nomad-poc`, `oracle-poc`, `invariant-lab`.
 - **Тулкит:** `security-lab/toolkit/` — `orchestrate.py` (облава), `diffscan.py` (свежесть),
@@ -45,7 +45,7 @@
   по value), age-based dormancy, keyless RPC, скип EIP-7702 EOA; урок: класс редкий — нужен широкий свип),
   `testmine.py` (ДЕТЕКТОРЫ ИЗ ТЕСТОВ ПРОЕКТОВ: майнит собственные тест-сьюты (assert-субъекты + invariant_/echidna_ имена) -> КРОСС-ПРОЕКТНАЯ стата частоты `monitor/test-stats.json` (count = #проектов) -> `--backlog` = частые свойства без детектора = data-driven кандидаты-детекторы/ItyFuzz-сиды ('что тестируют многие = что важно'; напр. `paused` 9 проектов -> детектор pause-bypass). Майним после КАЖДОГО тронутого проекта -> компаундится. Тай в hypothesize/ItyFuzz-echidna), `fingerprint.py` (БЫСТРЫЙ live-чек ИЗВЕСТНОГО бага: каждая подтверждённая находка -> отпечаток в `monitor/fingerprints.json` = `relevant` (preconditions; отсутствуют -> N/A = структурно невозможен, мгновенный refute) + `guard` (фикс-паттерн; есть -> SAFE); relevant+no-guard -> VULN?. Урок death.fun vs ApeChurch: та же игра, другая архитектура -> баг исключён 1 проверкой вместо fork-PoC. Добавляем отпечаток на каждую реальную находку -> компаундится; тай в hunt-цикл после reach), `calibrate.py` (FEEDBACK-LOOP:
   исход каждой находки accepted/disputed/bounty + калибровка clean-вердиктов против публичного
-  ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = egor), `fanout_log.py`
+  ground-truth -> precision/recall + слепые пятна; ground-truth по находкам = оператор), `fanout_log.py`
   (ПЕРСИСТ fan-out-невода: типизированная таблица `hunts/_fanout/<date>-<label>.md` по type+chain +
   ledger-suppress dead-ends + DIG в todo-очередь; вердикты TRIAGE-level = гипотезы, deep-dive потом руками).
   Динамический слой локально — WSL-лейн (`toolkit/WSL-LANE.md`). Работа с Mac — `toolkit/MAC-LANE.md`
@@ -70,7 +70,7 @@
   read-only по публичным данным). Нашёл реальный impact → **ответственно раскрываем**: баунти если есть,
   иначе приватно команде (security@/контакт), даём время на фикс. **НИКОГДА:** чужие средства/live-стейт,
   эксплойт в мейннете, публичный 0-day, вымогательство. Гейт = «есть путь раскрытия + реальный impact +
-  тест только на форке». Известный/исправленный баг ≠ находка. **egor раскрывает, не я.**
+  тест только на форке». Известный/исправленный баг ≠ находка. **раскрывает исследователь, не инструмент.**
   Следствие для SOURCE: un-audited/мелкие/свежие (freshfeed/freshdeploy/scout-deployed-unaudited) теперь
   ПЕРВИЧНЫ (плотность багов там, не в блю-чипах-с-баунти).
 - Foundry/solc не в PATH по умолчанию → `source toolkit/env.sh` (или префикс `export PATH="/opt/homebrew/bin:$HOME/.foundry/bin:$PATH"`).

@@ -12,7 +12,7 @@ AND git history.
 
 Pure-python (no dep), so it always runs; if `gitleaks` is on PATH it is ALSO run and merged (deeper rules).
 History scan is pre-filtered with `git log -G<regex>` so git only emits the commits that actually match -
-cheap even on a monorepo. White-hat: report only; egor decides disclosure. ASCII output.
+cheap even on a monorepo. White-hat: report only; the researcher decides disclosure. ASCII output.
 """
 import argparse
 import json

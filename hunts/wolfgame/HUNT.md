@@ -37,4 +37,4 @@ No fresh finding (the RNG flaw is public & patched). But two GameFi targets in a
 confirm the system's biggest GameFi blind spot: **no weak-randomness detector.** recon's 17
 detectors caught only the (mitigated) reentrancy + unchecked-transfer here and missed the
 actual, historically-exploited bug entirely. Strongest possible case to forge
-`det_weak_randomness` (egor's edge + closes a real coverage gap).
+`det_weak_randomness` (the GameFi/gambling focus + closes a real coverage gap).

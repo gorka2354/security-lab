@@ -6,7 +6,7 @@
 # core dirs first so coreutils survive a clobber, then brew + foundry
 export PATH="/opt/homebrew/bin:$HOME/.foundry/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
-# Etherscan v2 key (egor's free key) — recover from ~/.zshrc if not already exported
+# Etherscan v2 key (a free key) — recover from ~/.zshrc if not already exported
 if [ -z "$ETHERSCAN_API_KEY" ]; then
   export ETHERSCAN_API_KEY="$(grep -hoE 'ETHERSCAN_API_KEY=[A-Za-z0-9]+' "$HOME/.zshrc" 2>/dev/null | head -1 | cut -d= -f2)"
 fi

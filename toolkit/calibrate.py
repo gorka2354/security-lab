@@ -8,7 +8,7 @@ contests; this closes the loop on our LIVE work, on two fronts:
   FINDINGS    - each claimed finding tracked to its real-world OUTCOME
                 (disclosed -> acknowledged -> accepted|disputed|duplicate|fixed|
                  ignored; the severity we CLAIMED vs the one AWARDED; bounty
-                 expected vs paid). Ground truth = egor (he discloses, he sees
+                 expected vs paid). Ground truth = the operator (he discloses, he sees
                  the reply). This is the project's real KPI - not detector recall.
 
   CALIBRATION - for a target we CLOSED (clean/dead/audited/fp), when public

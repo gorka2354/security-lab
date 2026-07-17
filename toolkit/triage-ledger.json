@@ -536,7 +536,7 @@
       "detector": "oracle",
       "snippet": "",
       "verdict": "real",
-      "reason": "CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle 0xfba2712d3bbcf32c6e0178a21955b61fe1ff424a = ChainlinkPriceOracle (verified); its LIVE getUnderlyingPrice has updatedAt+answeredInRound COMMENTED OUT -> no staleness check (price>0 present). cTokens have non-zero totalSupply (active markets, real value). Custom push oracle CapyfiAggregatorV3 (UXD/LAC). SEVERITY Low-Med, CONDITIONAL (heartbeat lapse / operator negligence, not attacker-triggerable). CAVEAT: missing-staleness is a common Compound-fork finding -> CHECK known-issues/out-of-scope before submit. Write-up: hunts/capyfi/FINDING-oracle-staleness.md. egor discloses.",
+      "reason": "CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle 0xfba2712d3bbcf32c6e0178a21955b61fe1ff424a = ChainlinkPriceOracle (verified); its LIVE getUnderlyingPrice has updatedAt+answeredInRound COMMENTED OUT -> no staleness check (price>0 present). cTokens have non-zero totalSupply (active markets, real value). Custom push oracle CapyfiAggregatorV3 (UXD/LAC). SEVERITY Low-Med, CONDITIONAL (heartbeat lapse / operator negligence, not attacker-triggerable). CAVEAT: missing-staleness is a common Compound-fork finding -> CHECK known-issues/out-of-scope before submit. Write-up: hunts/capyfi/FINDING-oracle-staleness.md. the researcher discloses.",
       "date": "2026-06-30"
     },
     {
@@ -657,7 +657,7 @@
       "detector": "fanout",
       "snippet": "fanout triage: luck-games",
       "verdict": "todo",
-      "reason": "[DIG-CAREFUL/abstract] LIVE + non-fork greenfield gambling contract on Abstract: proxy 0x27EDd... holds 20.79 ETH, gameCounter=4,650,952, 323 events/5000 blocks, prefix \"DeathFun\". Real money, no audit evidence -> high-EV surface, egor's luck-games edge. Concr",
+      "reason": "[DIG-CAREFUL/abstract] LIVE + non-fork greenfield gambling contract on Abstract: proxy 0x27EDd... holds 20.79 ETH, gameCounter=4,650,952, 323 events/5000 blocks, prefix \"DeathFun\". Real money, no audit evidence -> high-EV surface, the luck-games focus. Concr",
       "date": "2026-06-15"
     },
     {
@@ -932,7 +932,7 @@
       "detector": "weakrand",
       "snippet": "function _getEnhancedRandomness(uint256 futureBlock)",
       "verdict": "real",
-      "reason": "RNG outcome grinding: commit-reveal seed mixes reveal-tx entropy (block.timestamp/number/gasleft/tx.origin) on top of blockhash(futureBlock); reveal via permissionless tryStartTournament/tryStartGauntlet -> participant grinds outcome off-chain, biases selection+bracket+winners. Same in GauntletGame:1560. Medium. GPL no-bounty -> responsible disclosure, egor sends.",
+      "reason": "RNG outcome grinding: commit-reveal seed mixes reveal-tx entropy (block.timestamp/number/gasleft/tx.origin) on top of blockhash(futureBlock); reveal via permissionless tryStartTournament/tryStartGauntlet -> participant grinds outcome off-chain, biases selection+bracket+winners. Same in GauntletGame:1560. Medium. GPL no-bounty -> responsible disclosure, the researcher sends.",
       "date": "2026-06-11"
     },
     {
@@ -1823,7 +1823,7 @@
       "detector": "reward",
       "snippet": "",
       "verdict": "todo",
-      "reason": "wager-chess (fenestbuc, GitHub, on-chain wager chess; TRAINING rep, egor edge). Reentrancy CLOSED (claimPayout/withdrawUnmatchedWager/claimTimeout all CEI + pull-payment pendingWithdrawals). Lead KILLED: claimTimeout insta-steal -- lastMoveTimestamp IS initialized in both createGame(99) and joinGame(115) so a joiner cannot claim before the first move (needs a real 1h stall). FINDING (Low, accounting): fee DOUBLE-DEDUCTION. totalPot = wagers only (2*wager); move fees are paid as SEPARATE msg.value into totalFeesCollected/claimableFees, NOT added to totalPot. But payout = totalPot - totalFeesCollected = 2*wager - fees -> winner UNDERPAID by fees; protocol also withdraws the same fees via claimableFees (the actual fee payments) -> the fee amount is deducted twice and totalFeesCollected worth of ETH is STRANDED in the contract per game (received 2*wager+fees, pays out 2*wager). Not a drain (stranded + winner-loss). FIX: payout should be totalPot (full 2*wager) since fees are paid on top, OR add fees to totalPot. Deep surface TODO: ChessLogic (555L) checkmate/winner detection correctness (win a game you did not) + _finalizeGame reverts if gameOver but not checkmate/stalemate -> stuck-pot if ChessLogic sets gameOver on other draws. K (Kubar-Labs) variant lacks claimTimeout -> stalled games stuck.",
+      "reason": "wager-chess (fenestbuc, GitHub, on-chain wager chess; TRAINING rep, GameFi focus). Reentrancy CLOSED (claimPayout/withdrawUnmatchedWager/claimTimeout all CEI + pull-payment pendingWithdrawals). Lead KILLED: claimTimeout insta-steal -- lastMoveTimestamp IS initialized in both createGame(99) and joinGame(115) so a joiner cannot claim before the first move (needs a real 1h stall). FINDING (Low, accounting): fee DOUBLE-DEDUCTION. totalPot = wagers only (2*wager); move fees are paid as SEPARATE msg.value into totalFeesCollected/claimableFees, NOT added to totalPot. But payout = totalPot - totalFeesCollected = 2*wager - fees -> winner UNDERPAID by fees; protocol also withdraws the same fees via claimableFees (the actual fee payments) -> the fee amount is deducted twice and totalFeesCollected worth of ETH is STRANDED in the contract per game (received 2*wager+fees, pays out 2*wager). Not a drain (stranded + winner-loss). FIX: payout should be totalPot (full 2*wager) since fees are paid on top, OR add fees to totalPot. Deep surface TODO: ChessLogic (555L) checkmate/winner detection correctness (win a game you did not) + _finalizeGame reverts if gameOver but not checkmate/stalemate -> stuck-pot if ChessLogic sets gameOver on other draws. K (Kubar-Labs) variant lacks claimTimeout -> stalled games stuck.",
       "date": "2026-07-10"
     },
     {

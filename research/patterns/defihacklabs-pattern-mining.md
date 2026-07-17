@@ -36,7 +36,7 @@ Cross-year consistency is striking: the SAME root causes recur every year. Sourc
   a reachable `donate()/skim()/sync()`. Coupled-vault leg is reasoning-tier.
 - **Hacks:** Spartan, Eleven, MahaLend, WiseLending, Raft, Onyx, Venus-zkSync, ResupplyFi $9.6M, Yield Protocol, Bedrock.
 
-### D. Reward mis-accounting  (every year; egor's GameFi edge)
+### D. Reward mis-accounting  (every year; the GameFi focus)
 - **Mechanisms:** (i) reward = spotPrice·staked or instantaneous balance-delta → flashloan-inflate (EGD); (ii) reward
   paid multiple times by shuffling a transferable position token whose transfer hook lacks a checkpoint (Popsicle,
   Visor, Cover); (iii) reward-on-no-op: `transfer(self,self)` double-credits, `emergencyWithdraw` skips reward-settle,

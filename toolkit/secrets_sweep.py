@@ -17,7 +17,7 @@ git-fetch + scan only new commits since the last HEAD (cron-cheap). Diffs monito
 leak alerts once. Only [!] prio-0 (production-path) leads alert - test/fixture keys are downgraded by
 secrets.py and never cry wolf. Exit 10 if a NEW leak was queued. Reuses secrets.py. Stdlib only.
 
-White-hat: PUBLIC repos, report-only. A live in-scope key -> rotate-and-disclose path; egor decides.
+White-hat: PUBLIC repos, report-only. A live in-scope key -> rotate-and-disclose path; the researcher decides.
 """
 
 import argparse
@@ -151,7 +151,7 @@ def write_queue(events, today, n_repos):
                 hist = "  [git history]" if "[in git history]" in e["name"] else ""
                 L.append(f"- [!] {e['name'].replace(' [in git history]', '')} - `{e['loc']}`  ->  {e['preview']}{hist}")
             L.append(f"- next: confirm it's LIVE + in-scope (key still authoritative on-chain?) -> pair with "
-                     f"recon det_trust_anchor (blast radius) -> rotate-and-disclose. egor discloses.")
+                     f"recon det_trust_anchor (blast radius) -> rotate-and-disclose. the researcher discloses.")
             L.append("")
     open(p, "w", encoding="utf-8").write("\n".join(L) + "\n")
 

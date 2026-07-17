@@ -55,5 +55,5 @@ Built a mainnet-fork harness on top of the dev's `EulerTestBase` (foundry deps v
 **Verdict:** Twyne v1 custom core (liquidation/rebalance/oracle) is well-architected and well-tested; no reachable Critical/High in the surface examined. Calibration: another fresh-but-hardened deploy — reinforces that finding-density is gated by freshness *and* test-coverage, not tooling. Engine value this session: end-to-end fork PoC lane proven on Mac (submodule+brew-solc+Tenderly-fork), H1 closed by **proof not vibes**.
 
 ## Notes / discipline
-- White-hat: in-scope only; **egor discloses**, never me. Leads here were HYPOTHESES; each is now closed by PoC/proof/inheritance, recorded in the ledger (`twyne`, 6 entries, suppressed).
+- White-hat: in-scope only; **the researcher discloses**, never me. Leads here were HYPOTHESES; each is now closed by PoC/proof/inheritance, recorded in the ledger (`twyne`, 6 entries, suppressed).
 - Residual (low-EV, parked): a formal write-up of the Aave-oracle staleness *inconsistency* (Euler side has staleness, Aave side doesn't) could be an Informational/QA submission, not a paid Critical.

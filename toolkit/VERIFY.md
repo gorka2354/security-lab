@@ -4,7 +4,7 @@ Run this on EVERY candidate before it leaves the lab. This is our verify-before-
 explicit. (Borrows the kill-gate / FP-pattern structure from Krait — ZealynxSecurity/krait, MIT — whose
 0-FP/contest record across 50 blind audits comes from exactly this aggressiveness. Adapted to our white-hat +
 severity-calibration + ledger flow.) **Rule: FPs are worse than misses.** A claimed-but-wrong finding burns
-credibility (egor discloses, not me). When unsure -> downgrade to IE (insufficient evidence), not "report it".
+credibility (the researcher discloses, not the tool). When unsure -> downgrade to IE (insufficient evidence), not "report it".
 
 ## GATE 0 (run FIRST, pre-disclosure, MANDATORY): is the BUGGY contract LIVE?
 
@@ -81,4 +81,4 @@ minimum, and it survives gates A/B/D/F (the Ledgity last-unwrapper-bricked tail 
 ## After the verdict
 - Every verdict -> `ledger.py add` (fp/known/wontfix/real/todo). FP-by-pattern -> also a recon precision fix.
 - TP/LT -> calibrate severity HONESTLY (the Ledgity Medium-leaning-Low calibration), write the disclosure,
-  confirm in-scope + a real bounty, and remember: **egor discloses, never me.**
+  confirm in-scope + a real bounty, and remember: **the researcher discloses, never the tool.**

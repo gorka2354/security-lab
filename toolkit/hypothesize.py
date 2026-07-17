@@ -287,7 +287,7 @@ INVARIANT_MENU = [
         "self-liquidation-as-profit: the debt-opener != the liquidation-beneficiary within one tx; liquidating your own position can't net a profit (UwuLend/Sonne)",
         "collateral re-use: withdrawCollateral reverts while order.debt>0; the borrow callee == the canonical market (XCarnival/Kashi)",
     ]),
-    ("GAMEFI / NFT (egor's edge)", [
+    ("GAMEFI / NFT", [
         "mint-supply-cap holds on ALL paths incl admin; uncapped-emission inflation bounded",
         "reward requires real gameplay state-change (no no-op claim) + anti-Sybil/flash-loan multiplication",
         "reward-on-no-op: transfer(from==to) credits 0 reward; emergencyWithdraw settles rewards via the SAME path as withdraw; donate-then-claim can't raise the donor's own same-tx claimable (IdolsNFT/SWAPPStaking/BankrollNetwork/Popsicle/Visor)",

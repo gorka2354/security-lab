@@ -6,4 +6,4 @@ Target (optional): $ARGUMENTS
 - If no target, start at Phase 0 (SOURCE) — run contest_monitor / scout, pick the best fresh in-scope candidate.
 
 Hard rules: white-hat + in-scope only; LIVE-FIRST; known/fixed ≠ finding; FPs are worse than misses
-(run VERIFY's kill-gates); egor discloses, never me.
+(run VERIFY's kill-gates); the researcher discloses, never the tool.

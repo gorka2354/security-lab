@@ -18,7 +18,7 @@
   class as the Liquity `_requireCallerIs` FP. Precision-fix candidate (recognize `is<Role>(id)` modifier gates).
 - deepdive: Tier-1 = Chamber.sol.
 
-## L4 read -> the main hypothesis (egor's edge: governance/economic)
+## L4 read -> the main hypothesis (the GameFi/gambling focus: governance/economic)
 **Hypothesis (voting-weight double-count / governance capture):** `delegate(tokenId, amount)` records a holder's
 delegation bounded by their share balance AT DELEGATE-TIME. If `transfer` didn't sync delegations, an attacker
 could delegate N -> transfer the N shares to an alt -> the alt re-delegates the same N -> K accounts recycle N

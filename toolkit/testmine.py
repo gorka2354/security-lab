@@ -2,7 +2,7 @@
 """testmine.py - mine a project's OWN test suite for the invariants it checks, accumulate CROSS-PROJECT
 frequency stats, and surface the frequently-tested properties as a detector / invariant-seed backlog.
 
-The idea (egor): what real projects TEST is what actually matters. A property asserted across MANY projects is
+The idea: what real projects TEST is what actually matters. A property asserted across MANY projects is
 a universal invariant worth a detector (or an ItyFuzz/echidna seed). So every project we touch becomes a
 compounding data asset (monitor/test-stats.json) that drives DATA-DRIVEN detector creation - the same loop as
 our DeFiHackLabs hack-PoC mining, but on the projects' OWN test suites instead of curated hacks.

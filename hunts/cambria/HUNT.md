@@ -1,6 +1,6 @@
 # HUNT — Cambria (wager PvP + Gold Rush, Abstract chain 2741)
 
-Active on-chain game (risk-to-earn ETH/NFT wagers), egor's edge (gaming/gambling). Sourced via a NEW method;
+Active on-chain game (risk-to-earn ETH/NFT wagers), the GameFi/gambling focus (gaming/gambling). Sourced via a NEW method;
 DuelArenaBattle (the wager contract) deep-dived -> CLEAN (honest negative on a mature, high-volume contract).
 
 ## Sourcing win — crack the frontend JS bundle (reusable)

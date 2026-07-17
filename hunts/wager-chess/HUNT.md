@@ -1,7 +1,7 @@
 # HUNT — wager-chess (on-chain wagered chess) — HIGH: free promotion
 
 **Repo:** `fenestbuc/wager-chess` (GitHub); the identical `ChessLogic.sol` is in `Kubar-Labs/wager-chess`
-(same 20,107-byte file) so BOTH are affected. **Training rep** (egor's edge: wager PvP). PoC: `wager-chess-poc/`
+(same 20,107-byte file) so BOTH are affected. **Training rep** (the GameFi/gambling focus: wager PvP). PoC: `wager-chess-poc/`
 (forge 5/5 — 3 on ChessLogic + 2 end-to-end on the real WagerChessEngine).
 
 **Deployment (LIVE-FIRST):** `WagerChessEngine` is deployed at `0x0b0a6a9a49ab20c18c14a84964a82f520c5af874` on

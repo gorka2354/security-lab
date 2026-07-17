@@ -68,4 +68,4 @@ Sourced 2026-06-26 from the `defillama-immunefi-wave` fan-out (`hunts/_fanout/20
 ### Discipline
 - #1 and #2 are **hypotheses**, not confirmed bugs; #3 is a launch-watch with no hypothesis yet. Do the Foundry
   PoC + Gate-0 (live + in-scope) before any severity claim.
-- Do NOT engage any of these protocols until `monitor/watchlist.json` FIREs (a real authorized program). egor discloses, never me.
+- Do NOT engage any of these protocols until `monitor/watchlist.json` FIREs (a real authorized program). the researcher discloses, never the tool.

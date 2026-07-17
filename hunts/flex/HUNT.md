@@ -29,7 +29,7 @@ Open `H` in block N; in block N+1 do the real action (avg still depressed, `H` o
 - Profitability is self-limiting: the helper's upfront fee (min-rate on a large principal) tends to offset the saving (avg-delta on a smaller real position); strictly worse than the now-blocked atomic version. Profitable only in a **thin/new market** with a large attacker position. Conditional Medium at most.
 
 ### 4. Scope
-**No authorized bounty** — no SECURITY policy / Immunefi / scope anywhere in the repo; solo project (`johnnyonline/Flex`). FLEX-002 is a **known** audit finding. -> not a disclosable-for-reward target. egor could goodwill-notify the dev that the same-block guard leaves a (marginal) cross-block residual; no reward.
+**No authorized bounty** — no SECURITY policy / Immunefi / scope anywhere in the repo; solo project (`johnnyonline/Flex`). FLEX-002 is a **known** audit finding. -> not a disclosable-for-reward target. the operator could goodwill-notify the dev that the same-block guard leaves a (marginal) cross-block residual; no reward.
 
 ## Value of this dig (honest)
 - Validated the **audit-drift lane**: recon is Solidity-tuned and saw 0 of the Vyper core -> the lead came from manual skim + audit cross-ref, and the deep-dive pinned (a) the live drift, (b) the partial mitigation, (c) the exact residual + why it's bounded.

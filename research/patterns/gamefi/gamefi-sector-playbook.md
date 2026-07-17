@@ -1,7 +1,7 @@
 # GameFi / gambling / prediction sector -- hunt playbook (deep-search 2026-06-10)
 
 **Tier:** mixed (T1 weak-RNG/mint are recon-catchable; most game-logic/tokenomics classes are T3 reasoning).
-**Why a sector note:** egor's edge is on-chain games; the bug classes here are ones traditional DeFi audits
+**Why a sector note:** the focus is on-chain games; the bug classes here are ones traditional DeFi audits
 miss. $47M+ lost to GameFi exploits in 2024 (MakinaFi, DeHero, Polycat); 18% of GameFi findings are Critical+
 (higher than DeFi). Sourced from the Zealynx GameFi checklist (55 checks / 2,100+ analyzed issues) + hack
 post-mortems + RNG/prediction-market writeups.

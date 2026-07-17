@@ -1,7 +1,7 @@
 # HUNT: Heavy Helms  (warlock-forge/heavy-helms-contracts)
 
 - **Date:** 2026-06-11
-- **Source:** GameFi GitHub sweep (egor's edge) -> fresh, deployed, under-reviewed on-chain auto-battler RPG.
+- **Source:** GameFi GitHub sweep -> fresh, deployed, under-reviewed on-chain auto-battler RPG.
 - **Repo:** https://github.com/warlock-forge/heavy-helms-contracts  (Solidity, GPL-3.0, 10 stars, v0.8)
 - **Deployed:** Base Mainnet (8453) + Base Sepolia (per `.claude/skills/hh-deploy/networks.md`), Chainlink VRF infra.
 - **Audit:** NO professional audit (their `.claude/rules/hh-audit-context.md` is a DIY AI-assistant context file,
@@ -64,7 +64,7 @@ valuable or selection-grinding lets one address monopolize tournaments.
 from VRF. Pure future-blockhash still carries the L2-sequencer trust + the 256-block liveness window, but it is
 not participant-grindable.
 
-**Status:** GPL repo, NO formal bounty program visible -> responsible disclosure direct to warlock-forge; egor
+**Status:** GPL repo, NO formal bounty program visible -> responsible disclosure direct to warlock-forge; the operator
 confirms the deployed mainnet version matches HEAD + sends. White-hat: read-only, no funds touched.
 
 ## CURRENT CRITICALITY (on-chain, Base mainnet, checked 2026-06-11) -- LOW / DORMANT
@@ -88,7 +88,7 @@ airdrops). Honest severity: abstract Medium (integrity); **current live impact L
 
 **Disclosure framing:** low-priority, pre-traction heads-up. The team is at the BEST moment to fix (no live
 exploitation possible yet, trivial fix: drop the reveal-tx entropy from the seed or use their existing Chainlink
-VRF). Not urgent, not a fund-loss bug. egor decides whether it's worth the contact.
+VRF). Not urgent, not a fund-loss bug. the operator decides whether it's worth the contact.
 
 ## Verify trail (kill-gates passed)
 - grindable: yes (4/5 entropy sources caller-controlled; keccak avalanche -> any change = new seed).

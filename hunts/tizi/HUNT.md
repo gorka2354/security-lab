@@ -108,7 +108,7 @@ Live reads on Base (2026-06-15), TD `0x469bbd88…`, helper `0xBfE36e36…`, vau
 A genuinely rich, novel mechanism, and the **async-snapshot rebase contamination (#1)** is a real, PoC-proven,
 deployed-code accounting-integrity bug that Beosin's audit did **not** cover — the strongest finding of the dive.
 Disposition: LIVE + plausibly-novel + PoC-backed, **but currently LOW/LATENT** (capped at ~$1.75 of liquid USDC) +
-**no bounty program**. The right white-hat move is a calm **responsible goodwill heads-up** to the Tizi team (egor
+**no bounty program**. The right white-hat move is a calm **responsible goodwill heads-up** to the Tizi team (the operator
 sends) — framed honestly (real bug, PoC, but low current impact + the activation conditions), not a "critical"
 alarm. The lasting win is the **engine gain**: a new pattern class + seed + the honest detector lesson + a reusable
 cross-chain-accounting comprehension model.

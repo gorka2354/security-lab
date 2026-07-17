@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {WagerChessEngine} from "../src/WagerChessEngine.sol";
 
-/// @notice Answers egor's question directly: "can I make 2 accounts, play against myself, and see
+/// @notice Answers the researcher's question directly: "can I make 2 accounts, play against myself, and see
 /// I can spawn queens?" -- YES. This runs the REAL, deployed WagerChessEngine (Monad testnet
 /// 0x0b0a6a...f874) with two addresses (alice = white cheater, bob = alice's 2nd account), through
 /// the SAME `makeMove` entrypoint the frontend calls. A legal knight move carrying promotion=5

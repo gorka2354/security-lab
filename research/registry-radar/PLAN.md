@@ -81,7 +81,7 @@ un-seen, agent-confirmed change.
 - **Inc 5 — scheduling hardening:** migrate cron→launchd + healthchecks heartbeat + apprise/ntfy fan-out.
 - **Inc 6 — fork batch action:** DeFiLlama /forks seed + `--fork <base>` re-scan; upstream-CVE propagation.
 
-## 6. Open decisions for egor
+## 6. Open decisions
 - **Notify channel:** Telegram bot vs ntfy (phone push, no account) vs just `monitor/ALERTS.md` + desktop? (apprise supports all.)
 - **agent_retriage cost:** auto-spawn an agent on every HIGH-significance change (token spend) vs queue-and-batch nightly?
 - **Scope of registry:** all 93 ledger targets, or only non-SKIP + live-address ones (leaner radar)?

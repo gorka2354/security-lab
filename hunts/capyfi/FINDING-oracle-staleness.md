@@ -1,7 +1,7 @@
 # CapyFi — price-oracle staleness + hardcoded-price collateral (Low-Medium)
 
 **Status:** LIVE + in-scope, Gate-0 PASSED. Severity: **Low-Medium** (latent, not forensically exploited).
-**Program:** CapyFi (Immunefi, max $1M). **Chain:** Ethereum mainnet. **egor discloses.**
+**Program:** CapyFi (Immunefi, max $1M). **Chain:** Ethereum mainnet. **the researcher discloses.**
 **Date:** 2026-06-30. Full-cycle hunt: source -> reach -> recon -> L4 on the fork-drift -> on-chain forensics.
 
 ---
@@ -80,7 +80,7 @@ users**, not an external-attacker drain.
 - **Not a critical.** No external drain path was demonstrated; two leads (staleness forensics, fixed-price
   arbitrage) were chased and both resolved to "real issue, not cleanly exploitable."
 
-## Pre-disclosure checklist (egor)
+## Pre-disclosure checklist (the operator)
 1. Check CapyFi's Immunefi **known-issues / out-of-scope** — missing-staleness is a common, often-excluded class.
 2. Frame honestly as Low-Med oracle hygiene + centralization context; don't overclaim impact.
 3. Fix to cite: read `updatedAt`/`answeredInRound` with a per-feed heartbeat; reconsider hardcoded collateral.

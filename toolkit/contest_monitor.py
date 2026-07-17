@@ -7,7 +7,7 @@ only channel where code is GUARANTEED genuinely-under-reviewed is a LIVE audit c
 FRESH. This polls Cantina + Sherlock + Code4rena, normalizes their listings, and flags:
   [NEW]   - appeared since the last run (diff vs monitor/contests-seen.json)
   [FRESH] - started < --fresh-hours ago (default 48) AND still live  -> HUNT NOW
-Rank = freshness x pot x our-zone (GameFi gets a bonus -- egor's edge). Built for cron (like watch.py).
+Rank = freshness x pot x our-zone (GameFi gets a bonus -- the GameFi/gambling focus). Built for cron (like watch.py).
 
     python toolkit/contest_monitor.py [--fresh-hours 48] [--min-pot 0] [--no-state]
 
@@ -28,7 +28,7 @@ SHERLOCK = "https://mainnet-contest.sherlock.xyz/contests"
 CODE4RENA = "https://code4rena.com/api/v1/audits"
 STATE_FILE = "monitor/contests-seen.json"
 
-# our wheelhouse (smart-contract DeFi/RWA) + GameFi (egor's edge -> bonus). Lowercase substring match on
+# our wheelhouse (smart-contract DeFi/RWA) + GameFi (GameFi bonus). Lowercase substring match on
 # title+desc. NON_EVM markers down-rank a listing (Solana/Move/consensus-client = our Solidity engine can't).
 ZONE = ["lend", "lending", "borrow", "vault", "yield", "stablecoin", "stable", "cdp", "collateral",
         "perp", "derivativ", "oracle", "stak", "restak", "liquid", "amm", "dex", "swap", "rwa",

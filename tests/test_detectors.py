@@ -456,7 +456,7 @@ check(not any("EMERGENT-OPEN" in p for p in hypothesize.auto_propose({}, set(), 
 
 print("== hypothesize INVARIANT_MENU (DeFiHackLabs reasoning-tier seeds, CI-gated) ==")
 _menu_groups = {g for g, _ in hypothesize.INVARIANT_MENU}
-check(_menu_groups == {"CORE", "ECONOMIC (DeFi)", "GAMEFI / NFT (egor's edge)", "BRIDGE / CROSS-CHAIN"},
+check(_menu_groups == {"CORE", "ECONOMIC (DeFi)", "GAMEFI / NFT", "BRIDGE / CROSS-CHAIN"},
       "INVARIANT_MENU has the 4 sector groups (incl the new BRIDGE / CROSS-CHAIN)")
 _all_seeds = " || ".join(s for _, seeds in hypothesize.INVARIANT_MENU for s in seeds)
 for _kw in ["caller-supplied-authority", "stale-solvency-check", "read-only-reentrancy", "flashloan-governance",
@@ -701,7 +701,7 @@ check(any(k in "lending vault for cross-chain stablecoin".lower() for k in scout
 check({"Bridge", "Cross Chain Bridge", "Bridge Aggregator"} <= scout.DL_CATEGORIES
       and "Canonical Bridge" not in scout.DL_CATEGORIES,
       "scout.DL_CATEGORIES surfaces bridges (Bridge/Cross Chain Bridge/Aggregator) but NOT Canonical Bridge (audited L2 forks)")
-# expanded game/gamble/predict sector (egor's edge)
+# expanded game/gamble/predict sector
 check(all(any(k in s for k in scout.WHEELHOUSE) for s in
           ["a luck games coin flip", "sports betting protocol", "prediction market", "weekly raffle lottery", "casino jackpot"]),
       "scout.WHEELHOUSE: gambling/luck/betting/prediction/lottery sector now matches (det_weak_randomness lens)")
@@ -775,7 +775,7 @@ check(bool(cm.zone_hits({"title": "Fixed-Rate Lending", "desc": "credit/debt uni
       "contest_monitor.zone_hits: our-wheelhouse keywords matched")
 check(cm.is_gamefi({"title": "Pirate NFT Game", "desc": "on-chain game p2e"})
       and not cm.is_gamefi({"title": "Lending Pool", "desc": "borrow"}),
-      "contest_monitor.is_gamefi: GameFi flagged (egor's edge bonus), plain DeFi not")
+      "contest_monitor.is_gamefi: GameFi flagged (GameFi bonus), plain DeFi not")
 check(cm.is_gamefi({"title": "DiceRoll Casino", "desc": "on-chain dice betting wager payout"})
       and cm.is_gamefi({"title": "Prediction Market", "desc": "sports betting odds"})
       and cm.is_gamefi({"title": "EtherFlip", "desc": "coinflip luck games jackpot"}),
@@ -1320,7 +1320,7 @@ check(_dhlkeys <= _allkeys and all(e.get("addr", "").startswith("0x") for e in s
 
 print("== analyze L2 bridge (Windows->WSL Slither path translation) ==")
 import analyze  # noqa: E402
-check(analyze._drive_to_mnt("C:\\Users\\pesto\\repo\\src") == "/mnt/c/Users/pesto/repo/src"
+check(analyze._drive_to_mnt("C:\\Users\\dev\\repo\\src") == "/mnt/c/Users/dev/repo/src"
       and analyze._drive_to_mnt("D:\\x\\y") == "/mnt/d/x/y",
       "analyze._drive_to_mnt: absolute Windows path -> /mnt/<lowerdrive>/.. (forward slashes) for the WSL bridge")
 check(analyze._drive_to_mnt("/home/x/y") == "/home/x/y",

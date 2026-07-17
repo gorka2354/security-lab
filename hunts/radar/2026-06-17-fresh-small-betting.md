@@ -7,4 +7,4 @@ GitHub fresh-sweep (small REAL betting/wager/RNG, excl. VRF-course tutorials):
 - fenestbuc/wager-chess + Kubar-Labs/wager-chess -- PvP wager chess -- TODO
 - HACK3R-CRYPTO/Gamerstew -- skill wager (GoodDollar) -- TODO
 Abstract Discover (live, unexplored): Caves: Dig&Dash (Wolf Game risk), Maze of Gains, Bigcoin -- but Abstract=EraVM (verified-only).
-Strategy (egor): train on small/simple first (find+understand+calibrate), graduate to big later. Bounty not required at this stage.
+Strategy (the operator): train on small/simple first (find+understand+calibrate), graduate to big later. Bounty not required at this stage.
