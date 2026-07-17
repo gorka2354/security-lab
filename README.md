@@ -1,5 +1,10 @@
 # 🛡️ security-lab
 
+[![CI](https://github.com/gorka2354/security-lab/actions/workflows/analyze.yml/badge.svg)](https://github.com/gorka2354/security-lab/actions/workflows/analyze.yml)
+[![golden tests](https://img.shields.io/badge/golden%20tests-448%20passing-brightgreen)](tests/test_detectors.py)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](requirements.txt)
+
 *[Русская версия](README.ru.md)*
 
 > **A white-hat smart-contract bug-hunting engine** — a pipeline that sources fresh in-scope
@@ -128,6 +133,20 @@ python toolkit/dashboard.py             # → http://127.0.0.1:8787  (visual ops
 
 CI (`.github/workflows/analyze.yml`) runs the golden gate + a Slither pass on every push;
 `watch.yml` polls parked findings daily and annotates when one fires.
+
+---
+
+## 📁 Repository layout
+
+```
+toolkit/         the engine — 46 static detectors + source/reach/dynamic/memory lanes
+tests/           448 golden fixtures (the CI gate; pure-stdlib, no deps)
+hunts/           per-target triage logs (the full, honest hunt record)
+research/        knowledge base — vulnerability patterns, sector playbooks, tooling research
+*-poc/           self-contained Foundry proofs-of-concept (nomad, oracle, thetanuts, wager-chess, …)
+monitor/ + web/  radar state + the dashboard (labcore → MCP + web, one source of truth)
+.github/         CI (golden gate + Slither) and the daily parked-finding watch
+```
 
 ---
 

@@ -1,5 +1,10 @@
 # 🛡️ security-lab
 
+[![CI](https://github.com/gorka2354/security-lab/actions/workflows/analyze.yml/badge.svg)](https://github.com/gorka2354/security-lab/actions/workflows/analyze.yml)
+[![golden tests](https://img.shields.io/badge/golden%20tests-448%20passing-brightgreen)](tests/test_detectors.py)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](requirements.txt)
+
 *[English version](README.md)*
 
 > **White-hat движок для поиска багов в смарт-контрактах** — конвейер, который сам находит свежие
@@ -124,6 +129,20 @@ python toolkit/dashboard.py             # → http://127.0.0.1:8787  (визуа
 
 CI (`.github/workflows/analyze.yml`) гоняет golden-гейт + Slither на каждый push;
 `watch.yml` ежедневно опрашивает parked-лиды и аннотирует, когда какой-то срабатывает.
+
+---
+
+## 📁 Структура репозитория
+
+```
+toolkit/         движок — 46 статических детекторов + лейны source/reach/dynamic/memory
+tests/           448 golden-фикстур (CI-гейт; чистый stdlib, без зависимостей)
+hunts/           логи триажа по целям (полный честный лог хантов)
+research/        база знаний — паттерны уязвимостей, sector-плейбуки, tooling-ресёрч
+*-poc/           самодостаточные Foundry-PoC (nomad, oracle, thetanuts, wager-chess, …)
+monitor/ + web/  состояние радаров + дашборд (labcore → MCP + web, один источник правды)
+.github/         CI (golden-гейт + Slither) и ежедневный watch parked-лидов
+```
 
 ---
 
