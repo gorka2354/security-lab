@@ -39,3 +39,7 @@ monitor/
 # macOS
 .DS_Store
 .gstack/
+
+# radar/monitor runtime state (auto-generated; kept out of history to avoid churn commits)
+hunts/_radar/
+monitor/*-seen.json
