@@ -47,3 +47,6 @@ monitor/*-seen.json
 hunts/**/_*.txt
 hunts/**/_*.hex
 hunts/**/_*/
+
+# crash dumps
+*.stackdump
