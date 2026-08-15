@@ -452,6 +452,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "ammalgam|AmmalgamFactory.sol|det_delegatecall_target|",
+      "target": "ammalgam",
+      "file": "AmmalgamFactory.sol",
+      "line": 286,
+      "detector": "det_delegatecall_target",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "hunt#2 2026-08-15: det_delegatecall_target FIRED on AmmalgamFactory.sol:286 (tokenFactory.delegatecall) -- verified FALSE POSITIVE. createToken(address tokenFactory,..) is PRIVATE; its only caller always passes tokenFactory as one of 4 IMMUTABLE addresses fixed at the factory constructor (never caller-supplied, no setter). A deliberate EIP-170 code-size-split pattern (delegatecall to trusted sub-factories), ack'd in-code (slither-disable controlled-delegatecall). NOT the Krystal caller-supplied shape. Also surfaced: recon.py SKIP_DIRS skips any 'lib' dir even when it nests first-party contracts/ (Ammalgam Foundry-submodule layout) -> recon <repo> reported 0 hits; the detector only fired per-file. Two engine notes: (1) the detector's residual FP on immutable-address-param delegatecall is a [!]-lead a human clears in seconds; (2) recon lib-skip blind spot = a real coverage fix TODO.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "ammalgam-vaults|lib/core-v1/contracts/factories/AmmalgamFactory.sol|delegatecall_target|tokenFactory.delegatecall(abi.encodeWithSelector(ITokenFactory.createToken.selector,...))",
+      "target": "ammalgam-vaults",
+      "file": "lib/core-v1/contracts/factories/AmmalgamFactory.sol",
+      "line": 286,
+      "detector": "delegatecall_target",
+      "snippet": "tokenFactory.delegatecall(abi.encodeWithSelector(ITokenFactory.createToken.selector,...))",
+      "verdict": "fp",
+      "reason": "det_delegatecall_target hit confirmed FP by hand: createToken() is PRIVATE, its only call sites (createAllTokens, also private) pass tokenFactory as one of 4 IMMUTABLE addresses fixed at construction (liquidityTokenFactory/depositTokenFactory/debtTokenFactory/liquidityDebtTokenFactory) -- never a caller/calldata-derived value. Not the Krystal shape (no externally-triggerable path lets an attacker pick tokenFactory). Deliberate code-splitting-via-delegatecall pattern, ack'd in-code (comment + slither-disable). Also note: recon.py's blanket SKIP_DIRS={'lib',...} misses this file entirely in a full-repo sweep because Ammalgam's verified source nests first-party contracts under lib/core-v1/contracts/ (submodule layout) -- direct per-file det_delegatecall_target invocation is required to catch it; a tooling precision gap worth a future recon.py refinement (skip-lib should check for a nested first-party contracts/ dir, not just the literal dirname).",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "ape-church (Ape Church casino, House bankroll, ApeChain 33139)|House.sol|danger|",
       "target": "ape-church (Ape Church casino, House bankroll, ApeChain 33139)",
       "file": "House.sol",
@@ -1068,6 +1090,28 @@
       "date": "2026-08-15"
     },
     {
+      "sig": "krystal-sharedvault-v4|SharedV4ValuationLib.sol|v4-valuation|",
+      "target": "krystal-sharedvault-v4",
+      "file": "SharedV4ValuationLib.sol",
+      "line": 97,
+      "detector": "v4-valuation",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "hunt#2 2026-08-15 (Opus): Krystal SharedVault SharedV4Strategy impl 0x91e51388.. (Arbitrum), Uniswap-V4 valuation. Honest-negative. det_delegatecall_target CLEAN on all V4 files (the Community-Vault harvest unwhitelisted-delegatecall class is ABSENT; the only external CALL swapRouter.call is isWhitelistedSwapRouter-gated + SharedSwapDataSignature-bound chainid+vault+router+amounts+nonce). One residual = spot-price CL valuation (getAmountsForLiquidity off live slot0 sqrtPrice) skewable by a same-tx swap -- but NON-novel (identical to V3/Aerodrome, ack'd in-code) + monetizable only via SharedVault deposit/redeem share-pricing (a separate out-of-scope contract) + defended by slippageBps/operator-gating. No discrete V4 math bug. Follow-up to close: fetch SharedVault.sol + a live V4 instance, check independent-numeraire + permissionless-deposit.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "krystal-sharedvault-v4-strategy/0x91e51388F894c3A4c204E643140e480c53BF1f20@42161|contracts/shared-vault/libraries/SharedV4ValuationLib.sol|v4-valuation|getPositionAmounts uses live slot0 sqrtPriceX96 + fee-growth (spot CL valuation)",
+      "target": "krystal-sharedvault-v4-strategy/0x91e51388F894c3A4c204E643140e480c53BF1f20@42161",
+      "file": "contracts/shared-vault/libraries/SharedV4ValuationLib.sol",
+      "line": 97,
+      "detector": "v4-valuation",
+      "snippet": "getPositionAmounts uses live slot0 sqrtPriceX96 + fee-growth (spot CL valuation)",
+      "verdict": "wontfix",
+      "reason": "Deep-dive SharedV4Strategy V4 valuation: no discrete novel bug. det_delegatecall_target CLEAN (Community-Vault harvest class absent). Valuation = standard spot slot0+feeGrowth CL math, rounding down, correct salt=bytes32(tokenId); fee-owed wrap matches V4; fees clamped; swap pipeline signature+whitelist gated. Residual = non-novel spot-price LP valuation manipulation whose profit math lives in SharedVault (out of this impl's 108 files); strategy comments already acknowledge (slippage floor + external-ratio). Impl fresh (~2026-06, ba5ed factory) but delegatecall module -> direct txlist empty; live bug-path unconfirmed at impl layer.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "lazy (Lazy USD Vault, ERC4626-ish USDC vault, ETH $1M)|src/LazyUSDVault.sol|danger|",
       "target": "lazy (Lazy USD Vault, ERC4626-ish USDC vault, ETH $1M)",
       "file": "src/LazyUSDVault.sol",
@@ -1541,6 +1585,17 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "rho-x-lp-vault|src/v0.5.0/Vault.sol|reentrancy|function syncDeposit(uint256 assets, address receiver, address referral) public payable onlySyncDeposit onlyOpen",
+      "target": "rho-x-lp-vault",
+      "file": "src/v0.5.0/Vault.sol",
+      "line": 200,
+      "detector": "reentrancy",
+      "snippet": "function syncDeposit(uint256 assets, address receiver, address referral) public payable onlySyncDeposit onlyOpen",
+      "verdict": "todo",
+      "reason": "recon.py CEI-violation flag (external safeTransferFrom before totalAssets+=/\u200b_mint, no nonReentrant) is plausible but UNCONFIRMED this pass: this is a Hopper-framework white-label ERC7540 vault (storage slot literally named hopper.storage.vault) -- likely reused across multiple RWA-vault deployments beyond just Rho, so novelty/exploitability depends on (a) whether the deposit asset can carry a transfer callback (ERC777/hookable) and (b) whether any OTHER entry point is reachable mid-transferFrom given the whitelist+onlySyncDeposit gates. Needs a fork PoC against the ACTUAL deployed asset() before claiming real; parked as todo, not chased further this pass (time-boxed sweep).",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "rocksolid|src/v0.5.0/Vault.sol|drift|",
       "target": "rocksolid",
       "file": "src/v0.5.0/Vault.sol",
@@ -1869,6 +1924,39 @@
       "verdict": "todo",
       "reason": "Split-brain rebase contamination, LIVE+PoC+Beosin-missed (plausibly novel). CRITICALITY NOW = INERT: liquid USDC buffer static $1.75 for >=7d (archive-RPC: $1.75 now/1d/7d, $0 at 30d, $480 at 90d when supply=500); buggy liquid path capped at the buffer; TD supply near-flat 30d (deposits stalled); only recent activity = admin rebase (2026-06-11). High by class, no live exploit surface now; activates only on a large new deposit front-run vs rebase. No bounty -> calm goodwill heads-up. PoC tizi-poc/.",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "townsquare-credit-vault|src/CreditVault.sol|ac|function addCollateral(TokenAmountUint[] calldata tokens, address trader) external nonReentrant",
+      "target": "townsquare-credit-vault",
+      "file": "src/CreditVault.sol",
+      "line": 311,
+      "detector": "sibling",
+      "snippet": "function addCollateral(TokenAmountUint[] calldata tokens, address trader) external nonReentrant",
+      "verdict": "fp",
+      "reason": "recon.py access-control-sibling-inconsistency flag: addCollateral has no onlyX modifier while siblings (settle/liquidate/removeCollateral) do. Confirmed BY DESIGN via NatSpec: '@dev PERMISSIONLESS: Anyone can add collateral for any trader' -- a donation-style top-up, credit-limit accounting happens off-chain via event. No fund-theft path (caller pays in, trader's collateral only ever increases). Same class as the abracadabra-lesson nuance recon.py already documents.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "townsquare-credit-vault|src/TownSquareLPToken.sol|erc4626|contract TownSquareLPToken (bespoke share vault)",
+      "target": "townsquare-credit-vault",
+      "file": "src/TownSquareLPToken.sol",
+      "line": 17,
+      "detector": "erc4626",
+      "snippet": "contract TownSquareLPToken (bespoke share vault)",
+      "verdict": "fp",
+      "reason": "recon.py ERC4626-inflation flag (no _decimalsOffset/dead-shares) is a FP on manual read: _deposit() DOES lock MINIMUM_SHARE from the first depositor (address(0) sink) before minting the depositor's shares -- classic dead-shares guard, just implemented inline rather than via OZ _decimalsOffset. Additionally the exchange-rate formula uses an INTERNAL totalUnderlying counter (only mutated by _deposit/_redeem/distributeYield), not creditVault's raw balanceOf -- so a direct-transfer donation to the vault does not move the share price at all; the classic ThetaNuts-class donation/round-to-zero attack is structurally unavailable here (both the dead-shares AND the balance-decoupling defenses are present).",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "townsquare-loop-vaults|src/CreditVault.sol|liquidation|function liquidate(LiquidationRequest calldata request, bytes calldata signature) external onlyLiquidator nonReentrant",
+      "target": "townsquare-loop-vaults",
+      "file": "src/CreditVault.sol",
+      "line": 250,
+      "detector": "liquidation",
+      "snippet": "function liquidate(LiquidationRequest calldata request, bytes calldata signature) external onlyLiquidator nonReentrant",
+      "verdict": "wontfix",
+      "reason": "recon.py liquidation-4-check flag: no explicit liquidator==trader self-liq guard. Low real-world exploitability: liquidators[] is an owner-curated whitelist (not permissionless), AND every liquidation additionally requires the off-chain signer's ECDSA signature over the exact request -- so self-liquidation would need BOTH a whitelisted-liquidator identity AND the trusted signer's cooperation/compromise. Governance-trust-bounded, not an open attacker path.",
+      "date": "2026-08-15"
     },
     {
       "sig": "twyne|src/TwyneFactory/BridgeHookTarget.sol|bridgehook-gate|",
