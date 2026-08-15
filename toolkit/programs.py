@@ -244,6 +244,44 @@ def cmd_match(args):
                         if op else "matches only CLOSED programs -> no live payout; responsible disclosure."))
 
 
+def cmd_scope(args):
+    """Resolve the exact in-scope code for a program -> hunt it precisely. Sherlock detail carries the
+    scope repo+commit AND the contest report (already-judged issues -> don't dup; hunt the long tail)."""
+    data = _load()
+    if not data:
+        print("no store -- run: python toolkit/programs.py fetch")
+        return
+    q = args.query.lower()
+    hits = [p for p in data["programs"]
+            if q in " ".join(str(p.get(k) or "") for k in ("name", "repo", "url")).lower()]
+    hits.sort(key=lambda p: (not p["open"], -(p["reward_usd"] or 0)))
+    if not hits:
+        print("== no program matches '%s' ==" % args.query)
+        return
+    p = hits[0]
+    print("== scope: %s [%s] %s%s ==" % (
+        p["name"], p["platform"], ("$%s" % format(p["reward_usd"], ",")) if p["reward_usd"] else "?",
+        "" if p["open"] else " (CLOSED)"))
+    if p["platform"] == "sherlock":
+        m = re.search(r"/contests/(\d+)", p["url"] or "")
+        if m:
+            try:
+                d = _get("https://mainnet-contest.sherlock.xyz/contests/%s" % m.group(1))
+                for s in (d.get("scope") or []):
+                    print("  scope repo: %s @ %s (%s)" % (
+                        s.get("repo"), (s.get("commit_hash") or "")[:12], s.get("branch_name")))
+                rep = d.get("report") or ""
+                n = len(re.findall(r"^#\s*Issue\s", rep, re.M)) or rep.count("Issue ")
+                print("  contest report: ~%d judged issue(s) -> those are KNOWN, hunt what they MISSED" % n
+                      if rep else "  (no contest report -> a standing bounty, no prior contest)")
+            except Exception as e:
+                print("  (detail fetch failed: %s)" % str(e)[:60])
+    elif p["repo"]:
+        print("  scope repo: %s" % p["repo"])
+    else:
+        print("  scope: see %s (per-asset addresses on the platform page)" % p["url"])
+
+
 def cmd_watch(args):
     """Diff vs the previous store, surface NEW open programs (fresh CONTESTS = the timing-edge sweet
     spot: fresh code + pays + first-mover). Wire to a scheduler for an always-on payable-target radar."""
@@ -273,6 +311,8 @@ def main():
     lp.add_argument("--kind", default=None, choices=["contest", "bounty"])
     mp = sub.add_parser("match")
     mp.add_argument("query")
+    scp = sub.add_parser("scope")
+    scp.add_argument("query")
     args = ap.parse_args()
     if args.cmd == "fetch":
         d = refresh()
@@ -282,6 +322,8 @@ def main():
         cmd_list(args)
     elif args.cmd == "match":
         cmd_match(args)
+    elif args.cmd == "scope":
+        cmd_scope(args)
     elif args.cmd == "watch":
         cmd_watch(args)
 
