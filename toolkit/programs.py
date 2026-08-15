@@ -53,14 +53,25 @@ def _iso_ts(s):
         return None
 
 
+def _get_text(url, timeout=35):
+    # r.jina.ai reader BLOCKS browser User-Agents (anti-abuse) -> use a plain non-browser UA.
+    req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode("utf-8", errors="ignore")
+
+
 def _reward_num(v):
-    """Best-effort numeric reward (USD) from '$50,000' / 50000 / '50000 USDC'."""
+    """Best-effort numeric reward (USD) from '$50,000' / 50000 / '$250k' / '$3M' / '50000 USDC'."""
     if v is None:
         return None
     if isinstance(v, (int, float)):
         return int(v)
-    m = re.search(r"([\d,]+(?:\.\d+)?)", str(v).replace(",", ""))
-    return int(float(m.group(1))) if m else None
+    m = re.search(r"([\d.]+)\s*([kKmM]?)", str(v).replace(",", "").strip())
+    if not m:
+        return None
+    n = float(m.group(1))
+    suf = m.group(2).lower()
+    return int(n * (1_000 if suf == "k" else 1_000_000 if suf == "m" else 1))
 
 
 def _prog(platform, name, kind, is_open, start, end, reward, currency, url, repo=None, kyc=False):
@@ -122,7 +133,33 @@ def fetch_cantina():
     return out
 
 
-_SOURCES = [("sherlock", fetch_sherlock), ("code4rena", fetch_code4rena), ("cantina", fetch_cantina)]
+def fetch_immunefi():
+    """Best-effort: Immunefi is JS-walled -> scrape the reader (r.jina.ai) markdown table of the explore
+    page. Rough (name + maxBounty + slug; NO per-asset addresses -> match by name only). Every Immunefi
+    program is a STANDING bounty -> always open. This is the biggest-$ source; keep it a soft dependency."""
+    md = _get_text("https://r.jina.ai/https://immunefi.com/explore/")
+    out, seen = [], set()
+    for line in md.splitlines():
+        if "/bug-bounty/" not in line or "$" not in line:
+            continue
+        m = re.search(r"/bug-bounty/([\w.-]+)/information", line)
+        if not m:
+            continue
+        slug = m.group(1)
+        if slug in seen or slug == "immunefi":  # dedupe + drop the platform's own row
+            continue
+        nm = re.search(r"Image \d+:\s*([^\]]+?)\]", line)
+        name = (nm.group(1).replace("Triaged by Immunefi", "").strip() if nm else slug)
+        amts = re.findall(r"\$([\d.,]+\s*[kKmM]?)", line)          # [vault, maxBounty, ...] -> maxBounty is #2
+        reward = amts[1] if len(amts) >= 2 else (amts[0] if amts else None)
+        seen.add(slug)
+        out.append(_prog("immunefi", name, "bounty", True, None, None, reward, "USD",
+                         "https://immunefi.com/bug-bounty/%s/information/" % slug, kyc=False))
+    return out
+
+
+_SOURCES = [("sherlock", fetch_sherlock), ("code4rena", fetch_code4rena),
+            ("cantina", fetch_cantina), ("immunefi", fetch_immunefi)]
 
 
 def refresh():
@@ -207,10 +244,28 @@ def cmd_match(args):
                         if op else "matches only CLOSED programs -> no live payout; responsible disclosure."))
 
 
+def cmd_watch(args):
+    """Diff vs the previous store, surface NEW open programs (fresh CONTESTS = the timing-edge sweet
+    spot: fresh code + pays + first-mover). Wire to a scheduler for an always-on payable-target radar."""
+    old = _load()
+    old_open = set((p["platform"], p["name"]) for p in (old["programs"] if old else []) if p["open"])
+    new = refresh()
+    new_open = [p for p in new["programs"] if p["open"]]
+    fresh = [p for p in new_open if (p["platform"], p["name"]) not in old_open]
+    fresh.sort(key=lambda p: (p["kind"] != "contest", -(p["reward_usd"] or 0)))
+    print("== watch: %d open (%d NEW since last fetch) ==" % (len(new_open), len(fresh)))
+    for p in fresh:
+        tag = "CONTEST(fresh+pays!)" if p["kind"] == "contest" else "bounty"
+        print("  NEW %-20s %s" % (tag, _fmt(p).strip()))
+    if not fresh:
+        print("  (no new open programs)")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Authorized-scope layer: live bounty/contest programs")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("fetch")
+    sub.add_parser("watch")
     lp = sub.add_parser("list")
     lp.add_argument("--open", action="store_true")
     lp.add_argument("--min", type=int, default=0)
@@ -227,6 +282,8 @@ def main():
         cmd_list(args)
     elif args.cmd == "match":
         cmd_match(args)
+    elif args.cmd == "watch":
+        cmd_watch(args)
 
 
 if __name__ == "__main__":
