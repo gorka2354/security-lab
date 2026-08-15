@@ -1,0 +1,6 @@
+out/
+cache/
+lib/
+broadcast/
+# test compiles the Etherscan-verified Vault.sol via a remap into the gitignored clone
+# hunts/_volume/krystal_vaultImpl -- re-fetch with toolkit/fetch_source.py 0x964b88db9c467c34e8d5d2b1b833e8e6ae46198a --chain 1

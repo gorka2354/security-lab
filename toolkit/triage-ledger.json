@@ -507,6 +507,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "azverse-perps-assetvault|src/AssetVault.sol|deep-dive-manual|",
+      "target": "azverse-perps-assetvault",
+      "file": "src/AssetVault.sol",
+      "line": 0,
+      "detector": "deep-dive-manual",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "DEPLOYED+ACTIVE (UUPS proxy 0x91ba525861c16aa8cd4d6974e4058cc846f42ebe -> impl 0x94a99081475d0b5b887c5a03fcd9b81e52c264de on Arbitrum, 20 recent txns). Custodial cross-chain asset vault behind validator-signature-gated withdrawals (power-weighted multisig, chainid+address(this)+nonce bound digest, OZ ECDSA malleability-safe). All state-changing fns except receive()/executeExpiredPendingWithdrawal gated by AccessControl roles (OPERATOR/VALIDATOR/ADMIN/TOKEN/PAUSE/UPGRADE). No externally-reachable vector for a non-privileged caller. Note: bulk of AZverse's 1.6M reported TVL sits in plain EOA custodyWallets (per DefiLlama-Adapters TVL script), not vault contract logic -> mostly off-chain CeFi-style trust, low bug-hunting surface.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "cambria-duelarena|src/duelarena/DuelArenaBattle.sol:346|signature|",
       "target": "cambria-duelarena",
       "file": "src/duelarena/DuelArenaBattle.sol:346",
@@ -1013,6 +1024,50 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293|contracts/core/Vault.sol|vault-inflation|",
+      "target": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293",
+      "file": "contracts/core/Vault.sol",
+      "line": 0,
+      "detector": "vault-inflation",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "hypothesized phantom-share mint at initialize() (mints principalAmount*SHARES_PRECISION shares without vault ever receiving principalAmount) is closed: VaultFactory._createVault() does IERC20(principalToken).safeTransferFrom(sender, vault, principalAmount) BEFORE calling vault.initialize(), so the inventory record always matches a real transferred balance. CREATE2 salt includes msg.sender so vault addresses aren't front-runnable. Fee cap (platformFee+vaultOwnerFee<=10000bps) enforced in getFeeConfig(); vaultOwnerFeeBasisPoint is fixed after the one-time private->public allowDeposit() transition (no post-deposit fee rug). allocate() enforces configManager.isWhitelistedStrategy before any delegatecall to a strategy.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293|contracts/core/Vault.sol|access-control|function harvest(AssetLib.Asset calldata asset, ...)",
+      "target": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293",
+      "file": "contracts/core/Vault.sol",
+      "line": 445,
+      "detector": "access-control",
+      "snippet": "function harvest(AssetLib.Asset calldata asset, ...)",
+      "verdict": "real",
+      "reason": "CONFIRMED via local Foundry PoC (krystal-community-vault-poc/, compiles the verbatim Etherscan-verified deployed Vault.sol at 0x964b88db9c467c34e8d5d2b1b833e8e6ae46198a). harvest() delegatecalls a caller-supplied asset.strategy with NO configManager.isWhitelistedStrategy check (sibling allocate() DOES check it). InventoryLib.removeAsset() keys its lookup by (token,tokenId) only, never validates asset.strategy against the stored entry's real strategy -- so any onlyAuthorized caller (vaultOwner, who is whoever permissionlessly called VaultFactory.createVault() for /usr/bin/bash; or admins[]; or a whitelisted automator) can reference any real inventory entry's (token,tokenId) with a forged .strategy=attacker-contract and .amount=0, and the vault delegatecalls the attacker's code with full storage/identity -- 100% drain in one tx, no shares burned, no fee, no minReturnAmount backstop. PoC test_harvest_delegatecalls_unwhitelisted_strategy_and_drains_vault PASSES (gas 318036), drains 100000 USDC. Cross-checked against the repo's public Verichains audit (7 findings, none match this). Live: one public funded vault found on Ethereum 0xe646a4487a49fb8e2545af788a3228a88cc2fcf0, getTotalValue()=1452.78 USDC, 2 open UniV3 LP positions, 10% owner fee. Same impl (CREATE2) deployed identically on Base/BSC/Arbitrum/Polygon/HyperEVM. NOT yet disclosed to Krystal/Kyber (out of scope this triage round) -- flag for responsible disclosure.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "krystal-community-vault-lpStrategy-0x851ee187bc85152708d38a421d48733f1490a8e3|contracts/public-vault/strategies/lpUniV3/LpStrategy.sol|swap-slippage|",
+      "target": "krystal-community-vault-lpStrategy-0x851ee187bc85152708d38a421d48733f1490a8e3",
+      "file": "contracts/public-vault/strategies/lpUniV3/LpStrategy.sol",
+      "line": 0,
+      "detector": "swap-slippage",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "internal Uniswap V3 swaps in _harvest (line 176) and convertToPrincipal (line 278), plus LpFeeTaker.takeFees (line 97), all pass amountOutMin:0 to _swapToPrincipal -- zero per-swap slippage protection, sandwichable by any MEV searcher watching the mempool. Partially mitigated: Vault.withdraw() checks a caller-supplied overall minReturnAmount and Vault.harvest()/LpStrategy._harvest() checks overall amountTokenOutMin AFTER the unprotected internal swap -- so a caller who sets a real minReturnAmount/amountTokenOutMin is protected from catastrophic loss (tx reverts), but a caller who passes 0 (common keeper/automator default) has no protection at either layer. Confirmed live: 3 funded Ethereum Community Vault instances found via VaultCreated events (0xe646a4487a49fb8e2545af788a3228a88cc2fcf0 totalSupply 1468.60, 0x896ebed6659e6046f3f20067214304192d777458 totalSupply 899.10). Real code fact on verified+live+active contracts, not yet PoC-confirmed as profitably extractable (bounded by per-harvest LP fee size and pool depth) -- worth a fork PoC to quantify before escalating severity.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "krystal-shared-vault|contracts/shared-vault/core/SharedVault.sol|deep-dive-manual|",
+      "target": "krystal-shared-vault",
+      "file": "contracts/shared-vault/core/SharedVault.sol",
+      "line": 0,
+      "detector": "deep-dive-manual",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "DEPLOYED+ACTIVE (41 vaults Base, 27 BSC, 3 Arbitrum; SharedVaultFactory 0xefdf2e686099bd2a8d6af226652735503deb74f1 same addr all chains via CREATE2). Full manual read of SharedVault.sol + SharedVaultPreviewLib + SharedSwapDataSignature + SharedV3Strategy (whitelisted target 0x12866c...): heavily hardened (named fix-tags C-5/W-4/W-7/F3/F7/L1 in comments = internal audit trail despite DefiLlama audits=0). Checked: fixed INITIAL_SHARES defeats classic ERC4626 inflation attack; donation-before-deposit reverts via require(shares>0) atomic guard (no fund loss, only DoS); signed-swap-data replay protection scoped per-vault w/ chainid+vault binding; FOT-safe actual-balance-delta crediting; Uniswap V3 fee-growth wrap handled per-spec. No externally-reachable vector found in this pass. Residual trust: whitelisted-signer/whitelisted-caller keys (developer-acknowledged boundary, not a bug).",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "lazy (Lazy USD Vault, ERC4626-ish USDC vault, ETH $1M)|src/LazyUSDVault.sol|danger|",
       "target": "lazy (Lazy USD Vault, ERC4626-ish USDC vault, ETH $1M)",
       "file": "src/LazyUSDVault.sol",
@@ -1077,6 +1132,17 @@
       "verdict": "known",
       "reason": "Deployed addr resolves to ListaToken (LISTA gov ERC20), NOT the ASTER yield aggregator. Verbatim long-deployed audited gov token. updateDomainSeparator no-modifier is idempotent/no-priv (recomputes from constants); ecrecover-no-addr0 mitigated by ==owner; cached DOMAIN_SEPARATOR has recompute fn. Wrong-contract redirect: resolve real aggregator core.",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "lista-rwa-0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46|N/A|gate0|",
+      "target": "lista-rwa-0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46",
+      "file": "N/A",
+      "line": 0,
+      "detector": "gate0",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "no bytecode at given address on chain 1 (Ethereum) -- wrong chain/stale address. Real LISTA token found on BSC (chain 56) but it is the gov ERC20 token, not the RWA core contract DefiLlama tracks -- needs manual re-resolution of the actual RWA vault address before any further triage.",
+      "date": "2026-08-15"
     },
     {
       "sig": "loreum-chamber|contracts/src/Chamber.sol|supply|delegate/transfer voting-weight double-count",
@@ -1297,6 +1363,17 @@
       "verdict": "todo",
       "reason": "Greenfield CDP stablecoin; mainnet Factory deployed (0x6d96, blk 24949282) but ZERO token transfers/no funded market => dormant value~0. Backlog flag: increaseDebt mulDivUp+maxBorrowDeltaBps(2%) vs decreaseDebt partial mulDivDown vs getDebtOf mulDivUp. Thin-pool share-rounding HYPOTHESES: partial-repay/redeem dust + setRedemptionStatus round-trip. Vault MIN_SHARES dead-shares present. DIG-CAREFUL (deployable, cold).",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "morpho-midnight (0xAdedD8ab6dE832766Fedf0FaC4992E5C4D3EA18A, base/8453)|lib/midnight/src/Midnight.sol|l4-manual-read|fixed-rate/fixed-term periphery: rate/tick pricing, maturity/accrual math, settlement+continuous fee, liquidation RCF, SSTORE2 market-id",
+      "target": "morpho-midnight (0xAdedD8ab6dE832766Fedf0FaC4992E5C4D3EA18A, base/8453)",
+      "file": "lib/midnight/src/Midnight.sol",
+      "line": 0,
+      "detector": "l4-manual-read",
+      "snippet": "fixed-rate/fixed-term periphery: rate/tick pricing, maturity/accrual math, settlement+continuous fee, liquidation RCF, SSTORE2 market-id",
+      "verdict": "wontfix",
+      "reason": "9 audits (Spearbit x4, Stermi, Cantina competition, Blackthorn x2, TrustSec incl. 2026-08-03 buy-callback-specific re-audit), formal verification claimed, immutable. Full-read of Midnight.sol+libs: no exploitable vector found. Rounding-in-favor-of-user on partial withdraw pendingFee is explicitly documented/accepted by team in natspec (not novel). Permissionless market creation w/ attacker-chosen oracle/gates is inherited Morpho Blue isolated-market design (accepted). CLEAN verdict -- do not re-surface without a new code diff or new audit-gap lead. NOTE: DefiLlama protocol.address field (0x58D97B57BB95320F9a05dC918Aef65434969c2B2) is a DECOY/unrelated address with NO CODE on Base (verified via 2 RPCs, zero balance+nonce) -- real singleton found via DefiLlama-Adapters source (projects/morpho-midnight/index.js) -> 0xAdedD8ab6dE832766Fedf0FaC4992E5C4D3EA18A. Sourcing lesson for scout.py/registry.py: don't trust protocol.address blindly, cross-check the adapter module source.",
+      "date": "2026-08-15"
     },
     {
       "sig": "myriad-markets (PredictionMarketV3_3, Abstract)|(fanout)|fanout|fanout triage: prediction",
@@ -1737,6 +1814,28 @@
       "verdict": "known",
       "reason": "Verbatim Lagoon v0.5.0 fork (3rd one; forkdrift fingerprint+diff). No custom yield-aggregator drift. Missing v0.5.1 whitelist patch is MOOT: all 3 vaults isActivated=false (permissionless on-chain). CLEAN. Reachability via DefiLlama-Adapters core addrs.",
       "date": "2026-06-10"
+    },
+    {
+      "sig": "textile-fx|n/a|reach-triage|",
+      "target": "textile-fx",
+      "file": "n/a",
+      "line": 0,
+      "detector": "reach-triage",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "Non-custodial FX DEX: market makers (Stitch bots) quote from own EOA wallets, swaps settle atomically via stateless reactor, protocol contracts hold NO funds per own TVL-adapter methodology comment. No addressable vault/pool contract surface to hunt; deprioritized vs Krystal/AZverse.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "textile-fx-0x225f99aaaa914d0481ef3a0bedd8aabf1b9c4d1d|bytecode (EIP-7702 delegate 0xcbf2c6e0357369bc80608fba529c78c9f7eaccfa)|caller-authority|",
+      "target": "textile-fx-0x225f99aaaa914d0481ef3a0bedd8aabf1b9c4d1d",
+      "file": "bytecode (EIP-7702 delegate 0xcbf2c6e0357369bc80608fba529c78c9f7eaccfa)",
+      "line": 0,
+      "detector": "caller-authority",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "address is an EIP-7702-delegated EOA (0xef0100 designator), not a public RFQ/settlement reactor. Delegate is a private 1164B batch-executor gated by a literal require(msg.sender==address(this)) self-check (the EOA can only trigger privileged paths via its own signed tx). No Permit2 address, no permitTransferFrom/permitWitnessTransferFrom selector, no ecrecover anywhere in the delegate bytecode -- the hoped-for caller-supplied-authority/witness-binding class does not apply. Full manual opcode disasm done; third-party (non-self) callers hit a transient-storage memoized no-op path, no fund-moving code reachable by anyone but the key holder. 26.58 ETH sits at the EOA but no external drain path found.",
+      "date": "2026-08-15"
     },
     {
       "sig": "the-lobster-pot (archlab-space/the-lobster-pot)|(fanout)|fanout|fanout triage: -",

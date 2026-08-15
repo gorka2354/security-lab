@@ -1,0 +1,23 @@
+[profile.default]
+solc_version = "0.8.28"
+via_ir = true
+optimizer = true
+optimizer_runs = 200
+src = "src"
+test = "test"
+out = "out"
+libs = ["lib"]
+# lib/krystal-vault-src/ is the Etherscan-VERIFIED source of the deployed Krystal Vault
+# implementation (0x964b88db9c467c34e8d5d2b1b833e8e6ae46198a, Ethereum mainnet -- the
+# implementation behind every "Community Vault" EIP-1167 clone created via VaultFactory
+# 0xff630c5d2fb9920c29c264b85e968d435f07e293). Fetched verbatim via:
+#   python toolkit/fetch_source.py 0x964b88db9c467c34e8d5d2b1b833e8e6ae46198a --chain 1 \
+#     --out krystal-community-vault-poc/lib/krystal-vault-src
+# lib/ is gitignored repo-wide -- re-run the command above (+ `forge install foundry-rs/forge-std
+# --no-git` into lib/forge-std) after a fresh clone before `forge test`. See FINDING.md.
+remappings = [
+    "krystal/=lib/krystal-vault-src/contracts/",
+    "@openzeppelin/=lib/krystal-vault-src/@openzeppelin/",
+    "@uniswap/v3-core/=lib/krystal-vault-src/@uniswap/v3-core/",
+    "forge-std/=lib/forge-std/src/",
+]
