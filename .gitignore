@@ -53,3 +53,6 @@ hunts/**/_*/
 
 # Claude Code local config (kept local; not part of the tool-agnostic showcase)
 .claude/
+
+# authorized-scope layer cache (regenerate: programs.py fetch)
+monitor/programs.json

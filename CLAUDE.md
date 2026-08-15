@@ -23,7 +23,10 @@ Every real hack becomes a detector + a golden test; every false positive becomes
 
 - **`toolkit/`** — the engine, by lane:
   - **SOURCE:** `scout.py` (contests + DefiLlama deployed-unaudited + Immunefi), `freshfeed.py`,
-    `freshdeploy.py`, `contest_monitor.py`, `legacy.py` (dormant-but-funded contracts).
+    `freshdeploy.py`, `contest_monitor.py`, `legacy.py` (dormant-but-funded contracts), `programs.py`
+    (AUTHORIZED-SCOPE layer: live bounty/contest programs from Sherlock/Code4rena/Cantina -> `list --open`
+    = hunt PAYABLE + in-scope targets first; `match <name|repo>` = is a finding in an open program + reward?
+    So a real bug -> a payout, not a free disclosure. Refresh with `fetch`).
   - **REACH:** `fetch_source.py` (Etherscan-v2, 64 chains), `reach_bytecode.py` (unverified fallback:
     recover the surface from bytecode; EraVM-aware), `forkdrift.py` (audited-fork drift), `activity.py`
     (LIVE-FIRST Gate-0), `threat.py` (POST-FINDING threat assessment: deployed + ACTIVE-by-last-tx-recency
