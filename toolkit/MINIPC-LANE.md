@@ -42,13 +42,21 @@ halmos --function check_<name>
 forge test
 ```
 
-Dynamic **on-chain fork-fuzz** (the headline: auto-find fund-loss on a LIVE contract) via the repo wrapper:
+Dynamic **on-chain fork-fuzz** (structural bug oracles on a LIVE contract) via the repo wrapper:
 
 ```bash
 source ~/.seclab_env
 python3 toolkit/ityfuzz_lane.py <ADDRESS> --chain eth --block <N> --timeout 600
-# proven: WETH fork -> ABI(v2) fetch -> deploy -> fuzz, 50% instruction coverage, corpus written.
+# default now = structural detectors (-d all), NO -f (see gotcha 5). Pass a comma-list for multi-contract:
+#   ...ityfuzz_lane.py 0xPAIR,0xVAULT --chain eth --block N --timeout 600
 ```
+
+**First real campaign (2026-08-15):** Everything oracle-less lending wstETH/WETH pair
+`0x3231D6AEA7A71B3E8E8541995Ae4e8a2e61081b4` + collateral vault `0xC264944E…` on an ETH fork ->
+**1.12M executions in 180s (~6.3k exec/sec), 375-item corpus, 0 objectives** (no assertion/arb-call/
+reentrancy/selfdestruct). Corroborates the static CLEAN verdict on the structural surface. Caveat: the
+economic (fund-loss) oracle could NOT run — see gotcha 5 — so the thin-pool price-manipulation question
+the static hunt left open is NOT closed by this campaign.
 
 ## ⚠️ ityfuzz nightly-35b7f08 gotchas (calibrated live)
 
@@ -64,6 +72,13 @@ python3 toolkit/ityfuzz_lane.py <ADDRESS> --chain eth --block <N> --timeout 600
    rate-limited RPC removes it. Set a better one in `~/.seclab_env` `ETH_RPC_URL` if needed.
 4. Non-eth chains: the Etherscan-v2 key is native on api.etherscan.io/v2 for ETH; per-chain ABI fetch may
    need a chain-native key or `--onchain-explorer-url` — verify empirically per chain.
+5. **`-f` (flashloan/economic fund-loss oracle) is BROKEN in this nightly** — its DEX-pair pricing calls
+   `https://pairs-all.infra.fuzz.land`, fuzzland's hosted service, which is **DEAD (HTTP 000)** → `-f`
+   panics at `endpoints.rs:1236` (`get_pair().unwrap()`) on any real non-WETH token. So `ityfuzz_lane.py`
+   now defaults to **structural detectors (`-d all`) with NO `-f`**; pass `--flashloan` only with a working
+   pair-service or a from-source build. Restoring the economic oracle (the headline "auto-find profit"
+   capability) needs building ityfuzz from master (Rust nightly-2024-01-01, ~30min, may need code fixes) —
+   a deliberate follow-up, not done yet.
 
 ## Not installed (deliberately)
 
