@@ -32,6 +32,7 @@ DEFAULT_RPC = {
     "31612": "https://mezo.drpc.org",                # Mezo (mezo-borrow)
     "146": "https://sonic.drpc.org",                 # Sonic (ledgity WrappedLTokenSonic)
     "2741": "https://api.mainnet.abs.xyz",            # Abstract (ZK Stack / Pudgy; gaming + native AA)
+    "143": "https://rpc.monad.xyz",                   # Monad (EVM; aprMON LST + fresh Monad DeFi)
 }
 
 
