@@ -533,8 +533,10 @@ def det_delegatecall_target(text, rel):
             continue
         # a generic delegatecall helper inside a `library` (OZ Address.functionDelegateCall) is a trusted
         # utility -- the CALLER chooses the target; the caller-SUPPLIED-target drain is a `contract` concern.
+        # STRIP COMMENTS first (hunt#3 leak: OZ Address.sol's NatSpec "the calling contract must have..."
+        # otherwise shadows the real `library Address {` decl -> suppression failed -> FP on every OZ vendor).
         _tm = None
-        for _t in re.finditer(r"\b(contract|library|interface)\s+\w+", text[:fn_start]):
+        for _t in re.finditer(r"\b(contract|library|interface)\s+\w+\b", _strip_comments(text[:fn_start])):
             _tm = _t
         if _tm and _tm.group(1) == "library":
             continue

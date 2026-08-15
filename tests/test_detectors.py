@@ -638,6 +638,8 @@ check(not flagged(recon.det_delegatecall_target, "contract C{function mc(bytes[]
       "FP-guard: self delegatecall (multicall) NOT flagged")
 check(not flagged(recon.det_delegatecall_target, "library Address{function functionDelegateCall(address target, bytes memory data) internal returns(bytes memory){ (bool ok, bytes memory r)=target.delegatecall(data); return r; }}"),
       "FP-guard (hunt#2): OZ Address.functionDelegateCall -- a generic delegatecall helper inside a `library` -- NOT flagged (caller picks the target)")
+check(not flagged(recon.det_delegatecall_target, "/// @dev the calling contract must have an ETH balance of at least `value`\nlibrary Address{function functionDelegateCall(address target, bytes memory data) internal returns(bytes memory){ (bool ok, bytes memory r)=target.delegatecall(data); return r; }}"),
+      "fix (hunt#3): a NatSpec comment mentioning 'contract' must NOT shadow the real `library` decl -> real OZ Address.sol still suppressed (comment-strip before the type-decl walk)")
 
 print("== det_weak_random (predictable on-chain RNG in an outcome path) ==")
 _wr = recon.det_weak_random("contract G{function _getReward(uint id) internal view returns(uint){"
