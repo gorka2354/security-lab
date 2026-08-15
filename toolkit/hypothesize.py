@@ -253,6 +253,13 @@ INVARIANT_MENU = [
         "round-trip: do(x) then undo() leaves caller <= start (never richer)",
         "cross-component: an op in A never breaks B's invariant via shared state",
         "no-free-value: no op sequence leaves caller richer with protocol unchanged",
+        "no-stub-in-fund-path: every fn that ESCROWS value (placeBet/deposit/stake payable) must have a WORKING, "
+        "reachable exit (claim/withdraw/refund/payout). A payout/settle whose body is a STUB (empty loop, return 0, "
+        "`return total` where total is never incremented, a TODO) permanently locks the escrow -- e.g. a betting "
+        "game whose bet-total helper is an empty-loop stub returning 0 so the payout branch is dead code and all "
+        "escrowed bets stay stuck; `onlyOwner` declared-but-never-applied is the tell of unfinished code. Grep "
+        "escrowing payables, then PROVE each has a "
+        "live withdrawal path that actually moves the funds out.",
         "caller-supplied-authority: the debited/credited party is bound to msg.sender (or a signature verified "
         "OVER it) -- NEVER a decoded calldata/struct field (order.maker/params.owner) or a helper/Safe-module "
         "arg (TrustedVolumes/MAPProtocol/NewMarketTrading 2026; det_caller_supplied_authority catches only the "
@@ -273,7 +280,12 @@ INVARIANT_MENU = [
     ("ECONOMIC (DeFi)", [
         "backing-conservation: SUM(ALL liabilities incl borrow/PM) <= backing, across EVERY settle path (Monetrix M-01)",
         "accrual-before-param-change: setRate/setFee/setRewardRate calls accrue()/sync() FIRST (else retroactive over/under-distribution)",
-        "withdrawal-queue rate lock: rate at request-time == rate at fulfillment-time (else arb; Lagoon/RockSolid)",
+        "withdrawal-queue rate lock: rate at request-time == rate at fulfillment-time (else arb; Lagoon/RockSolid); "
+        "AND a loss/writedown (setUnrealizedLoss / NAV drop) applied AFTER a claim is enqueued must reprice or "
+        "subordinate that queued claim -- else queued exiters are paid the pre-loss SNAPSHOT amount IN FULL and "
+        "escape the loss, concentrating it on stayers (bank-run / front-run the writedown). Watch a FIFO unstake "
+        "queue that snapshots item.amount at pre-loss NAV + a cancel path that re-mints at the cheaper post-loss "
+        "rate (share inflation). Split-brain: the queued claim is a snapshot writer unreconciled with the live-loss writer",
         "liquidation: liquidator_profit>0 at the threshold (else silent bad debt); bad-debt socialized BEFORE the liquidator bonus is paid (ordering)",
         "first/last-mover share inflation: first depositor can't inflate share price (virtual/dead shares); a deposit "
         "can't round to ZERO shares (silent loss); backing read as balanceOf(this)/address(this).balance is "
@@ -281,15 +293,44 @@ INVARIANT_MENU = [
         "behind a mulDiv/convertToShares helper or split across functions (the variants det_erc4626's syntactic shape "
         "MISSES); last exiter not bricked by rounding (Ledgity / ThetaNuts $2.1M legacy Index Vault)",
         "price-source consistency: liquidation and settlement use the SAME price (no mark-vs-index split); fee-path parity (no cheaper bypass)",
+        "oracle staleness + capped-adapter drift: a feed needs a freshness gate AND a FALLBACK -- a dead push feed "
+        "bricks the whole market (every getQuote reverts, positions un-liquidatable, deposits stranded; e.g. an EVK "
+        "money-market whose push feed went ~9 months stale with no fallback). AND a min/max CLAMP adapter's HARDCODED bounds must track the asset -- "
+        "bounds set for a healthy token ($9-30) that later crashed ($0.54) clamp a fresh price to the stale floor -> "
+        "~16x mispricing the instant the feed is repaired -> over-borrow. Watch DiaAdapterOracleCapped/bounded oracle "
+        "wrappers on illiquid/microcap collateral.",
+        "gas-rebate / keeper-reimbursement mispricing: a permissionless keeper/rebalance reimbursement that values "
+        "CALLER-CONTROLLED tx.gasprice at a FIXED/hardcoded gas-token price (not the live oracle) and pays it in a "
+        "NON-native settlement asset out of TVL lets the caller tune tx.gasprice to the cap and extract "
+        "profit = cap * (1 - realPrice/fixedPrice) per call, from depositors, uncapped in frequency (e.g. a rebalance "
+        "keeper computing gasUsed*tx.gasprice*<hardcoded-price>/1e18). tx.gasprice is attacker-chosen: a refund bounded by ACTUAL "
+        "native cost is safe, a fixed-price conversion is not -- reimburse at the LIVE oracle price or cap in "
+        "settlement terms via the oracle. Grep tx.gasprice/tx.gasPrice in any value-computing or transfer path.",
         "stale-solvency-check: health is recomputed on FRESH POST-mutation state after EVERY borrow/withdraw/decrease -- debt <= collateral*LTV must hold AFTER the change, not on a pre-mutation snapshot (Sharwa/Unilend/MIMSpell, 2025's dominant class)",
         "read-only-reentrancy: a consumer reading get_virtual_price/getRate/getUserAccountData while the SOURCE pool is mid-callback gets a desynced price -- use the pool's reentrancy-safe view / VaultReentrancyLib (Sturdy/Conic/dForce/Sentiment)",
-        "flashloan-governance: voting weight from tokens acquired THIS tx == 0; propose->execute can't complete in one block (timelock) -- else a flashloan passes+executes a proposal (Beanstalk/Audius)",
+        "flashloan-governance + low-quorum takeover: voting weight from tokens acquired THIS tx == 0 AND propose->execute "
+        "can't complete in one block (timelock) -- else a flashloan passes+executes a proposal (Beanstalk/Audius). ALSO "
+        "the SLOW variant: a proposal must clear a minimum quorum as a fraction of TOTAL supply, else a funded buyer "
+        "accumulates ~1% over days and wins a low-turnout vote to self-approve a treasury transfer (BonkDAO ~$20M, 2.9% "
+        "turnout, 2026-07; Build Finance DAO) -- no code bug, the code did exactly what it was told.",
         "self-liquidation-as-profit: the debt-opener != the liquidation-beneficiary within one tx; liquidating your own position can't net a profit (UwuLend/Sonne)",
         "collateral re-use: withdrawCollateral reverts while order.debt>0; the borrow callee == the canonical market (XCarnival/Kashi)",
+        "compliance fund-routing + exit-liveness: (a) a blacklist/whitelist/sanctions screen must gate the RECEIVER on "
+        "EVERY fund-exit path (redeem/withdraw/claim/payout/queue-fulfilment/fee-collect), not just deposit-entry or a "
+        "msg.sender check -- a screen applied on entry but not on exit routes funds to a now-blacklisted address (Royco "
+        "Day is the correct template: redundant enforceNotBlacklisted(receiver) + an ERC20 _update transfer hook on "
+        "every receiver). (b) a blacklisted/reverting recipient in a FIFO queue must not permanently lock OTHER users' "
+        "funds -- use try/catch (Royco Day try-delegatecall = no head-of-line block) + a cancel-to-fresh-receiver escape "
+        "hatch so a stuck claim is always recoverable, never a permanent lock. The bug is the ABSENCE of either half.",
     ]),
     ("GAMEFI / NFT", [
         "mint-supply-cap holds on ALL paths incl admin; uncapped-emission inflation bounded",
         "reward requires real gameplay state-change (no no-op claim) + anti-Sybil/flash-loan multiplication",
+        "Sybil-splittable per-address gate: a cap/eligibility/discount check reading ONLY the caller's own MUTABLE state "
+        "(lastBuyTime[msg.sender]==0 skips cooldown, tOwned[msg.sender]==0 skips profit-tax, balance<MAX skips anti-whale, "
+        "gloves<MAX mints a free reward) with NO protocol-level identity (KYC/stake/vesting) is bypassed by N fresh EOAs / "
+        "CREATE2 clones -- a fresh address always starts at the check-passing zero state. A per-ADDRESS limit meant as a "
+        "per-PERSON limit is not Sybil-resistant (ATM $243K + WUSD/GLOVE ~$200K, 2026-06). Applies to reward TOKENS too, not just games.",
         "reward-on-no-op: transfer(from==to) credits 0 reward; emergencyWithdraw settles rewards via the SAME path as withdraw; donate-then-claim can't raise the donor's own same-tx claimable (IdolsNFT/SWAPPStaking/BankrollNetwork/Popsicle/Visor)",
         "outcome integrity: on-chain RNG outcome (rarity/loot/battle/raffle) not predictable AND not revert-to-reroll-able AND VRF-callback not retry-gameable",
         "asset-locking: a locked/staked NFT can't transfer/sell externally (cross-contract state synced on _update/transfer)",
