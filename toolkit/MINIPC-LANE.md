@@ -58,6 +58,29 @@ reentrancy/selfdestruct). Corroborates the static CLEAN verdict on the structura
 economic (fund-loss) oracle could NOT run — see gotcha 5 — so the thin-pool price-manipulation question
 the static hunt left open is NOT closed by this campaign.
 
+## Economic (fund-loss) fuzzing — use Echidna/Medusa FORK mode, not ityfuzz -f
+
+ityfuzz's automatic economic oracle (`-f`) is dead (gotcha 5 — its pair-service is gone, and master still
+calls it, so a source build does NOT fix it). The proper, industry-standard substitute — and it works on this
+box — is a **hand-written economic invariant on a mainnet fork** via Echidna (or Medusa). You write the
+"attacker can't end richer than they started" / "protocol stays solvent" invariant; the fuzzer forks live
+state and tries to break it. Proven live 2026-08-15 (`~/seclab-fork/`, live WETH on an ETH fork):
+`property_weth_solvent` (WETH always fully ETH-backed) → **passing**; a deliberately-false
+`property_never_hold_weth` → **falsified** by `deposit(1)` — i.e. echidna forks mainnet, exercises the LIVE
+contract, and detects economic-invariant violations.
+
+```bash
+source ~/.seclab_env
+# harness: a CryticTester whose functions call the LIVE target address; property_* returns the invariant.
+# give it ETH via echidna.yaml `balanceContract:` and a `constructor() payable {}` (else the funded deploy reverts).
+echidna . --contract <Tester> --config echidna.yaml --format text \
+  --rpc-url "$ETH_RPC_URL" --rpc-block <N>          # echidna forks via FLAGS, not env vars
+```
+
+Cheatcodes (vm.prank/vm.store to set an admin param, impersonate a role, seed balances) work under Medusa +
+forge fork tests — use them to reach admin-gated states (e.g. to reproduce the Maseer redeem burncost-zero
+finding: vm.store bpsout=10000, then assert a redeemer isn't zeroed).
+
 ## ⚠️ ityfuzz nightly-35b7f08 gotchas (calibrated live)
 
 1. **`--onchain-url` is IGNORED** by this build — `endpoint_url` stays the hardcoded per-chain default
