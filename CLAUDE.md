@@ -7,8 +7,15 @@ Read this when working in the repo. See `README.md` for the full overview and cu
 
 ```
 read audit/code  →  extract a transferable PATTERN  →  reproduce a Foundry PoC  →
-grade the real code against a checklist  →  write the finding
+grade the real code against a checklist  →  write the finding  →
+POST-FINDING THREAT ASSESSMENT (`threat.py`: is it live + ACTIVE-by-recency + funded, or dormant/abandoned?)
 ```
+
+A finding's real-world severity + disclosure urgency depend on liveness, not just the code. After a
+finding, run `threat.py` on the vulnerable contract (and its factory) — a count-based "ACTIVE" can hide
+a product idle for months (the Krystal Community Vault lesson: real High-severity code bug, but the
+product was dormant ~3mo with ~$1.4K, so current threat LOW). Don't overstate urgency; filter not-live
+findings (gladiator not-deployed, equivaults pre-launch).
 
 Every real hack becomes a detector + a golden test; every false positive becomes a precision fix.
 
@@ -19,7 +26,9 @@ Every real hack becomes a detector + a golden test; every false positive becomes
     `freshdeploy.py`, `contest_monitor.py`, `legacy.py` (dormant-but-funded contracts).
   - **REACH:** `fetch_source.py` (Etherscan-v2, 64 chains), `reach_bytecode.py` (unverified fallback:
     recover the surface from bytecode; EraVM-aware), `forkdrift.py` (audited-fork drift), `activity.py`
-    (LIVE-FIRST gate).
+    (LIVE-FIRST Gate-0), `threat.py` (POST-FINDING threat assessment: deployed + ACTIVE-by-last-tx-recency
+    + value-bearing, or dormant/abandoned? → a threat level that grounds severity + disclosure urgency;
+    adds the recency signal activity.py's count-based gate lacked).
   - **DETECT:** `recon.py` (the static detectors), `ityfuzz_lane.py` (dynamic fork-fuzz),
     `decompile_match.py` (share-inflation math from decompiled bytecode), `hypothesize.py`
     (invariant seeds), `secrets_sweep.py`, `scaffold.py` (Foundry/Echidna/Medusa/Halmos).
