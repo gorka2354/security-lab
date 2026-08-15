@@ -518,6 +518,17 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "apriori-aprmon|(labcore)|manual|",
+      "target": "apriori-aprmon",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "CLEAN honest-negative (LIVE+ACTIVE+FUNDED ~920k MON, Monad/143). aprMON ERC-4626 LST guarded by design: totalAssets() is internal-counter-based (totalPendingDeposit+totalStaked-lockedRewards), NEVER reads address(this).balance -> classic donation/first-depositor share-inflation closed by construction; DUST_THRESHOLD floors deposits. MEV/reward-JIT guarded via linear reward-vesting over epochLength (_calculateLockedRewards). Reentrancy: no guard but per-request claimed=true before external .call (CEI intact). recon 0 [!]. Residual (withdrawal-queue/validator-rebalance accounting) is onlyOracleOperator-gated = trusted role, out of external threat model. impl 0x7d2f8dc5. Real vault resolved via defillama.py addrs apriori (DefiLlama addr was a decoy EOA). Reach-fix applied: Monad(143) added to fetch_source DEFAULT_RPC.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "autorange-vaultfactory-0x93590F9a|unverified (Arbitrum+Celo)|det_delegatecall_target|",
       "target": "autorange-vaultfactory-0x93590F9a",
       "file": "unverified (Arbitrum+Celo)",
@@ -969,6 +980,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "everything (UniPool, oracle-less lending+AMM)|src/libraries/UniPoolPairState.sol,UniPoolPairSwap.sol,UniPoolPairBorrow.sol,UniPoolPairLiquidate.sol,UniPoolPairTicks.sol,UniPoolVault.sol|spot-amm-oracle,share-inflation,reentrancy|",
+      "target": "everything (UniPool, oracle-less lending+AMM)",
+      "file": "src/libraries/UniPoolPairState.sol,UniPoolPairSwap.sol,UniPoolPairBorrow.sol,UniPoolPairLiquidate.sol,UniPoolPairTicks.sol,UniPoolVault.sol",
+      "line": 0,
+      "detector": "spot-amm-oracle,share-inflation,reentrancy",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "Deep manual read of oracle-less pricing (tick+virtual-reserve-decay MEV protection, borrow-cost-vs-swap check, tick-buffer, share/vault donation-attack immunity via storage-tracked reserves, correct interest/yield rounding direction, liquidation principal-writeoff accounting). No confirmed exploitable bug. Confirmed live+active+funded on >=2 ETH pairs (wstETH/WETH last-tx 5d, wNVDAx/USDT last-tx 15.8d). Zero source drift across ETH/ARB/BASE/BSC pair implementations (byte-identical). Protocol is SmarDex's rebrand (audited AMM DNA); the novel UniPool tick-lending layer itself has no public audit found. Only unconfirmed hypothesis: thin pools (~$200-500 reserve) + short default priceDecay (120s) + tickBuffer(4)/swapPriceToleranceBps(1000) may be more manipulation-susceptible than large pools -- inherent TWAP-window tradeoff, not a code bug, not simulated/PoC'd. CLEAN verdict, high engineering quality (explicit exploit-prevention rationale throughout).",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "flex|src/trove_manager.vy:1402|signature|",
       "target": "flex",
       "file": "src/trove_manager.vy:1402",
@@ -1330,6 +1352,17 @@
       "verdict": "known",
       "reason": "Mantle Index Four Fund (Securitize RWA, 0x671642Ac proxy -> impl 0xcd4c287c, Mantle chain 5000, TVL $114.9M, audits=0). Sourced via scout (deployed-unaudited). VERDICT: CLEAN for share-inflation -- it's a Securitize DS-protocol PERMISSIONED RWA token (IDSOmnibusWalletController: Whitelist x11 + KYC + canTransfer gates). deposit/withdraw are CUSTODIAL omnibus-wallet ops gated by KYC/whitelist; NAV/pricing is OFF-CHAIN (regulated issuer) -> NO permissionless on-chain share math to inflate. recon det_erc4626=0 (correct). Even any math bug = non-exploitable permissionlessly (KYC gate, cf. death.fun callability lesson). RWA = inherently low permissionless surface; not a det_erc4626 fit.",
       "date": "2026-06-16"
+    },
+    {
+      "sig": "maseer-one-wstgbp|MaseerOne.sol|manual|",
+      "target": "maseer-one-wstgbp",
+      "file": "MaseerOne.sol",
+      "line": 223,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "LOW / admin-gated defense-in-depth (code-confirmed, LIVE+FUNDED ~83k tGBP backing, ETH/1, MaseerOne 0x57C3571f). redeem() (MaseerOne.sol:212-252) checks the RAW oracle price (_unit==0 revert, line 220) but NOT the post-spread value: line 223 _unit=_burncost(_unit); _adjustBurnPrice=price*(10000-bpsout)/10000 => EXACTLY 0 when bpsout=10000 (setBpsout permits up to 10000, MaseerGate:154). Then _claim=_wmul(amt,0)=0 (line 226) yet _burn(msg.sender,amt) burns the FULL balance (line 245) with no revert => silent total principal loss for anyone calling redeem() while bpsout=10000. The sibling WsgemFraxlendDualOracle._compose (line 280) DOES guard `burn_==0 revert InvalidQuote` and IWsgem docs note burncost can be 0 at 100% spread => the missing guard in MaseerOne.redeem is a real oversight, not intentional. Fix: require(_unit != 0) (or _claim!=0) AFTER _burncost. Trigger requires the auth role = 3-of-5 Gnosis Safe (currently bpsout=25, not live); protocol has a proper setHaltBurn, so bpsout=10000 is misconfig not normal op => Low likelihood, high impact-if-triggered. Rest of stack = permissioned trusted-operator RWA by design (smelt=arb-user-burn, issue=unbounded mint, no-timelock MaseerProxy) = trust boundary, not bugs. Disclose to Maseer as goodwill hardening. Arb-Capital/wsgem-fraxlend repo itself = pre-launch (Fraxlend pair not deployed) + oracle clean.",
+      "date": "2026-08-15"
     },
     {
       "sig": "mellow|src/managers/ShareManager.sol|supply|function mintAllocatedShares(address account, uint256 value) external",
@@ -2265,6 +2298,39 @@
       "verdict": "known",
       "reason": "predictable same-tx-reveal RNG; publicly documented (Mueller) + patched to VRF; EOA-gate is speed bump not wall",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "wstgbp|fetched/1_0x57C3571f10767E49C9d7b60feb6c67804783B7aE/src/MaseerOne.sol|validation_gap|redeem(): if (_unit==0) revert InvalidPrice(); THEN _unit=_burncost(_unit); -- checks RAW navprice, not the post-spread burncost",
+      "target": "wstgbp",
+      "file": "fetched/1_0x57C3571f10767E49C9d7b60feb6c67804783B7aE/src/MaseerOne.sol",
+      "line": 220,
+      "detector": "validation_gap",
+      "snippet": "redeem(): if (_unit==0) revert InvalidPrice(); THEN _unit=_burncost(_unit); -- checks RAW navprice, not the post-spread burncost",
+      "verdict": "real",
+      "reason": "act.burncost() can be driven to exactly 0 via auth-only setBpsout(10000) (bounded at 100% but that IS the destructive value); redeem() only guards raw pip.read()!=0 before applying the spread, so a bpsout=10000 config burns the caller's full wstGBP for a recorded claim of 0, silently (no revert). Sibling oracle (WsgemFraxlendDualOracle._compose) correctly re-checks burn_==0 AFTER calling burncost() -- this token's own redeem() doesn't. Admin/multisig-gated (3-of-5 Safe 0xa73c94...), not outsider-exploitable; currently bpsout=25 (0.25%, healthy). Medium, hardening-class finding for the Maseer team.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "wstgbp|fetched/1_0x57C3571f10767E49C9d7b60feb6c67804783B7aE/src/MaseerToken.sol|ecrecover_unbound|ecrecover(...) then recoveredAddress != owner check",
+      "target": "wstgbp",
+      "file": "fetched/1_0x57C3571f10767E49C9d7b60feb6c67804783B7aE/src/MaseerToken.sol",
+      "line": 105,
+      "detector": "ecrecover_unbound",
+      "snippet": "ecrecover(...) then recoveredAddress != owner check",
+      "verdict": "fp",
+      "reason": "det_ecrecover-style detector flags the address(0) check but misses the compound OR condition also comparing recoveredAddress != owner on the same line -- permit() IS correctly bound to owner, false positive",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "wstgbp|hunts/_volume/wstgbp|fraxlend_fork_framing|",
+      "target": "wstgbp",
+      "file": "hunts/_volume/wstgbp",
+      "line": 0,
+      "detector": "fraxlend_fork_framing",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "wsgem-fraxlend is NOT a copy-fork of FraxlendPairCore; it's a standalone IDualOracle adapter (WsgemFraxlendDualOracle.sol) + FraxLend v5 pair-deploy scripting. forkdrift.py fingerprint found NO known-audited base match (correctly -- it IS original code, not a literal fork). The FraxLend PAIR itself (the lending market) is NOT deployed -- pending Frax's whitelist review per docs/instances/wstgbp-frxusd.md. Only the oracle adapter (0xA15A2aF6...) is live, and it is EMPTY/pre-launch (threat.py). The real live+funded 'wstGBP' TVL DefiLlama tracks is a completely different codebase: Maseer LTD's maseer-one (MaseerOne.sol/MaseerToken.sol + a MaseerProxy ward-pattern stack), not in the Arb-Capital repo at all.",
+      "date": "2026-08-15"
     }
   ]
 }
