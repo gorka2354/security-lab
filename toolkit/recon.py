@@ -686,6 +686,24 @@ def det_erc4626(text, rel):
     balance_based = bool(re.search(
         r"function\s+(totalAssets|backing)\b[\s\S]{0,240}?\.balanceOf\s*\(\s*address\s*\(\s*this", text))
     native_eth = bool(re.search(r"address\s*\(\s*this\s*\)\s*\.balance\b", text))
+    # fix#45: totalAssets()/backing() that returns a BOOKKEPT state var (written via += / -= elsewhere -- a
+    # deposit/withdraw write-path) and NOT balanceOf(this)/native balance is donation-IMMUNE: a direct donation
+    # can't move a bookkept NAV, so the first-depositor donation-inflation vector this detector targets is
+    # structurally closed (GAIB sAID / Intuition MultiVault / native-credit were all verdicted CLEAN for exactly
+    # this shape). Conservative -- needs BOTH a `return <var>` in totalAssets/backing AND a visible `<var> +=/-=`
+    # write-path, so an underspecified `return _bal;` with no write-path (and any balance-based NAV) stays flagged.
+    if not balance_based and not native_eth:
+        _rv = re.search(r"function\s+(?:totalAssets|backing)\b[^{]*\{[\s\S]{0,240}?\breturn\s+([A-Za-z_]\w*)", text)
+        if _rv:
+            _v = re.escape(_rv.group(1))
+            _writepath = re.search(r"\b" + _v + r"\s*(?:\+=|-=)", text)
+            # review 2026-08-15: if the bookkept var is ALSO assigned from balanceOf(this)/native balance ANYWHERE
+            # (e.g. a separate accrue()/sync() outside the 240-char forward window), a donation DOES move it -> NOT
+            # donation-immune, do NOT suppress. Only a var never synced to a real balance is truly immune.
+            _synced = re.search(r"\b" + _v + r"\s*=\s*[^;]*(?:\.balanceOf\s*\(\s*address\s*\(\s*this|"
+                                r"address\s*\(\s*this\s*\)\s*\.balance)", text)
+            if _writepath and not _synced:
+                return []
     if iface:
         note = ("ERC4626 vault: no _decimalsOffset / dead-shares / minimum -> "
                 "first-depositor inflation attack? (verify by hand)")
@@ -871,6 +889,24 @@ def det_liquidation(text, rel):
             continue
         nxt = text.find("function ", m.end())
         body = text[m.end():(nxt if nxt > 0 else m.end() + 1800)]
+        # fix#43 (from Royco RoycoVaultTranche.seizeShares): a `seize*`-NAMED fn that is admin/role-GATED
+        # AND has NO liquidation context (health/collateral/debt/repay/borrow) is a compliance/forced-transfer,
+        # not a market liquidation entrypoint (real liquidations are permissionless). Narrow the seize-name
+        # branch ONLY -- `liquidat*`-named fns and permissionless or liq-context seizes are untouched.
+        is_seize_only = bool(re.search(r"seize", name, re.I)) and not re.search(r"liquidat", name, re.I)
+        admin_gated = bool(re.search(
+            r"\b(restricted|onlyRole|onlyOwner|onlyAdmin|onlyGuardian|onlyGovernance|onlyAuthorized|requiresAuth)\b",
+            blob))
+        liq_context = bool(re.search(
+            r"health|collateral|\bdebt|repay|borrow|liquidat|solvent|badDebt|closeFactor|underwater|"
+            r"equity|maintenance|margin|\bltv\b|shortfall|position|principal|\bloan|seizable|insolven", body, re.I))
+        # a REAL liquidation debits/zeroes a per-user position (balance[u]=0, principal[u]-=amt); a compliance
+        # forced-transfer (Royco seizeShares -> _move(f,t,s)) does not. Suppress ONLY when neither a liq-context
+        # word NOR a per-user-state debit is present (review 2026-08-15: the vocab list alone FN'd role-gated
+        # perps/LTV liquidations that use margin/ltv/shortfall vocab).
+        per_user_debit = bool(re.search(r"\w+\[\s*\w+\s*\]\s*(?:=\s*0\b|-=)", body))
+        if is_seize_only and admin_gated and not liq_context and not per_user_debit:
+            continue
         self_guard = bool(re.search(r"!=\s*msg\.sender|msg\.sender\s*!=|\bborrower\s*!=|"
                                     r"SelfLiquidat", body))
         # fix#23 (from Morpho Midnight): collateral-OUT (what the liquidator RECEIVES) rounding UP
@@ -1729,17 +1765,37 @@ def det_caller_supplied_authority(text, rel):
             continue
         nxt = text.find("function ", m.start() + 1)
         fn_text = text[fn_start:(nxt if nxt > 0 else m.end() + 400)]
+        srcbase, _, srcfield = src.partition(".")          # order.maker -> ("order", "maker")
         if AUTH_BIND.search(fn_text):
-            continue                                       # bound to caller / signature-verified -> safe
+            # fix#44 (TrustedVolumes $5.87M RFQ drain): flag ONLY the genuine field-confusion -- an AUTHORIZATION
+            # mapping keyed by [<struct>.<field>][<recovered-signer>] (or the reverse) where <field> is NOT the
+            # debited field. Requiring the recovered-signer var to CO-INDEX avoids FP on benign same-struct reads
+            # (fee tier, nonce, partial-fill accounting) when the signature is correctly bound to the debited party
+            # (review 2026-08-15: keying on any [order.X] alone FP'd well-formed RFQ code).
+            sigm = re.search(r"(\w+)\s*=\s*(?:ecrecover|ECDSA\s*\.\s*recover|recoverSigner)\b", fn_text)
+            base = re.escape(srcbase)
+            confuse = None
+            if sigm:
+                sigv = re.escape(sigm.group(1))
+                confuse = re.search(r"\[\s*" + base + r"\.(\w+)\s*\]\s*\[\s*" + sigv + r"\s*\]|"
+                                    r"\[\s*" + sigv + r"\s*\]\s*\[\s*" + base + r"\.(\w+)\s*\]", fn_text)
+            fld = (confuse.group(1) or confuse.group(2)) if confuse else None
+            if not (fld and fld != srcfield):
+                continue                                   # signature bound to the same/correct party -> safe
+            note = ("signature verified but the authorization is keyed on a DIFFERENT field of the same struct "
+                    f"({srcbase}.{fld}) than the debited source ({src}) -> the signer is checked against an "
+                    "attacker-controlled party, not the debited one (TrustedVolumes RFQ field-confusion, $5.87M). "
+                    "Key the authorization on the SAME field that is debited.")
+        else:
+            note = ("transferFrom source is a caller-supplied struct/decoded field, not bound to msg.sender and with "
+                    "no signature check -> the caller can name any victim that approved this contract as the debited "
+                    "party (caller-supplied-authority, the #1 2026 class: TrustedVolumes/MAPProtocol/Ekubo). Bind the "
+                    "source to msg.sender or verify a signature over it.")
         ln = lineno(text, m.start())
         if ln in seen:
             continue
         seen.add(ln)
-        out.append((rel, ln, f"transferFrom({src}, ...)",
-                    "transferFrom source is a caller-supplied struct/decoded field, not bound to msg.sender and with "
-                    "no signature check -> the caller can name any victim that approved this contract as the debited "
-                    "party (caller-supplied-authority, the #1 2026 class: TrustedVolumes/MAPProtocol/Ekubo). Bind the "
-                    "source to msg.sender or verify a signature over it.", 0))
+        out.append((rel, ln, f"transferFrom({src}, ...)", note, 0))
     return out
 
 

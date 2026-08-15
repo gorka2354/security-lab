@@ -494,6 +494,10 @@ check(not flagged(recon.det_erc4626, "contract V is ERC4626 { function _decimals
       "ERC4626 with _decimalsOffset NOT flagged (mitigation)")
 check(flagged(recon.det_erc4626, "contract V is ERC4626 { function totalAssets() public view returns(uint){ return _internalBal; } }"),
       "unprotected ERC4626 with internal-accounting totalAssets still flagged (generic note)")
+check(not flagged(recon.det_erc4626, "contract V is ERC4626 { uint256 trackedAssets; function totalAssets() public view returns(uint){ return trackedAssets; } function deposit(uint a) external { trackedAssets += a; } function withdraw(uint a) external { trackedAssets -= a; } }"),
+      "fix#45: internal-ledger NAV (totalAssets returns a bookkept var WITH a +=/-= write-path) is donation-immune -> NOT flagged (GAIB/Intuition/native-credit)")
+check(flagged(recon.det_erc4626, "contract V is ERC4626 { uint256 storedAssets; function accrue() external { storedAssets = asset.balanceOf(address(this)); } function totalAssets() public view returns(uint){ return storedAssets; } function deposit(uint a) external { storedAssets += a; } }"),
+      "fix#45 (review): a bookkept NAV ALSO synced from balanceOf(this) in accrue() is donation-VULNERABLE -> still flagged (suppression must not hide it)")
 # bespoke (no-interface) share vault -- the ThetaNuts legacy Index Vault $2.1M class (2026-06)
 _tn = recon.det_erc4626(
     "contract IndexVault { uint256 totalSupply; function backing() public view returns(uint){return t.balanceOf(address(this));}"
@@ -594,6 +598,14 @@ _su = recon.det_liquidation("contract C{function liquidate(address u) external {
 check(bool(_su) and "collateral-OUT" in _su[0][3], "fix#23: seize/collateral-OUT rounds up -> flagged (favors liquidator)")
 _ru = recon.det_liquidation("contract C{function liquidate(address u) external { require(isHealthy(u)==false); uint repaid = seized.mulDivUp(price); }}", "src/C.sol")
 check(bool(_ru) and "collateral-OUT" not in _ru[0][3], "fix#23: repaid/debt-side rounds up -> NOT flagged for rounding (protocol-favorable)")
+_ss = recon.det_liquidation("contract C{function seizeShares(address f,address t,uint s) external restricted { _move(f,t,s); }}", "src/C.sol")
+check(not _ss, "fix#43: admin-`restricted` seizeShares (Royco compliance forced-transfer, no liq-context) NOT a liquidation entrypoint")
+_sc = recon.det_liquidation("contract C{function seizeCollateral(address u) external { require(!isHealthy(u)); coll[u]-=amt; }}", "src/C.sol")
+check(bool(_sc), "fix#43: permissionless seizeCollateral WITH health/collateral context still flagged (TP preserved)")
+_sg = recon.det_liquidation("contract C{function seize(address u) external onlyRole(LIQ){ require(debt[u]>maxDebt); coll[u]-=x; }}", "src/C.sol")
+check(bool(_sg), "fix#43: admin-gated seize WITH debt/collateral liq-context still flagged (only ctx-less compliance seizes suppressed)")
+_sp = recon.det_liquidation("contract Perp{function seizeAccount(address u) external onlyRole(KEEPER_ROLE){ require(equity[u]<maintenance[u]); balance[u]=0; token.transfer(keeper,bounty); }}", "src/C.sol")
+check(bool(_sp), "fix#43 (review): role-gated perps/margin liquidation that DEBITS a per-user position (balance[u]=0) still flagged despite margin vocab -> no vocab-list FN")
 
 print("== det_oracle (spot-reserve pricing sub-check) ==")
 check(flagged(recon.det_oracle, "contract C{function getPrice() public view returns(uint){ (uint112 r0,uint112 r1,)=pair.getReserves(); return uint(r1)*1e18/uint(r0); }}", "function getPrice"),
@@ -980,6 +992,12 @@ check(not flagged(recon.det_caller_supplied_authority, "contract C{function pull
       "det_caller_supplied_authority guard: bare-param `from` (allowance-gated router) NOT flagged")
 check(not flagged(recon.det_caller_supplied_authority, "library L{function executeSupply(ExecuteSupplyParams memory params) external { IERC20(params.asset).safeTransferFrom(params.user, aToken, params.amount); }}"),
       "det_caller_supplied_authority guard: Aave-fork `memory` struct (.user bound upstream) NOT flagged")
+check(flagged(recon.det_caller_supplied_authority, "contract C{mapping(address=>mapping(address=>bool)) ok; function fill(Order calldata order,bytes sig) external { address s=ecrecover(h,v,r,z); require(ok[order.taker][s]); token.safeTransferFrom(order.maker, order.taker, order.amount); }}"),
+      "fix#44: sig verified but auth keyed on order.taker while debiting order.maker -> field-confusion flagged (TrustedVolumes $5.87M)")
+check(not flagged(recon.det_caller_supplied_authority, "contract C{mapping(address=>mapping(address=>bool)) ok; function fill(Order calldata order,bytes sig) external { address s=ecrecover(h,v,r,z); require(ok[order.maker][s]); token.safeTransferFrom(order.maker, order.taker, order.amount); }}"),
+      "fix#44 guard: auth keyed on the SAME field that is debited (order.maker) -> NOT flagged")
+check(not flagged(recon.det_caller_supplied_authority, "contract RFQ{mapping(address=>uint) filled; function settle(Order calldata order,bytes sig) external { address s=ecrecover(h,v,r,z); require(s==order.maker); filled[order.taker]+=order.amount; token.safeTransferFrom(order.maker, order.taker, order.amount); }}"),
+      "fix#44 (review) guard: benign same-struct read filled[order.taker] with sig bound to the debited maker -> NOT flagged (signer must CO-INDEX the mismatched field)")
 
 
 print("== calibrate (feedback loop: finding-outcome precision + verdict recall) ==")
