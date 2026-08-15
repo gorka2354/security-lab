@@ -1,0 +1,9 @@
+# Foundry build artifacts
+out/
+cache/
+broadcast/
+
+# lib/ holds symlinks into the gitignored clone (hunts/_volume/equivaults-contracts) and its pinned
+# submodules. To rebuild on a fresh checkout: clone the target, `git submodule update --init` in it,
+# then recreate the symlinks (see foundry.toml remappings).
+lib/

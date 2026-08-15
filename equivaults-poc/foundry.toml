@@ -1,0 +1,18 @@
+[profile.default]
+solc_version = "0.8.30"
+# The EquiVault constructor takes 12 args; legacy codegen hits stack-too-deep, and the target
+# itself is compiled via-ir. Match it so we exercise the exact production bytecode.
+via_ir = true
+optimizer = true
+optimizer_runs = 200
+src = "src"
+test = "test"
+# Point at the cloned target's source + its pinned submodule libs (version-accurate). No copies,
+# no drift: the PoC compiles the ACTUAL EquiVault / RebalanceLib / AssetRegistry under audit.
+# lib/equivaults-src, lib/forge-std, lib/openzeppelin-contracts are symlinks into the cloned target
+# and its pinned submodules (see README) so solc resolves them inside the project's allowed tree.
+remappings = [
+    "equivaults/=lib/equivaults-src/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]

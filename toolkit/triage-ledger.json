@@ -540,6 +540,17 @@
       "date": "2026-06-30"
     },
     {
+      "sig": "centrifuge|(labcore)|manual|",
+      "target": "centrifuge",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "W2 re-triage 2026-08-14: HUNT.md deep pass fully cleared (ward-model FP flood fixed into detector; every signal-lead hand-triaged FP/by-design); the one TODO (SignatureLib ecrecover) re-verified FP (caller enforces nonce+deadline+used-marker before the ecrecover). Exhausted on the 2026-06-08 snapshot; re-open only on upstream Opex25-scope drift.",
+      "date": "2026-08-14"
+    },
+    {
       "sig": "centrifuge|src/core/messaging/Gateway.sol|arbcall|function withBatch(bytes data, uint callbackValue, address refund)",
       "target": "centrifuge",
       "file": "src/core/messaging/Gateway.sol",
@@ -738,6 +749,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "dtrinity|(labcore)|manual|",
+      "target": "dtrinity",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "W2 re-triage 2026-08-14: all prior threads closed (admin-gated AMO, OZ-v5 virtual-shares bound the 4626 inflation, oracle threshold rounds safe-only, DStakeRouter role-gated+balance-diff). New recon lead (FlashLoanLiquidator self-liq) is economically inert. Clean on hats-finance contest snapshot; re-open on drift. Residual 5-min: DStakeToken:18 dead-shares seed check.",
+      "date": "2026-08-14"
+    },
+    {
       "sig": "dtrinity|contracts/dstable/AmoManager.sol|reentrancy|function allocateAmo(address amoVault, uint256 dstableAmount)",
       "target": "dtrinity",
       "file": "contracts/dstable/AmoManager.sol",
@@ -780,6 +802,17 @@
       "verdict": "todo",
       "reason": "first-depositor inflation candidate; OZ-v5 virtual-shares likely bound it; confirm totalAssets+deploy-seed",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "equivaults|src/RebalanceLib.sol|gasprice-rebate-mispricing|",
+      "target": "equivaults",
+      "file": "src/RebalanceLib.sol",
+      "line": 71,
+      "detector": "gasprice-rebate-mispricing",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "UPDATE 2026-08-15: fork-PoC CONFIRMED (equivaults-poc/ 3/3, actual contracts). Value-leak reproduces + caller-tunable + paid from TVL (TVL drop == rebate == depositor claim drop asserted). Honest severity LOW: reimbursed gasUsed measured only around the sell leg (2.49x undercount vs full tx) -> break-even gas-token price ~$2006. ACTIVE on sub-$2000-gas chains (Polygon/BNB/AVAX/Fantom: +$3.7-4.9/call, permissionless, per drift event, ~$5/call cap); LATENT on Ethereum while ETH>$2000. Pre-launch (anvil-only) -> RD-only if it ships. Fix: value gas at a live oracle + clamp tx.gasprice to block.basefee. TP-grounds the gas-rebate-mispricing hypothesize seed.",
+      "date": "2026-08-15"
     },
     {
       "sig": "etherorcs|src/mainnet/EtherOrcsAllies.sol|supply|function mintRogues(uint256 amount)",
@@ -835,6 +868,17 @@
       "verdict": "wontfix",
       "reason": "weak RNG; noCheaters blocks atomic grind; selective-submission residual LOW (coinbase/basefee imperfectly predictable + small reward, 192h lock); VRF on Polygon",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "eva-markets|(labcore)|manual|",
+      "target": "eva-markets",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "W2 re-triage 2026-08-14: prior 6-phase L4 concluded hardened; clone still pinned b5099b8 (2026-05-12, unchanged); fresh recon 0 high-signal hits; depositFromMarket credits measured delta (balanceAfter-Before), forecloses fee-on-transfer over-credit. No bug-bounty program -> disclosure-only anyway. Re-open only if upstream commits touch EvaVault/WildcatWithdrawalLib.",
+      "date": "2026-08-14"
     },
     {
       "sig": "eva-markets|contracts/EvaVault.sol|erc4626|virtual 1:1 totalAssets/totalSupply + skim excess + OFT bridge + Wildcat wrap",
@@ -1134,6 +1178,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "mezo-borrow|(labcore)|manual|",
+      "target": "mezo-borrow",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "W2 re-triage 2026-08-14: Cantina-audited Liquity-v1 fork; the one bespoke drift (interestNumerator accrue-before-change ordering) verified correct at every trove-mutating path; fresh recon only re-flags permissionless-by-design keepers (updateSystemInterest/distributeMUSD mint to fixed recipients, not msg.sender). Hardened; re-open only on TroveManager/BorrowerOperations bytecode upgrade.",
+      "date": "2026-08-14"
+    },
+    {
       "sig": "mezo-borrow|src/InterestRateManager.sol|index|interestNumerator aggregated interest vs per-trove interestOwed (custom layer on Liquity v1)",
       "target": "mezo-borrow",
       "file": "src/InterestRateManager.sol",
@@ -1154,6 +1209,17 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live, ~$29M, but a Cantina-audited Liquity/Threshold fork -> forky + audited, so temper expectations. NOT verbatim: real custom drift = interest-accrual layer (InterestRateManager/InterestRateMath/Trove.interestOwed) bolted ",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "mezo-musd|(labcore)|manual|",
+      "target": "mezo-musd",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "W2 re-triage 2026-08-14: Cantina-audited, deep-dived TWICE (2026-06-10 + fanout 06-13), both hardened. Interest layer accrue-before-change confirmed + echidna sum-of-debt 4/4 passing (30k). Stale ledger todo InterestRateManager:173 resolved by that echidna run (relabel). Unchanged since 2026-05-19; re-open only on post-audit drift to the custom layer.",
+      "date": "2026-08-14"
     },
     {
       "sig": "mezo-musd|solidity/contracts/BorrowerOperations.sol|ac|function addColl(...)",
@@ -1242,6 +1308,17 @@
       "verdict": "known",
       "reason": "[SKIP/abstract] addr1 (0x39e6...f340) is NO-CODE (not deployed) -> dead. addr2 (0x3e0F...3289) is a live ERC1967 proxy (impl 0xd083...c59a) = Polkamarkets/Myriad PredictionMarketV3_3, genuinely ACTIVE (marketIndex()==888, 888 markets, WETH+owner set -- the act",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "native-credit|(labcore)|manual|",
+      "target": "native-credit",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "W2 re-triage 2026-08-14: prior CLEAN verdict stands (operator-trust credit vault, well-built). ONE new thin thread the prior write-up missed: pay()/withdrawReserve() lack nonReentrant + exchangeRate() unguarded pricing view = read-only-reentrancy class -- REAL only if a registered market underlying or LP-collateral token is callback-capable (ERC-777-style). Confirm-or-kill: pull deployed CreditVault markets, check each underlying for a transfer hook; if all plain USDC/WETH-class -> dead, verdict flips to known.",
+      "date": "2026-08-14"
     },
     {
       "sig": "native-credit|src/CreditVault.sol|liquidation|",
@@ -1352,6 +1429,17 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live, novel, fund-holding system (Yuga/Lightyear \"Stash\": per-user ERC-1967 escrow that holds ETH/WETH/Punks and fulfills off-chain-signed, nonce+Merkle-gated CryptoPunk bids where ANYONE can be the MEV filler). Greenfield w",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "punks-terminal|(labcore)|manual|",
+      "target": "punks-terminal",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "W3 fork-PoC confirm-or-kill 2026-08-14 (punks-terminal-poc/, 11/11 adversarial mainnet-fork tests, INDEPENDENTLY re-run): all 4 leads CLEAN. Lead1 filler-economics conserves to bidPrice exactly (minValue+fillerGain==stashOut, no surplus; minValue>bid reverts). Lead2 (highest-value) two-reservation double-spend: locked auction ETH survives a WETH-topped punk bid; reverts rather than dipping into locked ETH. Lead4 WETH over-pull: only shortfall pulled, allowance-bounded, WETH-order lock untouched. Lead3 nonce/replay: used-flag checked first (desync dead code). ClaimD payout reentrancy blocked by nonce burned pre-call. Threat model: immutable owner, only permissionless fund-mover is processPunkBid bounded to owner-signed bidPrice, balance>=locked always. $1M Yuga in-scope -> fork-proven safe on these vectors, no FINDING. Honest gap: wrapped-punk branch read-analyzed not fork-exercised (same conservation shape, lower risk).",
+      "date": "2026-08-14"
     },
     {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
