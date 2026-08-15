@@ -531,6 +531,13 @@ def det_delegatecall_target(text, rel):
         fn_start = text.rfind("function ", 0, m.start())
         if fn_start < 0:
             continue
+        # a generic delegatecall helper inside a `library` (OZ Address.functionDelegateCall) is a trusted
+        # utility -- the CALLER chooses the target; the caller-SUPPLIED-target drain is a `contract` concern.
+        _tm = None
+        for _t in re.finditer(r"\b(contract|library|interface)\s+\w+", text[:fn_start]):
+            _tm = _t
+        if _tm and _tm.group(1) == "library":
+            continue
         brace = text.find("{", fn_start)
         head = text[fn_start:brace + 1] if brace > 0 else ""
         # TARGET must be an `address <target>` PARAM of this fn (caller-suppliable), not a stored/immutable lib

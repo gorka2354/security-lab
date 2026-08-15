@@ -636,6 +636,8 @@ check(not flagged(recon.det_delegatecall_target, "contract C{address lib; functi
       "FP-guard: delegatecall to a STORED lib (not a caller param) NOT flagged")
 check(not flagged(recon.det_delegatecall_target, "contract C{function mc(bytes[] calldata d) external { for(uint i;i<d.length;i++) address(this).delegatecall(d[i]); }}"),
       "FP-guard: self delegatecall (multicall) NOT flagged")
+check(not flagged(recon.det_delegatecall_target, "library Address{function functionDelegateCall(address target, bytes memory data) internal returns(bytes memory){ (bool ok, bytes memory r)=target.delegatecall(data); return r; }}"),
+      "FP-guard (hunt#2): OZ Address.functionDelegateCall -- a generic delegatecall helper inside a `library` -- NOT flagged (caller picks the target)")
 
 print("== det_weak_random (predictable on-chain RNG in an outcome path) ==")
 _wr = recon.det_weak_random("contract G{function _getReward(uint id) internal view returns(uint){"
