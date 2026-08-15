@@ -518,6 +518,17 @@
       "date": "2026-06-14"
     },
     {
+      "sig": "autorange-vaultfactory-0x93590F9a|unverified (Arbitrum+Celo)|det_delegatecall_target|",
+      "target": "autorange-vaultfactory-0x93590F9a",
+      "file": "unverified (Arbitrum+Celo)",
+      "line": 0,
+      "detector": "det_delegatecall_target",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "Krystal-class auto-range Uniswap V3 LP manager (VaultFactory->per-user position vaults). REACH WALL: factory + vaults UNVERIFIED on both Arbitrum(42161) and Celo(42220), not on Sourcify; vaults are 45B EIP-1167 clones reading EMPTY + last-tx ~20d (dormant). Cannot run source detector. Total TVL ~103k. Deprioritized: unverified + unfunded-per-contract.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "avalon-superearn|(fanout)|fanout|fanout triage: -",
       "target": "avalon-superearn",
       "file": "(fanout)",
@@ -837,6 +848,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "ea-finance-staking-wcc|StakingRewardsWCC.sol|accrual-before-param-change|",
+      "target": "ea-finance-staking-wcc",
+      "file": "StakingRewardsWCC.sol",
+      "line": 223,
+      "detector": "accrual-before-param-change",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "hunt#3 2026-08-15 (BSC 0x23EbC377.., LIVE+ACTIVE+FUNDED 2.57M WCC, verified). REAL but CONDITIONAL/Medium-Low. updateRewards() is period-granular: partial periods (periodsElapsed==0) are a silent no-op, so setRewardPerPeriod/Period/StartTime (onlyOwner) call updateRewards() FIRST (the accrue-before-change pattern) but DON'T flush the partial period at the OLD rate -> when the period completes the WHOLE period (incl pre-change slice) is priced at the NEW rate -> retroactive mis-accrual (rate cut shortchanges, rate hike overpays + dents withdrawRemainingRewards solvency); rewardPeriod default 4h so every admin tweak mis-prices. OWNER-TRIGGERED (fairness, not attacker-drain). Secondary flash-stake-snipe (period-LUMP not time-weighted) is NOT currently profitable (0.3% depositFee dominates; breakeven totalStaked<~11k WCC vs 2.57M live, 233x) -- becomes profitable only if owner drops depositFeeBps->0 or the pool collapses. No-bounty -> RD-courtesy. NOTE threat.py gap: Etherscan-v2 free-tier refuses BSC txlist -> UNKNOWN-RECENCY (agent worked around via eth_call of lastRewardUpdateTimestamp).",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "ea-finance-staking-wcc|fetched/56_0x23EbC3770f98c01EDAB20eb1eF17Ee633c19b467/contracts/StakingRewardsWCC.sol|accrual-before-param-change|function updateRewards() public { ... if (periodsElapsed>0) {...} // no-op when periodsElapsed==0 }",
+      "target": "ea-finance-staking-wcc",
+      "file": "fetched/56_0x23EbC3770f98c01EDAB20eb1eF17Ee633c19b467/contracts/StakingRewardsWCC.sol",
+      "line": 223,
+      "detector": "accrual-before-param-change",
+      "snippet": "function updateRewards() public { ... if (periodsElapsed>0) {...} // no-op when periodsElapsed==0 }",
+      "verdict": "real",
+      "reason": "LIVE+ACTIVE+FUNDED (BSC 0x23EbC377..., ~2.57M WCC staked, lastRewardUpdateTimestamp only 16.6h old via getContractInfo() eth_call). setRewardPerPeriod/setRewardPeriod/setRewardStartTime all call updateRewards() first (looks accrue-safe) but updateRewards() is a NO-OP whenever periodsElapsed==0 (partial period) -- lastRewardUpdateTime does NOT advance. So a rate change mid-period is retroactively applied to the WHOLE period once it later completes (the pre-change time-slice silently re-priced at the NEW rate, not blended) -- under- or over-distributes stakers vs the actual old/new rate split. Deterministic fork PoC: warp partway into a period, call setRewardPerPeriod(new), warp to period boundary, call updateRewards()/claimRewards(), compare accRewardPerShare delta to the time-weighted-fair value. Secondary/weaker observation: coarse period-lump settlement (no time-weighting within a period) is a late-joiner reward-capture pattern in general, but at THIS pool's current size (totalStaked=2.57M vs rewardPerPeriod=33 WCC) the 0.3% deposit fee makes single-period flash-sniping unprofitable (breakeven needs totalStaked < ~11k WCC) -- was profitable during early pool life, resurfaces if fee->0 or totalStaked shrinks a lot.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "equivaults|src/RebalanceLib.sol|gasprice-rebate-mispricing|",
       "target": "equivaults",
       "file": "src/RebalanceLib.sol",
@@ -956,6 +989,28 @@
       "verdict": "wontfix",
       "reason": "[PARK/defillama-gamefi-wave] The code has genuine critical logic bugs (missing access control + value-credit-without-token-transfer), but LIVE-FIRST fails hard: single-commit junk/SEO repo (README is an auto-generated \"download the game\" page whose links point",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "fluid-dex-v2|moneyMarket/core/other/helpers.sol|hf_valuation_manipulation|",
+      "target": "fluid-dex-v2",
+      "file": "moneyMarket/core/other/helpers.sol",
+      "line": 775,
+      "detector": "hf_valuation_manipulation",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "Sherlock 1225 ($200k OPEN) honest-negative. Deep read of DEX-v2 novel math+MM interaction. KEY: borrow-time HF values D3/D4 at ORACLE-derived sqrtPrice (_calculateSqrtPriceX96), NOT pool spot -> manipulation-resistant; that is exactly why known M-2 flags liquidation AT_POOL_PRICE as the bug. Rounding protocol-favor both dirs, fee dual-tracking synced+underflow-reverts, HF re-checked post-mutation, delegatecalls fixed/onlyAuths. Audited code holds; H-1/M-1/M-2/M-3 are the hard spots and siblings avoid same mistakes.",
+      "date": "2026-08-15"
+    },
+    {
+      "sig": "fluid-dex-v2|other/helpers.sol|hf-valuation-manipulation|",
+      "target": "fluid-dex-v2",
+      "file": "other/helpers.sol",
+      "line": 775,
+      "detector": "hf-valuation-manipulation",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "payable-hunt 2026-08-15 (Opus, OPEN Sherlock bounty $200K, Instadapp/fluid-contracts@904c2989 dex-v2). HONEST-NEGATIVE via the scope+known-issues workflow (read the 4 judged issues H-1/M-1/M-2/M-3, hunted the long tail). Borrow-time HF (_getHfInfo:775) values D3/D4 CL positions at an ORACLE-derived sqrtPriceX96 (manipulation-resistant); the spot-price angle exists ONLY on the liquidation path = already-reported M-2. All judged-issue siblings guarded (payback cap, post-mutation HF, settle accounting). det_delegatecall_target 0 hits (delegatecalls fixed-target/onlyAuths). CAVEAT: DEX v2 is PRE-DEPLOYMENT (TODO placeholders) -> bounty pays on next-version code of a live protocol. Residual = invariant-fuzzing (fee/amount conservation, debt quadratic, fee-growth across ticks) -> WSL/CI/mini-PC lane (solc missing on Windows). Clean read on a Cantina$250K+Sherlock$200K+60-auditor target = valid deliverable.",
+      "date": "2026-08-15"
     },
     {
       "sig": "gacha (Onchain Heroes / Proof-of-Play, Abstract)|(fanout)|fanout|fanout triage: prediction",
@@ -1508,6 +1563,17 @@
       "date": "2026-06-28"
     },
     {
+      "sig": "perpl-exchange-monad|n/a (unverified impl 0xf7df187620c81deee0833589509f41f95886cd33 behind proxy 0x34B6552d57a35a1D042CcAe1951BD1C370112a6F)|reach-bytecode-only|depositCollateral/withdrawCollateral/withdrawFromProtocol -- share-conversion surface, 319 selectors recovered, 33 resolved",
+      "target": "perpl-exchange-monad",
+      "file": "n/a (unverified impl 0xf7df187620c81deee0833589509f41f95886cd33 behind proxy 0x34B6552d57a35a1D042CcAe1951BD1C370112a6F)",
+      "line": 0,
+      "detector": "reach-bytecode-only",
+      "snippet": "depositCollateral/withdrawCollateral/withdrawFromProtocol -- share-conversion surface, 319 selectors recovered, 33 resolved",
+      "verdict": "todo",
+      "reason": "threat.py CONFIRMED LIVE+ACTIVE+FUNDED on Monad mainnet (chain 143): code 225B stub -> UUPS proxy -> impl 0xf7df1876..., 20 recent txns last tx 0d ago, holds AUSD collateral (0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a). BUT impl is UNVERIFIED (not on Sourcify/Etherscan-v2) -> reach_bytecode.py recovered the selector surface only (no source) -> cannot apply the accounting seeds without decompiling further (heimdall/panoramix, WSL lane, out of scope this session). Re-visit with decompile_match.py if this stays live.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "pharaoh-dlmm|fetched/43114_0xEb480050b016f6c6d45203D2346B68bDDDa23D4D/contracts/DLMM/DLMMFactory.sol|forkdrift|",
       "target": "pharaoh-dlmm",
       "file": "fetched/43114_0xEb480050b016f6c6d45203D2346B68bDDDa23D4D/contracts/DLMM/DLMMFactory.sol",
@@ -1618,6 +1684,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "royco-day|(labcore)|manual|",
+      "target": "royco-day",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "payable-hunt 2026-08-15 (Sonnet, OPEN Cantina contest $30K/$7.5K, KYC, fa6d2497): HONEST-NEGATIVE, layer workflow validated. programs.py match->OPEN, scope confirmed. Read the 2 shipped audits (Hexens 7 Low/Info all Fixed; Olympix 1 Med+5 Low) + the contest known-issues clause. The 2 strong candidates BOTH dead-ended: (1) blacklist-bypass-on-redemption (Hexens ROYCO5-7/Olympix Med) is now FIXED -- every execute/cancel path threads _receiver through BlacklistLogic._enforceNotBlacklisted; (2) cross-market whitelist role-bleed (LP_ROLE global constants shared across markets on one AccessManager) is UNCHANGED/live but explicitly OUT-OF-SCOPE (already-reported by Olympix). In-scope money-surface (funds-to-non-whitelisted + permanent-lock) systematically guarded; det_delegatecall_target 0 hits; oracle staleness/price>0 present (recon [!] was FP). Unreviewed remainder (Fee/Utilization/Accounting logic) maps to NAV/accounting = mostly out-of-scope. Diminishing -- do not sink more.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "royco-v2|audit/|target|",
       "target": "royco-v2",
       "file": "audit/",
@@ -1662,6 +1739,17 @@
       "date": "2026-06-27"
     },
     {
+      "sig": "rysk-premium-vault-registry|n/a (DefiLlama module rysk-premium/index.js)|gate-empty|vaultRegistry 0x12a86ae... (eth, code 1993B) / 0x425ffAB... (hyperliquid) + marginPools",
+      "target": "rysk-premium-vault-registry",
+      "file": "n/a (DefiLlama module rysk-premium/index.js)",
+      "line": 0,
+      "detector": "gate-empty",
+      "snippet": "vaultRegistry 0x12a86ae... (eth, code 1993B) / 0x425ffAB... (hyperliquid) + marginPools",
+      "verdict": "todo",
+      "reason": "threat.py: Ethereum vaultRegistry+marginPool = EMPTY/PRE-LAUNCH (DORMANT, 0 ETH/token value at those addrs); Hyperliquid vaultRegistry = EMPTY/PRE-LAUNCH + ABANDONED (last tx 189.6d ago). DIFFERENT product from the already-CLEAN'd 'rysk-ciao' (Arbitrum CLOB) -- the DefiLlama TVL (.2M) must live in the individual vault contracts returned by getAllVaults(), not the registry/margin-pool itself; did not enumerate vaults (time-boxed). Re-visit: call getAllVaults() on 0x12a86ae14992c5a5e8671d30cfd60289f9d0afbe and gate each vault child.",
+      "date": "2026-08-15"
+    },
+    {
       "sig": "sakuraswap (Abstract / zkSync L2, chainid 2741)|(fanout)|fanout|fanout triage: dex",
       "target": "sakuraswap (Abstract / zkSync L2, chainid 2741)",
       "file": "(fanout)",
@@ -1671,6 +1759,17 @@
       "verdict": "known",
       "reason": "[SKIP/abstract] Live ($3.6M TVL, posMgr ACTIVE with 19 events/200k blocks, on-chain wiring coherent: posMgr.factory()==factory, factory has owner 0x2BAD..., router 109KB code). But the source is a verbatim port of the canonical, audited Uniswap V3 stack (facto",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "sodax-spoke-assetmanager-0x39E77f86|SpokeAssetManager.sol / SonicWallet.sol / MinimalWalletProxy.sol|det_delegatecall_target|delegatecall(implementation) / target.call{value}(data)",
+      "target": "sodax-spoke-assetmanager-0x39E77f86",
+      "file": "SpokeAssetManager.sol / SonicWallet.sol / MinimalWalletProxy.sol",
+      "line": 22,
+      "detector": "det_delegatecall_target",
+      "snippet": "delegatecall(implementation) / target.call{value}(data)",
+      "verdict": "fp",
+      "reason": "delegatecall-class FP on LIVE+FUNDED cross-chain protocol (ETH AssetManager 17 ETH, last tx 0d). MinimalWalletProxy delegatecalls beacon STORED impl (owner-set, safe proxy). SonicWallet.executeCalls does arbitrary target.call{value}(data) but gated msg.sender==factory + per-user CREATE3 wallet salt=keccak(factory,msg.sender) -> caller isolated to own wallet+own funds. SpokeAssetManager.recvMessage release is connection.verifyMessage-signature-gated bridge withdraw. No caller-supplied un-whitelisted delegatecall. Detector only hit OZ Address.sol lib helper.",
+      "date": "2026-08-15"
     },
     {
       "sig": "solo-ascend (heichenya/solo-ascend)|(fanout)|fanout|fanout triage: -",
