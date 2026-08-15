@@ -61,10 +61,23 @@ entry point). Belt-and-suspenders: have `InventoryLib.removeAsset` require
 
 **Impact (honest blast-radius — include it, it builds trust):**
 
-The bug is a **100% drain of any funded Community Vault**, single tx, zero attacker cost. That said, a
-live-state check (2026-08) shows the Community Vault product is **currently dormant**: the factory's last
-activity was ~3 months ago (Ethereum ~96d, Arbitrum ~81d; no funded instances found on Base/BSC), and the
-one funded public vault (`0xe646a4487a49fb8e2545af788a3228a88cc2fcf0`, ~$1.4K) has been idle ~127 days.
-So the *current* funds at risk are small — but the flaw is systemic (every clone, all 6 chains) and would
-become High-impact the moment the product is revived or a larger vault is funded. Worth fixing before any
-relaunch / new deposits.
+**Can a third party drain existing vaults right now? No.** `harvest()` is `onlyAuthorized`
+(`vaultOwner || admins[] || whitelisted-automator`), so only a vault's own authorized parties can call
+it — a random attacker cannot touch a vault they did not create. The existing funded vault
+(`0xe646a4487a49fb8e2545af788a3228a88cc2fcf0`, ~$1.4K) is **not** exposed to an external attacker.
+
+**The realistic exploit is a malicious vault operator (a rug backdoor).** The security guarantee a
+Community Vault gives its depositors is that the operator is *constrained to whitelisted strategies* and
+cannot walk off with principal — this bug **voids that guarantee**: any anonymous strategist can create a
+public vault, attract deposits (victims trusting the whitelist safety net), and then `harvest()` once
+against a self-deployed "strategy" to take everything, bypassing shares/fees/`minReturnAmount`. The
+exploit therefore requires the attacker to (a) be the `vaultOwner` (permissionless, $0) and (b) get
+victims to deposit into their vault first.
+
+**Current real-world exposure: low.** A live-state check (2026-08) shows the Community Vault product is
+**dormant** — the factory's last activity was ~3 months ago (Ethereum ~96d, Arbitrum ~81d; no funded
+instances on Base/BSC), and the one funded vault (~$1.4K) has been idle ~127 days. So no live theft is in
+progress and no third-party-drainable funds sit exposed today. **But the flaw is systemic** (every clone,
+all 6 chains) and becomes High-impact the moment the product is revived, a larger vault is funded, or a
+bad actor lures fresh deposits into a new vault. Worth fixing before any relaunch / new deposits — the
+one-line `isWhitelistedStrategy` check restores the guarantee depositors rely on.
