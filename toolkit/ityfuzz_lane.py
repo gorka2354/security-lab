@@ -29,6 +29,17 @@ CHAIN = {"eth": "ETH", "ethereum": "ETH", "bsc": "BSC", "bnb": "BSC", "polygon":
          "arbitrum": "ARBITRUM", "arb": "ARBITRUM", "base": "BASE", "optimism": "OPTIMISM", "op": "OPTIMISM",
          "avalanche": "AVALANCHE", "avax": "AVALANCHE", "fantom": "FANTOM", "ftm": "FANTOM", "blast": "BLAST"}
 
+# Known-good public fork RPCs by chain name -> injected as ETH_RPC_URL (the build's real override; see run()).
+# Keeps `ityfuzz_lane.py <addr> --chain eth` working out-of-box without a manual --rpc.
+DEFAULT_RPC = {"eth": "https://ethereum-rpc.publicnode.com", "ethereum": "https://ethereum-rpc.publicnode.com",
+               "bsc": "https://bsc-rpc.publicnode.com", "bnb": "https://bsc-rpc.publicnode.com",
+               "polygon": "https://polygon-bor-rpc.publicnode.com", "matic": "https://polygon-bor-rpc.publicnode.com",
+               "arbitrum": "https://arbitrum-one-rpc.publicnode.com", "arb": "https://arbitrum-one-rpc.publicnode.com",
+               "base": "https://base-rpc.publicnode.com", "optimism": "https://optimism-rpc.publicnode.com",
+               "op": "https://optimism-rpc.publicnode.com", "avalanche": "https://avalanche-c-chain-rpc.publicnode.com",
+               "avax": "https://avalanche-c-chain-rpc.publicnode.com", "fantom": "https://fantom-rpc.publicnode.com",
+               "ftm": "https://fantom-rpc.publicnode.com", "blast": "https://blast-rpc.publicnode.com"}
+
 # bug/objective markers ItyFuzz prints when it finds something (heuristic, version-tolerant superset)
 # calibrated against REAL ItyFuzz find output (echidna invariant: "Found vulnerabilities! [Echidna]: Invariant
 # "x" violated"). `violat` + `vulnerab` + `echidna` all fire on it.
@@ -94,9 +105,19 @@ def run(address, chain="eth", block=None, timeout=600, flashloan=True, work_dir=
     key = etherscan_key or os.environ.get("ETHERSCAN_API_KEY")
     cmd = build_cmd(address, chain, block, work_dir, flashloan=flashloan, etherscan_key=key, rpc=rpc,
                     explorer_url=explorer_url)
+    # CALIBRATION (ityfuzz nightly-35b7f08, verified live 2026-08-15): --onchain-url is NOT honored by
+    # this build -- endpoint_url stays the hardcoded per-chain default (Chain::ETH -> https://eth.merkle.io,
+    # which now 403s), so a bare onchain run panics "fail to get block timestamp". The override that IS
+    # read is the ETH_RPC_URL env var (endpoints.rs::get_chain_rpc checks it FIRST, ahead of the per-chain
+    # default, for EVERY chain -- so it doubles as the universal fork-RPC override). Inject it here. We keep
+    # --onchain-url in build_cmd too: harmless now, correct again if a future build wires it.
+    env = os.environ.copy()
+    eff_rpc = rpc or env.get("ETH_RPC_URL")
+    if eff_rpc:
+        env["ETH_RPC_URL"] = eff_rpc
     out = ""
     try:
-        p = _runner(cmd, capture_output=True, text=True, timeout=timeout)
+        p = _runner(cmd, capture_output=True, text=True, timeout=timeout, env=env)
         out = (p.stdout or "") + "\n" + (p.stderr or "")
     except subprocess.TimeoutExpired as e:              # EXPECTED: a fuzzer runs forever; parse what it printed
         out = (e.stdout or "") + "\n" + (e.stderr or "") if isinstance(e.stdout, str) else \
@@ -136,8 +157,10 @@ def main():
     if a.chain.lower() not in ("eth", "ethereum") and not a.explorer_url and os.environ.get("ETHERSCAN_API_KEY"):
         print("[ityfuzz] NOTE: non-eth chain — our Etherscan-v2 key is rejected by the legacy explorer "
               "(bscscan.com etc). Pass a chain-native key or --explorer-url, else ABI fetch fails.")
-    print(f"[ityfuzz] fuzzing {a.address} on {a.chain} @ block {a.block or 'latest'} for {a.timeout}s ...")
-    res = run(a.address, a.chain, a.block, timeout=a.timeout, flashloan=not a.no_flashloan, rpc=a.rpc,
+    eff_rpc = a.rpc or os.environ.get("ETH_RPC_URL") or DEFAULT_RPC.get(a.chain.lower())
+    print(f"[ityfuzz] fuzzing {a.address} on {a.chain} @ block {a.block or 'latest'} for {a.timeout}s "
+          f"(rpc={eff_rpc or 'ityfuzz-default'}) ...")
+    res = run(a.address, a.chain, a.block, timeout=a.timeout, flashloan=not a.no_flashloan, rpc=eff_rpc,
               explorer_url=a.explorer_url)
     print(json.dumps(res, indent=1))
     if res.get("found"):
