@@ -625,6 +625,18 @@ check(not flagged(recon.det_arbcall, "contract C{function withBatch(bytes data, 
 check(flagged(recon.det_arbcall, "contract C{function exec(address t, bytes d) external { (bool s,)=msg.sender.call(''); t.call(d); }}", "exec"),
       "fix#28 guard: a non-self t.call(d) STILL flagged even alongside a msg.sender.call")
 
+print("== det_delegatecall_target (Krystal Community Vault: caller-suppliable delegatecall target) ==")
+_dc = recon.det_delegatecall_target("contract C{function _delegateCallToStrategy(address strategy, bytes memory cData) internal returns(bytes memory r){ (bool ok, r)=strategy.delegatecall(cData); }}", "src/Vault.sol")
+check(bool(_dc) and _dc[0][4] == 0, "TP: delegatecall to an unvalidated caller-supplied address PARAM -> [!] (Krystal harvest arbitrary-delegatecall class; det_arbcall skips only-gated + needs bare params)")
+check(not flagged(recon.det_delegatecall_target, "contract C{function _delegate(address implementation) internal { implementation.delegatecall(msg.data); }}"),
+      "FP-guard: OZ proxy _delegate(implementation) (stored-impl dispatcher) NOT flagged")
+check(not flagged(recon.det_delegatecall_target, "contract C{function run(address t, bytes calldata d) external { require(isWhitelistedStrategy(t)); t.delegatecall(d); }}"),
+      "FP-guard: whitelisted delegatecall target NOT flagged (the allocate() template)")
+check(not flagged(recon.det_delegatecall_target, "contract C{address lib; function run(bytes calldata d) external { lib.delegatecall(d); }}"),
+      "FP-guard: delegatecall to a STORED lib (not a caller param) NOT flagged")
+check(not flagged(recon.det_delegatecall_target, "contract C{function mc(bytes[] calldata d) external { for(uint i;i<d.length;i++) address(this).delegatecall(d[i]); }}"),
+      "FP-guard: self delegatecall (multicall) NOT flagged")
+
 print("== det_weak_random (predictable on-chain RNG in an outcome path) ==")
 _wr = recon.det_weak_random("contract G{function _getReward(uint id) internal view returns(uint){"
                             " uint rdn = uint256(keccak256(abi.encodePacked(block.timestamp, blockhash(block.number-1), id))) % 10000; return rdn; }}", "src/Game.sol")

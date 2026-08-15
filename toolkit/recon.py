@@ -513,6 +513,44 @@ def det_arbcall(text, rel):
     return out
 
 
+# ── Detector: caller-suppliable delegatecall target (arbitrary code exec) ── Krystal Community Vault class
+def det_delegatecall_target(text, rel):
+    """`<target>.delegatecall(...)` where TARGET is a caller-suppliable ADDRESS PARAM (or a struct field
+    routed into one) that is NOT locally validated against a whitelist -> arbitrary code execution with THIS
+    contract's storage + identity (strictly worse than a caller-supplied transferFrom). Krystal Community
+    Vault harvest() drain: _harvest -> _delegateCallToStrategy(asset.strategy) delegatecalls a caller-forged
+    strategy with NO isWhitelistedStrategy check, while the sibling allocate() has one. det_arbcall MISSES
+    this class -- it skips `only`-gated fns (harvest is onlyAuthorized, but the vaultOwner role is
+    permissionlessly obtainable) and needs bare (address+bytes) params, not a struct-field target. Suppresses
+    the standard proxy/upgrade dispatcher (delegatecall to a stored implementation/beacon), the safe pattern."""
+    out = []
+    for m in re.finditer(r"\b([A-Za-z_]\w*)\s*\.\s*delegatecall\s*\(", text):
+        target = m.group(1)
+        if re.match(r"(?:implementation|impl|newImplementation|beacon|logic|_?proxy|blueprint)$", target, re.I):
+            continue                                        # safe proxy/upgrade dispatcher (stored impl)
+        fn_start = text.rfind("function ", 0, m.start())
+        if fn_start < 0:
+            continue
+        brace = text.find("{", fn_start)
+        head = text[fn_start:brace + 1] if brace > 0 else ""
+        # TARGET must be an `address <target>` PARAM of this fn (caller-suppliable), not a stored/immutable lib
+        if not re.search(r"\baddress\b[^,)]{0,40}\b" + re.escape(target) + r"\b", head):
+            continue
+        nxt = text.find("function ", m.start())
+        body = text[fn_start:(nxt if nxt > 0 else m.end() + 400)]
+        if re.search(r"(?:isWhitelist\w*|whitelist\w*|allowlist\w*|isAllowed|isApproved|isValid\w*)\s*\([^)]*\b"
+                     + re.escape(target) + r"\b", body, re.I):
+            continue                                        # target validated against a whitelist -> safe
+        if re.search(r"require\s*\([^;]*\b" + re.escape(target) + r"\b[^;]*==", body):
+            continue                                        # target equality-gated -> safe
+        out.append((rel, lineno(text, m.start()), f"{target}.delegatecall(...)",
+                    "delegatecall target is a caller-suppliable address PARAM with NO local whitelist/validation "
+                    "-> arbitrary code execution with this contract's storage + identity (Krystal Community Vault "
+                    "harvest class). Verify EVERY caller gates this target against a strategy/impl whitelist -- the "
+                    "sibling that does (e.g. allocate() isWhitelistedStrategy) is the template.", 0))
+    return out
+
+
 # ── Detector 7: signature gaps (ecrecover replay/malleability + ERC-1271 caller-supplied verifier) ── class F
 # ERC-1271 verify where the VERIFIER is a decoded calldata STRUCT FIELD (order.signer) not bound to a trusted
 # signer -> the attacker passes their own contract returning the magic value, so any signature is "valid". The
@@ -1885,6 +1923,9 @@ DETECTORS = [
      "Heuristic 6: external call before state update (CEI violation), no nonReentrant."),
     ("ARBITRARY external call (bridge-aggregator approval drain)", det_arbcall,
      "Heuristic 7: (address+bytes) param + low-level call -> route to transferFrom = drain."),
+    ("DELEGATECALL to a caller-suppliable target (arbitrary code exec)", det_delegatecall_target,
+     "A delegatecall target that is an unvalidated caller-supplied address PARAM -> arbitrary code with this "
+     "contract's storage+identity (Krystal Community Vault harvest class). det_arbcall skips only-gated fns."),
     ("SIGNATURE / ecrecover (replay, malleability, no expiry) + ERC-1271 caller-supplied verifier", det_signature,
      "Class F: raw ecrecover needs address(0) check + a CONSUMED nonce (anti-replay) + deadline; ERC-1271 "
      "isValidSignature on a calldata-struct verifier = attacker deploys a yes-contract (MureDistribution)."),
@@ -1991,7 +2032,7 @@ def det_key(title):
     for sub, k in (("pause-bypass", "pause"), ("sibling", "sibling"), ("access control leads", "access"),
                    ("share-price rounding", "vaultsharemath"), ("supply", "supply"), ("receiver-hook", "nftcallback"),
                    ("read-only reentrancy", "roreentrancy"), ("reentrancy", "reentrancy"),
-                   ("arbitrary", "arbcall"), ("signature", "signature"),
+                   ("delegatecall", "delegatecall"), ("arbitrary", "arbcall"), ("signature", "signature"),
                    ("domain", "domain"), ("upgrade", "upgrade"),
                    ("unchecked", "unchecked"), ("erc4626", "erc4626"),
                    ("reward-formula", "rewardformula"), ("reward", "reward"),
