@@ -60,6 +60,37 @@ check("good_eth" not in skipped, "recently-fuzzed target skipped in sweep")
 forced = {s["key"] for s in D.select_targets(REG, log=LOG, today="2026-08-16", force=True)}
 check("good_eth" in forced, "--force re-includes a recently-fuzzed target")
 
+print("== reach-chaining (resolve address-less targets) ==")
+check(D.resolve_from_key("krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293")
+      == "0xff630c5d2fb9920c29c264b85e968d435f07e293", "address embedded in key -> extracted")
+check(D.resolve_from_key("no-address-here") is None, "no address in key -> None")
+check(D.resolve_from_key("zero-0x" + "0" * 40) is None, "zero address in key -> None")
+_fake_dl = lambda k: {"ethereum": ["0x" + "e" * 40, "0x" + "f" * 40]} if k == "hit" else {}
+check(D.resolve_from_defillama("hit", _addrs=_fake_dl) == ("0x" + "e" * 40, "ethereum"),
+      "defillama -> first EVM addr + chain")
+check(D.resolve_from_defillama("miss", _addrs=_fake_dl) is None, "defillama no adapter -> None")
+check(D.resolve_from_defillama("x", _addrs=lambda k: {"tron": ["0x" + "e" * 40]}) is None,
+      "defillama non-EVM chain only -> None")
+
+
+def _boom(k):
+    raise RuntimeError("404")
+
+
+check(D.resolve_from_defillama("x", _addrs=_boom) is None, "defillama fetch error -> None (no crash)")
+# enrich fills addresses for address-less DIG, leaves addressed/CLEAN alone
+_reg2 = {"kk-0x" + "a" * 40: {"name": "kk", "status": "DIG", "addresses": [], "chains": ["eth"]},
+         "dlt": {"name": "dlt", "status": "REAL", "addresses": [], "chains": ["eth"]},
+         "clean1": {"name": "c", "status": "CLEAN", "addresses": [], "chains": ["eth"]}}
+_en = D.enrich(_reg2, reach=True, _addrs=lambda k: {"ethereum": ["0x" + "b" * 40]})
+check(_en["kk-0x" + "a" * 40]["addresses"] == ["0x" + "a" * 40], "enrich: address-in-key fills addresses")
+check(_en["dlt"]["addresses"] == ["0x" + "b" * 40], "enrich: defillama fills addresses")
+check(_en["clean1"]["addresses"] == [], "enrich: CLEAN target left untouched")
+check(D.enrich(_reg2, reach=False) is _reg2, "enrich reach=False -> no-op passthrough")
+# and enriched targets become selectable
+sel2 = D.select_targets(_en, log=[])
+check({s["key"] for s in sel2} == {"kk-0x" + "a" * 40, "dlt"}, "reach-resolved targets are now selectable")
+
 print("== build_remote_cmd ==")
 rc = D.build_remote_cmd("0xABC", "eth", 240)
 check("ityfuzz_lane.py 0xABC --chain eth --timeout 240" in rc, "lane invocation with addr/chain/timeout")

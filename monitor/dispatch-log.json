@@ -28,5 +28,25 @@
   "state": "clean",
   "n_signals": 0,
   "summary": "0 objectives in 1680844 execs"
+ },
+ {
+  "key": "centrifuge",
+  "name": "centrifuge",
+  "address": "0x91808B5E2F6d7483D41A681034D7c9DbB64B9E29",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 3269408 execs"
+ },
+ {
+  "key": "death-fun",
+  "name": "death-fun",
+  "address": "0x27EDd16eE56958fddCBA08947f12C43DDeC2B20C",
+  "chain": "eth",
+  "ts": "2026-08-16",
+  "state": "error",
+  "n_signals": 0,
+  "summary": "campaign did not run (execs=0; likely ityfuzz panic / unreachable / non-EVM)"
  }
 ]

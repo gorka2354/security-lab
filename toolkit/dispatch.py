@@ -27,6 +27,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ityfuzz_lane as L  # noqa: E402  (reuse CHAIN + the lane's JSON contract)
 import ledger  # noqa: E402
+import defillama as _dl  # noqa: E402  (reach-chaining: resolve real addrs from the TVL adapter)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY = os.path.join(_ROOT, "monitor", "registry.json")
@@ -95,6 +96,62 @@ def pick_chain(t, allow=None):
         if cl in EVM_FUZZ_CHAINS and (allow is None or cl in allow):
             return cl
     return None
+
+
+# --- REACH-CHAINING: resolve an address for address-less targets so the loop has more to fuzz ---
+_KEY_ADDR = re.compile(r"0x[a-fA-F0-9]{40}")
+
+
+def resolve_from_key(key):
+    """Some target keys embed the address (e.g. 'krystal-community-vault-0xff63..'). Pure, high-precision."""
+    m = _KEY_ADDR.search(key or "")
+    a = m.group(0) if m else None
+    return a if (a and a.lower() != _ZERO) else None
+
+
+def resolve_from_defillama(key, _addrs=None):
+    """(addr, chain) of the first EVM-fuzzable contract in the target's DefiLlama TVL adapter, else None.
+    _addrs injectable (defillama.addrs) for tests."""
+    fn = _addrs or _dl.addrs
+    try:
+        res = fn(key)
+    except Exception:
+        return None
+    for chain, al in (res or {}).items():
+        cl = str(chain).lower()
+        if cl in EVM_FUZZ_CHAINS and al:
+            return (al[0], cl)
+    return None
+
+
+def resolve_address(key, target, _addrs=None):
+    """Best-effort (addr, chain) for an address-less target: address-in-key first, then the DefiLlama adapter.
+    For address-in-key the chain is the target's first EVM chain (a guess; a wrong chain -> ityfuzz fails to
+    fetch -> `error` via the execs guard, never a silent false-clean)."""
+    a = resolve_from_key(key)
+    if a:
+        ch = pick_chain(target) or "eth"
+        return (a, ch)
+    return resolve_from_defillama(key, _addrs=_addrs)
+
+
+def enrich(targets, reach=True, statuses=("DIG", "REAL"), _addrs=None):
+    """Return a copy of `targets` with addresses filled in for address-less DIG/REAL targets (network). The
+    registry itself is NOT mutated (labcore owns it); resolution is per-run + recorded via dispatch-log."""
+    if not reach:
+        return targets
+    out = dict(targets)
+    for k, t in targets.items():
+        if t.get("status") in statuses and not t.get("addresses"):
+            r = resolve_address(k, t, _addrs=_addrs)
+            if r:
+                addr, ch = r
+                t2 = dict(t)
+                t2["addresses"] = [addr]
+                if ch not in [str(c).lower() for c in (t.get("chains") or [])]:
+                    t2["chains"] = [ch] + list(t.get("chains") or [])
+                out[k] = t2
+    return out
 
 
 def select_targets(targets, statuses=("DIG", "REAL"), chains=None, limit=None, log=None, force=False, today=None):
@@ -200,6 +257,12 @@ def record(row, today=None, log_path=DISPATCH_LOG, ledger_path=None, write_ledge
 
 def sweep(args):
     targets = load_registry()
+    if getattr(args, "reach", False):
+        before = sum(1 for t in targets.values() if t.get("status") in ("DIG", "REAL") and t.get("addresses"))
+        targets = enrich(targets, reach=True)
+        after = sum(1 for t in targets.values() if t.get("status") in ("DIG", "REAL") and t.get("addresses"))
+        print("[reach] resolved %d address-less target(s) via key/DefiLlama (addressed: %d -> %d)"
+              % (after - before, before, after))
     log = load_log()
     statuses = tuple(s.strip().upper() for s in args.status.split(",")) if args.status else ("DIG", "REAL")
     chains = set(c.strip().lower() for c in args.chains.split(",")) if args.chains else None
@@ -246,6 +309,21 @@ def cmd_one(args):
     print(json.dumps({k: row[k] for k in ("state", "n_signals", "summary")}, indent=1))
 
 
+def cmd_resolve(args):
+    """Preview reach-chaining: which address-less DIG/REAL targets get a resolved address (no fuzz)."""
+    targets = load_registry()
+    rows = []
+    for k in sorted(targets):
+        t = targets[k]
+        if t.get("status") in ("DIG", "REAL") and not t.get("addresses"):
+            r = resolve_address(k, t)
+            if r:
+                rows.append((k, r[0], r[1]))
+    print("== reach-chaining preview: %d address-less target(s) now resolvable ==" % len(rows))
+    for k, a, ch in rows:
+        print("  %-40s -> %s @ %s%s" % (k[:40], a, ch, "" if ch in EVM_FUZZ_CHAINS else "  (non-EVM, skipped)"))
+
+
 def cmd_log(args):
     log = load_log()
     for r in log[-args.n:]:
@@ -265,7 +343,11 @@ def main():
     sw.add_argument("--max", type=int, default=8)
     sw.add_argument("--dry-run", action="store_true")
     sw.add_argument("--force", action="store_true", help="re-fuzz even if fuzzed within %d days" % RECENT_DAYS)
+    sw.add_argument("--reach", action="store_true",
+                    help="reach-chaining: resolve addresses (key/DefiLlama) for address-less targets first")
     sw.set_defaults(func=sweep)
+    rs = sub.add_parser("resolve")
+    rs.set_defaults(func=cmd_resolve)
     on = sub.add_parser("one")
     on.add_argument("target")
     on.add_argument("--timeout", type=int, default=300)
