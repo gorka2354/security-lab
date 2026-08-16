@@ -46,7 +46,9 @@ check(keys == {"good_eth", "good_arb", "impl_pref"}, "keeps DIG/REAL w/ EVM addr
 check(all(s["chain"] in D.EVM_FUZZ_CHAINS for s in sel), "picked chains are EVM-fuzzable")
 byk = {s["key"]: s for s in sel}
 check(byk["good_arb"]["chain"] in ("arbitrum",), "first EVM chain chosen (arbitrum before eth)")
-check(byk["impl_pref"]["address"] == "0x" + "d" * 40, "reviewed_impl impl preferred over addresses[0]")
+check(byk["impl_pref"]["address"] == "0x" + "d" * 40 + ",0x" + "c" * 40,
+      "reviewed_impl impl first, then addresses[0] (comma-list, capped)")
+check(sel[0]["key"] == "good_arb", "REAL (good_arb) selected before DIG")
 check(len(D.select_targets(REG, statuses=("REAL",), log=[])) == 1, "status filter (REAL only -> 1)")
 check(len(D.select_targets(REG, chains={"arbitrum"}, log=[])) == 1, "chains restrict (arbitrum -> only good_arb)")
 check(len(D.select_targets(REG, limit=1, log=[])) == 1, "limit honored")
@@ -66,9 +68,12 @@ check(D.resolve_from_key("krystal-community-vault-0xff630c5d2fb9920c29c264b85e96
 check(D.resolve_from_key("no-address-here") is None, "no address in key -> None")
 check(D.resolve_from_key("zero-0x" + "0" * 40) is None, "zero address in key -> None")
 _fake_dl = lambda k: {"ethereum": ["0x" + "e" * 40, "0x" + "f" * 40]} if k == "hit" else {}
-check(D.resolve_from_defillama("hit", _addrs=_fake_dl) == ("0x" + "e" * 40, "ethereum"),
-      "defillama -> first EVM addr + chain")
+check(D.resolve_from_defillama("hit", _addrs=_fake_dl) == (["0x" + "e" * 40, "0x" + "f" * 40], "ethereum"),
+      "defillama -> addr LIST + primary chain")
 check(D.resolve_from_defillama("miss", _addrs=_fake_dl) is None, "defillama no adapter -> None")
+_multi = lambda k: {"base": ["0x" + "1" * 40], "arbitrum": ["0x" + "2" * 40, "0x" + "3" * 40, "0x" + "4" * 40]}
+check(D.resolve_from_defillama("x", _addrs=_multi)[1] == "arbitrum",
+      "primary chain = the EVM chain with the MOST contracts")
 check(D.resolve_from_defillama("x", _addrs=lambda k: {"tron": ["0x" + "e" * 40]}) is None,
       "defillama non-EVM chain only -> None")
 
@@ -90,6 +95,12 @@ check(D.enrich(_reg2, reach=False) is _reg2, "enrich reach=False -> no-op passth
 # and enriched targets become selectable
 sel2 = D.select_targets(_en, log=[])
 check({s["key"] for s in sel2} == {"kk-0x" + "a" * 40, "dlt"}, "reach-resolved targets are now selectable")
+# multi-address: enrich stores ALL resolved contracts; pick_address fuzzes up to ADDR_CAP together (comma-list)
+_reg3 = {"multi": {"name": "m", "status": "DIG", "addresses": [], "chains": ["eth"]}}
+_en3 = D.enrich(_reg3, reach=True, _addrs=lambda k: {"ethereum": ["0x" + c * 40 for c in "12345"]})
+check(len(_en3["multi"]["addresses"]) == 5, "enrich stores ALL resolved contracts")
+check(D.pick_address(_en3["multi"]).count("0x") == D.ADDR_CAP, "pick_address caps the fuzz set at ADDR_CAP")
+check(D.pick_address(_en3["multi"]) == ",".join("0x" + c * 40 for c in "123"), "comma-list of the first ADDR_CAP")
 
 print("== build_remote_cmd ==")
 rc = D.build_remote_cmd("0xABC", "eth", 240)

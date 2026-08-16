@@ -76,17 +76,31 @@ def recently_fuzzed(log, key, today, days=RECENT_DAYS):
     return False
 
 
-def pick_address(t):
-    """The core address to fuzz: a reviewed_impl impl if present, else addresses[0]. Skips the zero addr."""
+ADDR_CAP = 3  # fuzz up to this many of a target's contracts together (ityfuzz -t a,b,c) -> catches cross-
+#               contract economic bugs + sidesteps "which resolved addr is the core token-vs-pool" guessing.
+
+
+def valid_addrs(t):
+    """Ordered unique valid non-zero addresses of a target (reviewed_impl impls first, then `addresses`; each
+    entry may itself be a comma-list from reach-chaining)."""
+    out = []
     ri = t.get("reviewed_impl") or {}
     for v in ri.values():
         v = v.get("impl") if isinstance(v, dict) else v
-        if isinstance(v, str) and _ADDR.match(v) and v.lower() != _ZERO:
-            return v
+        if isinstance(v, str) and _ADDR.match(v) and v.lower() != _ZERO and v not in out:
+            out.append(v)
     for a in (t.get("addresses") or []):
-        if isinstance(a, str) and _ADDR.match(a) and a.lower() != _ZERO:
-            return a
-    return None
+        for part in str(a).split(","):
+            part = part.strip()
+            if _ADDR.match(part) and part.lower() != _ZERO and part not in out:
+                out.append(part)
+    return out
+
+
+def pick_address(t, cap=ADDR_CAP):
+    """The ityfuzz `-t` value: up to `cap` of the target's contracts, comma-joined (or None if none valid)."""
+    a = valid_addrs(t)
+    return ",".join(a[:cap]) if a else None
 
 
 def pick_chain(t, allow=None):
@@ -110,28 +124,29 @@ def resolve_from_key(key):
 
 
 def resolve_from_defillama(key, _addrs=None):
-    """(addr, chain) of the first EVM-fuzzable contract in the target's DefiLlama TVL adapter, else None.
-    _addrs injectable (defillama.addrs) for tests."""
+    """(addr_list, chain) of the DefiLlama TVL adapter's contracts on the target's PRIMARY EVM chain (the EVM
+    chain carrying the most addresses = where the protocol mainly lives), else None. _addrs injectable."""
     fn = _addrs or _dl.addrs
     try:
         res = fn(key)
     except Exception:
         return None
+    best = None
     for chain, al in (res or {}).items():
         cl = str(chain).lower()
-        if cl in EVM_FUZZ_CHAINS and al:
-            return (al[0], cl)
-    return None
+        if cl in EVM_FUZZ_CHAINS and al and (best is None or len(al) > len(best[1])):
+            best = (cl, al)
+    return (best[1], best[0]) if best else None
 
 
 def resolve_address(key, target, _addrs=None):
-    """Best-effort (addr, chain) for an address-less target: address-in-key first, then the DefiLlama adapter.
-    For address-in-key the chain is the target's first EVM chain (a guess; a wrong chain -> ityfuzz fails to
-    fetch -> `error` via the execs guard, never a silent false-clean)."""
+    """Best-effort (addr_list, chain) for an address-less target: address-in-key first, then the DefiLlama
+    adapter. For address-in-key the chain is the target's first EVM chain (a guess; a wrong chain -> ityfuzz
+    fails to fetch -> `error` via the execs guard, never a silent false-clean)."""
     a = resolve_from_key(key)
     if a:
         ch = pick_chain(target) or "eth"
-        return (a, ch)
+        return ([a], ch)
     return resolve_from_defillama(key, _addrs=_addrs)
 
 
@@ -145,9 +160,9 @@ def enrich(targets, reach=True, statuses=("DIG", "REAL"), _addrs=None):
         if t.get("status") in statuses and not t.get("addresses"):
             r = resolve_address(k, t, _addrs=_addrs)
             if r:
-                addr, ch = r
+                addr_list, ch = r
                 t2 = dict(t)
-                t2["addresses"] = [addr]
+                t2["addresses"] = list(addr_list)
                 if ch not in [str(c).lower() for c in (t.get("chains") or [])]:
                     t2["chains"] = [ch] + list(t.get("chains") or [])
                 out[k] = t2
@@ -158,7 +173,8 @@ def select_targets(targets, statuses=("DIG", "REAL"), chains=None, limit=None, l
     """Pick actionable live EVM targets (status + address + EVM chain + not-recently-fuzzed). Pure."""
     today = _today(today)
     out = []
-    for key in sorted(targets):
+    _rank = {"REAL": 0, "DIG": 1}  # fuzz REAL (confirmed-live leads) before DIG
+    for key in sorted(targets, key=lambda k: (_rank.get(targets[k].get("status"), 9), k)):
         t = targets[key]
         if t.get("status") not in statuses:
             continue
@@ -296,7 +312,7 @@ def cmd_one(args):
     if args.target not in targets:
         print("no such target key: %s" % args.target)
         return
-    t = targets[args.target]
+    t = enrich({args.target: targets[args.target]}, reach=True)[args.target]  # reach-resolve if address-less
     addr = pick_address(t)
     ch = pick_chain(t)
     if not addr or not ch:
@@ -318,7 +334,7 @@ def cmd_resolve(args):
         if t.get("status") in ("DIG", "REAL") and not t.get("addresses"):
             r = resolve_address(k, t)
             if r:
-                rows.append((k, r[0], r[1]))
+                rows.append((k, ",".join(r[0][:ADDR_CAP]), r[1]))
     print("== reach-chaining preview: %d address-less target(s) now resolvable ==" % len(rows))
     for k, a, ch in rows:
         print("  %-40s -> %s @ %s%s" % (k[:40], a, ch, "" if ch in EVM_FUZZ_CHAINS else "  (non-EVM, skipped)"))
