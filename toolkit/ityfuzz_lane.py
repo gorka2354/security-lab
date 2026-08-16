@@ -49,6 +49,9 @@ BUG_MARKERS = re.compile(
     r"assertion\s*fail|vulnerab)")
 # economic-oracle profit ("Earned 1000000000000000000 wei", "profit: 5 ETH", ...)
 PROFIT = re.compile(r"(?i)(?:earned|profit|gain|stolen)\D{0,12}(-?\d[\d,]*)\s*(wei|eth|gwei)?")
+# fuzzer progress: "executions: 1124609" -- proves a REAL campaign ran (vs an early panic / unreachable target
+# that yields found=False for the WRONG reason). Lets callers tell "fuzzed-clean" from "didn't-really-run".
+EXECS = re.compile(r"executions:\s*([\d,]+)")
 
 INSTALL = ("ityfuzz NOT installed. Prebuilt binary (Mac/Linux): "
            "curl -L https://ity.fuzz.land/install.sh | bash && ityfuzzup  "
@@ -93,7 +96,14 @@ def parse_output(text):
         except Exception:
             continue
         profit = v if profit is None else max(profit, v)
-    return {"found": bool(markers), "markers": markers[:20], "profit": profit, "n_signals": len(markers)}
+    execs = 0
+    for m in EXECS.finditer(text or ""):
+        try:
+            execs = max(execs, int(m.group(1).replace(",", "")))
+        except Exception:
+            continue
+    return {"found": bool(markers), "markers": markers[:20], "profit": profit, "n_signals": len(markers),
+            "execs": execs}
 
 
 def run(address, chain="eth", block=None, timeout=600, flashloan=True, work_dir=None, etherscan_key=None,
@@ -165,7 +175,14 @@ def main():
     if a.flashloan:
         print("[ityfuzz] WARNING: -f economic oracle needs pairs-all.infra.fuzz.land, which is DEAD in this "
               "nightly -> expect a panic on real non-WETH tokens. Structural detectors run either way.")
-    eff_rpc = a.rpc or os.environ.get("ETH_RPC_URL") or DEFAULT_RPC.get(a.chain.lower())
+    # RPC precedence is CHAIN-AWARE: ETH_RPC_URL is ityfuzz's GLOBAL override (used for every chain), so on a
+    # non-eth target we must prefer the chain-correct DEFAULT_RPC over a generic ETH_RPC_URL env (else an arb
+    # target forks on eth). On eth, honor a custom ETH_RPC_URL first.
+    _cl = a.chain.lower()
+    if _cl in ("eth", "ethereum"):
+        eff_rpc = a.rpc or os.environ.get("ETH_RPC_URL") or DEFAULT_RPC.get(_cl)
+    else:
+        eff_rpc = a.rpc or DEFAULT_RPC.get(_cl) or os.environ.get("ETH_RPC_URL")
     print(f"[ityfuzz] fuzzing {a.address} on {a.chain} @ block {a.block or 'latest'} for {a.timeout}s "
           f"(rpc={eff_rpc or 'ityfuzz-default'}, flashloan={a.flashloan}, detectors=all) ...")
     res = run(a.address, a.chain, a.block, timeout=a.timeout, flashloan=a.flashloan, rpc=eff_rpc,

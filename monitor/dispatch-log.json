@@ -1,0 +1,32 @@
+[
+ {
+  "key": "eva-markets",
+  "name": "eva-markets",
+  "address": "0x501eBf66d76A96D4FB26ccead42957653e16B8B8",
+  "chain": "eth",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives"
+ },
+ {
+  "key": "eva-markets",
+  "name": "eva-markets",
+  "address": "0x501eBf66d76A96D4FB26ccead42957653e16B8B8",
+  "chain": "eth",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 17183 execs"
+ },
+ {
+  "key": "royco-v2",
+  "name": "royco-v2",
+  "address": "0x7cC6fB28eC7b5e7afC3cB3986141797ffc27253C",
+  "chain": "arb",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 1680844 execs"
+ }
+]

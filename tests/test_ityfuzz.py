@@ -51,6 +51,9 @@ check(r["found"] is True and r["n_signals"] >= 2, "bug markers detected")
 check(r["profit"] == 10 ** 18, "economic profit parsed (1e18 wei)")
 clean = "[INFO] fuzzing...\n[INFO] 0 objectives, 12000 execs/sec\n[INFO] done, nothing found\n"
 check(L.parse_output(clean)["found"] is False, "clean run -> not found")
+check(L.parse_output("[Stats #0] executions: 1,124,609, exec/sec: 6.302k")["execs"] == 1124609,
+      "execs parsed from stats line (proves a real campaign ran vs an early panic)")
+check(L.parse_output("no stats here")["execs"] == 0, "no stats -> execs 0")
 # the REAL ItyFuzz find output (validated live 2026-06-30: an echidna-invariant violation it actually found)
 real = ('[INFO] [Stats #0] run time: 0h-0m-3s, objectives: 1\n'
         '😊😊 Found vulnerabilities! \n'
