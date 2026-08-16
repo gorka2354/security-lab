@@ -48,5 +48,105 @@
   "state": "error",
   "n_signals": 0,
   "summary": "campaign did not run (execs=0; likely ityfuzz panic / unreachable / non-EVM)"
+ },
+ {
+  "key": "dtrinity",
+  "name": "dtrinity",
+  "address": "0x84c58066a4408454b7380f168c95F571419253f4",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 5030752 execs"
+ },
+ {
+  "key": "everything",
+  "name": "Everything",
+  "address": "0xa88216E6Cf409a25c719234C4817628Ae406b6A7",
+  "chain": "arbitrum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 5422346 execs"
+ },
+ {
+  "key": "flex",
+  "name": "Flex",
+  "address": "0x9117440a7d03238905d1c8908157bd7a547c77c8",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 10199584 execs"
+ },
+ {
+  "key": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293",
+  "name": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293",
+  "address": "0xff630c5d2fb9920c29c264b85e968d435f07e293",
+  "chain": "arb",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 3351596 execs"
+ },
+ {
+  "key": "krystal-community-vault-lpstrategy-0x851ee187bc85152708d38a421d48733f1490a8e3",
+  "name": "krystal-community-vault-lpStrategy-0x851ee187bc85152708d38a421d48733f1490a8e3",
+  "address": "0x851ee187bc85152708d38a421d48733f1490a8e3",
+  "chain": "eth",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 2827291 execs"
+ },
+ {
+  "key": "monolith-market",
+  "name": "Monolith Market",
+  "address": "0x6D961c9DCF1AD73566822BA4B087892e3839B849",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 839745 execs"
+ },
+ {
+  "key": "panoptic-v2",
+  "name": "panoptic-v2",
+  "address": "0x0000000000000aDC9A108591e718F2aee963a2a7",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 2924623 execs"
+ },
+ {
+  "key": "punks-terminal",
+  "name": "punks-terminal",
+  "address": "0x00000000000060D035a8002956B5fb02e3968eec",
+  "chain": "eth",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 4752635 execs"
+ },
+ {
+  "key": "rysk-premium",
+  "name": "Rysk Premium",
+  "address": "0x12a86ae14992c5a5e8671d30cfd60289f9d0afbe",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 5068687 execs"
+ },
+ {
+  "key": "twyne",
+  "name": "Twyne",
+  "address": "0xB5Eb1d005e389Bef38161691E2083b4d86FF647a",
+  "chain": "ethereum",
+  "ts": "2026-08-16",
+  "state": "clean",
+  "n_signals": 0,
+  "summary": "0 objectives in 6529536 execs"
  }
 ]
