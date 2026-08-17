@@ -672,6 +672,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "curve-llamalend-v2|(labcore)|ityfuzz|",
+      "target": "curve-llamalend-v2",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "ityfuzz",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "CLEAN (LIVE-FUNDED ~$2.1M TVL/$1.1M debt, Optimism/10, OneWayLending controllers 0x5F94073E + 0x745422BF; genuinely unaudited-at-launch 2026-06-10). Manual L4 read of the V1->V2 DRIFT (new Configurator permission layer, new available_balance/hook accounting, callback-leverage reentrancy surface, ERC4626+ Vault) found no exploitable V2-specific bug. Vyper 0.4.3 (.vy) -> recon 0 T0 is a coverage artifact (recon globs *.sol only), triage was reasoning-tier. DYNAMIC BACKSTOP: ityfuzz fork-fuzz on the stand (2 controllers, Optimism) = 1,443,994 execs, 0 objectives, clean -- confirms no rounding/reentrancy edge in create_loan/borrow/repay/liquidate that the manual trace missed. Curve heavily watched. (Also proved ityfuzz works on Vyper bytecode.)",
+      "date": "2026-08-17"
+    },
+    {
       "sig": "darkforest|contracts/facets/DFCoreFacet.sol|ac|function upgradePlanet(...) public notPaused",
       "target": "darkforest",
       "file": "contracts/facets/DFCoreFacet.sol",
@@ -879,6 +890,17 @@
       "verdict": "real",
       "reason": "LIVE+ACTIVE+FUNDED (BSC 0x23EbC377..., ~2.57M WCC staked, lastRewardUpdateTimestamp only 16.6h old via getContractInfo() eth_call). setRewardPerPeriod/setRewardPeriod/setRewardStartTime all call updateRewards() first (looks accrue-safe) but updateRewards() is a NO-OP whenever periodsElapsed==0 (partial period) -- lastRewardUpdateTime does NOT advance. So a rate change mid-period is retroactively applied to the WHOLE period once it later completes (the pre-change time-slice silently re-priced at the NEW rate, not blended) -- under- or over-distributes stakers vs the actual old/new rate split. Deterministic fork PoC: warp partway into a period, call setRewardPerPeriod(new), warp to period boundary, call updateRewards()/claimRewards(), compare accRewardPerShare delta to the time-weighted-fair value. Secondary/weaker observation: coarse period-lump settlement (no time-weighting within a period) is a late-joiner reward-capture pattern in general, but at THIS pool's current size (totalStaked=2.57M vs rewardPerPeriod=33 WCC) the 0.3% deposit fee makes single-period flash-sniping unprofitable (breakeven needs totalStaked < ~11k WCC) -- was profitable during early pool life, resurfaces if fee->0 or totalStaked shrinks a lot.",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "enhanced-finance|(labcore)|manual|",
+      "target": "enhanced-finance",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "CLEAN (LIVE+ACTIVE+FUNDED, ETH/1, EnhancedVault proxy 0xB7DA7B8F, impl 0xa023c751; holds PAXG+USDC). NOT an ERC-4626/NAV vault (no share token, no totalAssets/totalSupply) but a PAXG-collateralized covered-call structured product on an Opyn-Gamma fork. fork-drift vs github Enhanced-Finance/contracts = ZERO (byte-identical). recon 0 [!]. The real value-mover ingressoReleaseCollateralToCustody (EnhancedOptions impl 0xcf48abaa) is dual-gated: custodyOperator + maker EIP-712 sig over (maker,receiver,chainId,nonce,validUntil,requestsHash) + makerCustodyLimitBps cap (48h-timelocked) + nonce replay guard. Only soft finding: EnhancedVault owner-admin (setVaultProtocolFeeRate up to 100% cap, setSwapRouter/setOperator) has NO timelock (unlike EnhancedOptions' 48h) -> Low centralization, publicly observable pre-deposit, needs malicious owner key, not a logic bug. Fresh (listed 2026-08-14). Fixed threat.py false-EMPTY on this (native-ETH-only -> now ERC20-value-aware).",
+      "date": "2026-08-17"
     },
     {
       "sig": "equivaults|src/RebalanceLib.sol|gasprice-rebate-mispricing|",
@@ -1099,6 +1121,17 @@
       "verdict": "wontfix",
       "reason": "[PARK/defillama-gamefi-wave] Live and value-bearing, but the reachable core (Orchestrator, Pricer) is an audited Veda BoringVault fork that is entirely keeper/role-gated -- no user-callable economic surface there. The genuinely higher-EV user money-paths (With",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "hyperbeat-usd|(labcore)|manual|",
+      "target": "hyperbeat-usd",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "CLEAN (LIVE+ACTIVE+FUNDED ~$3.85M, HyperEVM/999, beatUSD/masterUSD vault 0x9065E3..; Depositor/WithdrawalQueue/Pricer/VaultToken/MorphoV2Orchestrator). All 5 recon [!] classes = FALSE POSITIVES (3x CEI: external call precedes mint but on admin-whitelisted isDepositToken + own trusted VaultToken no-hooks; 1x double-claim; Pyth-staleness x9). Every value-moving path RBAC-gated (solmate Auth + OZ AccessControlUpgradeable); no permissionless attack surface. Already audited Zellic/Nethermind + Certora formal-verification (beatUSD Paxos-co-issued). Deployed ~238d ago (infra predates the 2026-06-11 'fresh' listing). Design note (team-only): exchange-rate ratchets UP only via keeper, never down without admin tx. No fork-fuzz (all admin-gated). Not fresh-unaudited in practice = mislabeled by scout.",
+      "date": "2026-08-17"
     },
     {
       "sig": "justlend-v2|JustLend V2 (Tron)|reach|",
@@ -1374,6 +1407,28 @@
       "verdict": "fp",
       "reason": "transitively gated: calls sibling mint() which is onlyVaultOrQueue (msg.sender preserved); fix#31",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "meridian-predict|(labcore)|manual|",
+      "target": "meridian-predict",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "CLEAN (LIVE-ACTIVE-FUNDED ~$236K, Robinhood Chain 4663 EVM, PredictionMarketEscrow + vault 0xE4cea507/0x79cB914f). Deep-read mint/burn/settle/redeem/resolver/vault: mint() and burn() have no onlyX (recon supply-integrity flag) BUT both gated by DUAL EIP-712 signatures (mint: both predictor+counterparty over predictionHash binding pickConfigId+collateral+both addrs+sponsor; burn similar) -> FALSE POSITIVE, logged. Conservation math (cross-multiplied symmetric-burn, fixed-divisor redeem, partial-payout-surplus) sound; carries own internal audit-fix comments C-1..C-3/M-1/Q-1. 2 detector [!] classes confirmed FP (public-mint, caller-supplied-authority). REACH-LIMITED for ityfuzz: chain 4663 not in our CHAIN/RPC/Etherscan-v2 maps (exotic) -> fork-fuzz not run; a fork invariant-fuzz (sum(payouts)<=collateral) would backstop if 4663 support added.",
+      "date": "2026-08-17"
+    },
+    {
+      "sig": "meridian-predict|src/PredictionMarketEscrow.sol|supply|function mint(...)",
+      "target": "meridian-predict",
+      "file": "src/PredictionMarketEscrow.sol",
+      "line": 167,
+      "detector": "supply",
+      "snippet": "function mint(...)",
+      "verdict": "fp",
+      "reason": "escrow mint/burn flagged 'no access control' but both predictor+counterparty must sign EIP-712 MintApproval/BurnApproval (ECDSA.tryRecover w/ addr0 guard + deadline + Permit2-style nonce bitmap); token-level mint/burn also gated to authority=escrow via CREATE3 factory onlyDeployer. Full mint->burn->settle->redeem->sweepDust conservation traced by hand: token-minted counters track real ERC20 supply 1:1, redeem uses fixed originalTotalTokens divisor (not shrinking totalSupply) so no early/late-redeemer skew, floor rounding is the safe direction. SecondaryMarketEscrow transferFrom(request.seller/buyer,...) similarly bound into a signed tradeHash. CLEAN honest-negative after deep-dive.",
+      "date": "2026-08-17"
     },
     {
       "sig": "mezo-borrow|(labcore)|manual|",
@@ -1759,6 +1814,17 @@
       "verdict": "fp",
       "reason": "burn/burnFrom are 'restricted' (OZ AccessManager AccessManagedUpgradeable) -> gated. recon missed the modifier -> fix#32 (added restricted to WARD_MOD). 47 access FPs -> 0.",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "rujira-money-market|(labcore)|manual|",
+      "target": "rujira-money-market",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "CLEAN + OUT-OF-EVM-SCOPE. Rujira Money Market ('Ghost Lending') is CosmWasm/Rust on THORChain's Cosmos-SDK App Layer, NOT EVM (confirmed via thor1.. bech32 addrs in repo fixtures) -> our EVM toolkit (threat.py/ityfuzz/recon) inapplicable; no bytecode for the fork-fuzzer. Best-effort manual read of the public C4 repo (Ghost-Credit/Ghost-Vault/Account: interest accrual, LTV/liquidation, share-pool math) found no new bug: already 2x Halborn-audited + passed a closed $40k Code4rena contest ~7mo ago, and packages/rujira-rs/src/share_pool.rs carries a regression test (replicate_inflation_attack) for the exact ERC4626-style share-inflation attack, already FIXED in code. Non-EVM = permanent dead-end for this toolkit (like Abstract/EraVM); needs cw-multi-test+proptest (the team already fuzzes internally). Honest CLEAN.",
+      "date": "2026-08-17"
     },
     {
       "sig": "rysk-ciao|hunts/_volume/rysk-ciao/src/contracts/OrderDispatch.sol|missing-taker-signature|",
