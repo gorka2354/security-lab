@@ -67,6 +67,23 @@
       "updated": "2026-06-30",
       "notes": "LIVE Gate-0 passed: Comptroller 0x0b9af1 -> oracle 0xfba2712d (ChainlinkPriceOracle). Low-Med conditional. Check known-issues before submit. hunts/capyfi/FINDING-oracle-staleness.md | DEEP-DIVE done: feeds CAN stale (wARS 11d gap early) but forensics on 972 market actions vs 2010 feed updates = 0 actions on >1-day-stale price (operator kept feeds fresh during active trading) -> NOT exploited. Fixed-price collateral (LAC $1.4M no-DEX, RPC $45M @$0.01105 vs ~$0.01 dust-pool) not cleanly exploitable (illiquid, team-controlled). Closed centralized LATAM ecosystem (Ripio). Defensible = missing-staleness Low-Med; rest = centralization context. No external drain demonstrated.",
       "kind": "live"
+    },
+    {
+      "id": "pulso-market-1",
+      "target": "pulso-market",
+      "title": "LMSR buy/sell price whole batch at pre-trade spot -> atomic round-trip drains pool+seed (CRITICAL, pre-launch)",
+      "sev_claimed": "critical",
+      "channel": "direct",
+      "file": "contracts/PulsoMarket.sol",
+      "line": 297,
+      "status": "drafted",
+      "sev_awarded": "",
+      "kind": "non-live",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-08-22",
+      "updated": "2026-08-22",
+      "notes": "github.com/Littania/pulso-market @60aac48. Testnet-only (Amoy 80002); pre-mainnet disclosure. PoC: buy 3757 USDC -> sell all = +872.71 (23.2%), drains pool->0 & seed 1000->0.43 in one tx. Same class as LuXMarket but on BOTH legs. poc_sim.py + PulsoDrain.t.sol in pulso-market-poc/."
     }
   ],
   "calibrations": [

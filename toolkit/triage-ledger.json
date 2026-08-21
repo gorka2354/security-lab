@@ -1024,6 +1024,28 @@
       "date": "2026-08-15"
     },
     {
+      "sig": "fake-wall-street|src/FWSRandomness.sol|rng|request(bytes32 userRandomNumber) -> entropy.requestV2",
+      "target": "fake-wall-street",
+      "file": "src/FWSRandomness.sol",
+      "line": 89,
+      "detector": "rng",
+      "snippet": "request(bytes32 userRandomNumber) -> entropy.requestV2",
+      "verdict": "fp",
+      "reason": "CLEAN (LIVE-ACTIVE-FUNDED, Robinhood Chain 4663, FWSPool 0xf2B967494BbdD37cDfbE585E3b84B85461C7Da37 / FWSRandomness 0x4F47035966AA57B61476030e405C1288E3945036). Lootbox casino (Fake Wall Street, DefiLlama Luck Games, listed 2026-08-19 = 2d fresh, TVL ~53K, audits=0). RNG audit (task focus): NOT a HoodRngBlockhash-class bug -- proper Pyth Entropy V2 2-party VRF (IEntropyV2.requestV2), _entropyCallback double-gated (msg.sender==entropy AND providerArg==provider), FWSPool.fulfillRandomness onlyRandomness, sequence consumed via delete _seqToReq before use (no double-fulfill/reroll), MAX_BATCH=1 hardcoded (no unbounded-loop DoS in settle), EV/price SNAPSHOTTED at request time (_reqPrices) with drift-check refund at settle (no same-block/flash-loan spot-price gaming), async request/callback = no bet+reveal-same-tx, no block.timestamp/blockhash/prevrandao in the outcome path (det_predictable_rng: 0 hits, confirmed). Same architecture class as head2head-monkebet (also Pyth Entropy, also confirmed clean). Contrast: HoodRngBlockhash (same Robinhood Chain) mixed CALL-TIME block.prevrandao/timestamp = grindable; FWSRandomness does not. Minor hygiene note (not a finding): donateFwsForDepositors (FWSPool.sol:791) does external call then state write with no nonReentrant, but gated onlyRewards (trusted internal contract only) -- not externally exploitable. recon.py access-control flags on rescueWithdraw/rescueClaimWon/rescueRefund (FWSPool.sol:505/527/539) are FALSE POSITIVES -- self-service withdraw-own-lot gated by rescueActive (itself owner-triggered w/ 48h timelock via proposeRescue/activateRescue) + L.depositor==msg.sender / L.winner==msg.sender, detector doesn't recognize state-flag gating. Sourced via DefiLlama Luck Games category -> registries/sumTokens/data2.js owner addr -> Robinhood Chain not in Etherscan-v2 (exotic chain) -> reached via robinhoodchain.blockscout.com (verified multi-file source, both FWSPool+FWSRandomness). fuzz_candidate=no (chain 4663 unsupported by our ityfuzz CHAIN/RPC map).",
+      "date": "2026-08-22"
+    },
+    {
+      "sig": "fake-wall-street-fws|FWSPool.sol|hunt-wave-10|",
+      "target": "fake-wall-street-fws",
+      "file": "FWSPool.sol",
+      "line": 667,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "FWSPool lootbox, Robinhood Chain 4663, LIVE ~$54.5K. RNG = real Pyth Entropy V2 (double-gated callback, provider-checked, not grindable); harmonic-mean weighted lottery hand-derived FAIR; post-reveal weight-manip closed by pending-request stage/block gate. CLEAN honest-negative (2 independent agents concur).",
+      "date": "2026-08-22"
+    },
+    {
       "sig": "flex|src/trove_manager.vy:1402|signature|",
       "target": "flex",
       "file": "src/trove_manager.vy:1402",
@@ -1176,6 +1198,17 @@
       "verdict": "wontfix",
       "reason": "FRESH listing (DefiLlama 2026-06-18, lending, audits=0, $0.8M) BUT chain=Tron (TVM, non-EVM) -> outside Etherscan-v2 reach + no confirmed bounty. Reachability gate. Low priority.",
       "date": "2026-06-28"
+    },
+    {
+      "sig": "katana-perps|Exchange_v2|hunt-wave-10|",
+      "target": "katana-perps",
+      "file": "Exchange_v2",
+      "line": 0,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Exchange_v2 = not-yet-public V2 of the audited Kuma/IDEX Ikon perps stack; LIVE-ACTIVE + ~$2.13M USDC custody. No confirmed bug this pass -> DIG-MORE (best follow-up target of the wave). Katana chain 747474 (not in fork-fuzz map).",
+      "date": "2026-08-22"
     },
     {
       "sig": "kona-lend|oracle/AaveOracle.sol|oracle|AaveOracle.getAssetPrice() source.latestAnswer() (price>0 only) over Pyth getPriceUnsafe (no maxAge)",
@@ -1453,6 +1486,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "meridian-perps|DVNPublisher.sol|hunt-wave-10|",
+      "target": "meridian-perps",
+      "file": "DVNPublisher.sol",
+      "line": 101,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "DVNPublisher NAV oracle threshold()=1 and investmentManager is an approved signer + default executor -> the manager alone can publish NAV within +/-5% deviation per publish (defeats the multi-signer DVN premise). Trusted-role centralization; live ~$1.85M USDe (perps side not yet live). Robinhood Chain 4663.",
+      "date": "2026-08-22"
+    },
+    {
       "sig": "meridian-predict|(labcore)|manual|",
       "target": "meridian-predict",
       "file": "(labcore)",
@@ -1618,6 +1662,28 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "narbet-casino|BankrollFacet|hunt-wave-10|",
+      "target": "narbet-casino",
+      "file": "BankrollFacet",
+      "line": 0,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Monad casino, LIVE/~$15K, unverified-despite-audited. Bytecode/heimdall triage of CoinFlip+BankrollFacet -> DIG hypothesis on a BankrollFacet selector (0xf...), not read-confirmed. Monad 143.",
+      "date": "2026-08-22"
+    },
+    {
+      "sig": "narbet-monad|BankrollFacet(unverified impl 0xf53441ef835df1106198038ef71d8459f389ec15 behind proxy 0x71dc4a726C92E6bf506F2Afc2Cee8B63A89B29EC)|reach-bytecode-only|f3fef3a3 withdraw(address,uint256) selector on BankrollFacet -- heimdall decompile shows NO visible owner/whitelist gate in the printed body (unlike sibling admin fns which all show require(msg.sender==owner)); but heimdall injects a spurious require(msg.value) into EVERY function incl. pure getters -> decompiler noise too unreliable to confirm a real missing-auth bug without verified source or manual opcode trace",
+      "target": "narbet-monad",
+      "file": "BankrollFacet(unverified impl 0xf53441ef835df1106198038ef71d8459f389ec15 behind proxy 0x71dc4a726C92E6bf506F2Afc2Cee8B63A89B29EC)",
+      "line": 0,
+      "detector": "reach-bytecode-only",
+      "snippet": "f3fef3a3 withdraw(address,uint256) selector on BankrollFacet -- heimdall decompile shows NO visible owner/whitelist gate in the printed body (unlike sibling admin fns which all show require(msg.sender==owner)); but heimdall injects a spurious require(msg.value) into EVERY function incl. pure getters -> decompiler noise too unreliable to confirm a real missing-auth bug without verified source or manual opcode trace",
+      "verdict": "todo",
+      "reason": "NarBet / nar.bet (Narwhal Casino), Monad mainnet chain 143. LIVE+ACTIVE(8.5d)+FUNDED (~524k MON ~14-15k USD in BankrollFacet, confirmed via threat.py). 11 on-chain casino games (CoinFlip/Dice/RPS/Slots/Plinko/Mines/Roulette/Baccarat/VideoPoker/FishPrawnCrab/Limbo) all UUPS-proxied, ALL implementations UNVERIFIED on Sourcify+Etherscan-v2 despite 2 PeckShield audits (audit likely covers a different/earlier deployed version -- classic post-audit-drift risk). Pyth Entropy VRF confirmed via recovered selectors (entropy(), _entropyCallback(uint64,address,bytes32), requestV2()); entropy-auth gate (require msg.sender==entropy) IS visible in CoinFlip's callback. CoinFlip bets are ERC20 transferFrom (pull-model) not native-value push -> HEAD2HEAD-style push-payment-DoS class does NOT apply here. Reach 3-way confirmed: DefiLlama Luck-Games listing + nar.bet frontend JS bundle (chain-143 address map) + on-chain threat.py. Needs: verified source (retry fetch_source.py periodically -- team may verify later) OR careful manual opcode-level trace of BankrollFacet.withdraw(address,uint256) selector 0xf3fef3a3 to confirm/rule out a caller-authorization gap; heimdall pseudocode alone is NOT sufficient evidence (confirmed unreliable -- it injects require(msg.value) into pure view getters).",
+      "date": "2026-08-22"
+    },
+    {
       "sig": "native-credit|(labcore)|manual|",
       "target": "native-credit",
       "file": "(labcore)",
@@ -1748,6 +1814,17 @@
       "verdict": "wontfix",
       "reason": "CLEAN (LIVE-ACTIVE-FUNDED ~$6K, Polygon/137, UUPS ERC4626 vault proxy 0xD90D012990F0245cAD29823bDF0B4C9AF207d9ee -> impl PredmartLendingPool v2.10.0 reinitializer V31 0xabff3757). Polymarket-CTF-collateral margin lending. Deep-read the requested attack surface (resolved/near-resolved-market borrow-against-worthless-collateral) at EVERY mutating entry (depositCollateral, _executeBorrow, _withdrawCollateral, onERC1155Received push-path, pullUsdcForLeverage) -> CONFIRMED CLEAN: mature, heavily-hardened (31 versioned upgrade reinitializers), collateral valuation checks market resolution state. Verified (Sourcify). fuzz-backstop on the stand pending (Polygon = fuzzable). Not fresh-unaudited in practice = well-maintained.",
       "date": "2026-08-21"
+    },
+    {
+      "sig": "pulso-market|contracts/PulsoMarket.sol|manual|",
+      "target": "pulso-market",
+      "file": "contracts/PulsoMarket.sol",
+      "line": 297,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "LMSR buy/sell price whole batch at pre-trade spot -> atomic round-trip drains pool+seed (CRITICAL, pre-launch)",
+      "date": "2026-08-22"
     },
     {
       "sig": "punks-terminal|(fanout)|fanout|fanout triage: -",
@@ -2102,6 +2179,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "stockfi|(UUPS impl)|hunt-wave-10|",
+      "target": "stockfi",
+      "file": "(UUPS impl)",
+      "line": 0,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Liquity-V1 fork CDP (per tokenized US stock) on BSC, ~$92K collateral / ~$42K stUSD debt, MCR=110% CCR=150% (from bytecode+state). Every contract unverified -> source-blind. DIG-MORE; fuzz_candidate 0xd62e3f50083a1024e72fedc2993a2a2e78972318 bsc.",
+      "date": "2026-08-22"
+    },
+    {
       "sig": "strato|(fanout)|fanout|fanout triage: -",
       "target": "strato",
       "file": "(fanout)",
@@ -2144,6 +2232,17 @@
       "verdict": "fp",
       "reason": "address is an EIP-7702-delegated EOA (0xef0100 designator), not a public RFQ/settlement reactor. Delegate is a private 1164B batch-executor gated by a literal require(msg.sender==address(this)) self-check (the EOA can only trigger privileged paths via its own signed tx). No Permit2 address, no permitTransferFrom/permitWitnessTransferFrom selector, no ecrecover anywhere in the delegate bytecode -- the hoped-for caller-supplied-authority/witness-binding class does not apply. Full manual opcode disasm done; third-party (non-self) callers hit a transient-storage memoized no-op path, no fund-moving code reachable by anyone but the key holder. 26.58 ETH sits at the EOA but no external drain path found.",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "the-arbiter-arena|Arena.sol|hunt-wave-10|",
+      "target": "the-arbiter-arena",
+      "file": "Arena.sol",
+      "line": 202,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "Arena.sol emergencyClaim() push-refunds BOTH stakes in one atomic tx (creator.call + opponent.call, revert if either fails) with no pull-fallback -> hostile contract-wallet opponent bricks the only trustless timeout recovery (fund-freeze DoS). Medium, PoC-confirmed. Monad TESTNET (no real value).",
+      "date": "2026-08-22"
     },
     {
       "sig": "the-lobster-pot (archlab-space/the-lobster-pot)|(fanout)|fanout|fanout triage: -",
@@ -2377,6 +2476,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "witty-arcade|contracts/Arcade.sol|hunt-wave-10|",
+      "target": "witty-arcade",
+      "file": "contracts/Arcade.sol",
+      "line": 78,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "Arcade.sol depositETH uses `amount` param not msg.value (no require msg.value==amount); coin()/expire() payable but ignore msg.value -> excess ETH stranded. Low (self-loss). Abstract EraVM 2741, live but dormant ~57d.",
+      "date": "2026-08-22"
+    },
+    {
       "sig": "wolfgame|Barn.sol|unchecked|wool.transfer return ignored",
       "target": "wolfgame",
       "file": "Barn.sol",
@@ -2452,6 +2562,17 @@
       "verdict": "known",
       "reason": "wsgem-fraxlend is NOT a copy-fork of FraxlendPairCore; it's a standalone IDualOracle adapter (WsgemFraxlendDualOracle.sol) + FraxLend v5 pair-deploy scripting. forkdrift.py fingerprint found NO known-audited base match (correctly -- it IS original code, not a literal fork). The FraxLend PAIR itself (the lending market) is NOT deployed -- pending Frax's whitelist review per docs/instances/wstgbp-frxusd.md. Only the oracle adapter (0xA15A2aF6...) is live, and it is EMPTY/pre-launch (threat.py). The real live+funded 'wstGBP' TVL DefiLlama tracks is a completely different codebase: Maseer LTD's maseer-one (MaseerOne.sol/MaseerToken.sol + a MaseerProxy ward-pattern stack), not in the Arb-Capital repo at all.",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "xax-xausd-vault|(vault impl)|hunt-wave-10|",
+      "target": "xax-xausd-vault",
+      "file": "(vault impl)",
+      "line": 0,
+      "detector": "hunt-wave-10",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "app.xax.trading ERC4626-style vault, ETH, ~$79K USDT, unverified. Share-inflation/donation structurally impossible (totalAssets is a tracked ledger not balanceOf + OZ virtual-shares offset), no permissionless exploit. CLEAN (decompile-confirmed).",
+      "date": "2026-08-22"
     }
   ]
 }
