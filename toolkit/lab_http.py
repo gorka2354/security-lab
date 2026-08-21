@@ -112,7 +112,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith("/api/"):
             if not self._authed():
                 return self._send(401, {"error": "unauthorized (token required in public mode)"})
-            return self._send(*api_get(self.path, public=self.public))
+            # A TOKEN-authed request is trusted (private tailnet + secret) -> serve FULL data. Only sanitize
+            # when public AND token-less (truly open on the LAN). _authed() already blocked unauthed /api above.
+            return self._send(*api_get(self.path, public=(self.public and not self.token)))
         return super().do_GET()                      # static files from ROOT (not gated)
 
     def do_POST(self):
