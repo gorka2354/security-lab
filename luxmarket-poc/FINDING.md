@@ -1,11 +1,11 @@
 # LuXMarket — `sell()` prices the whole batch at the pre-trade LMSR spot price → permissionless drain of the shared collateral pool (Critical)
 
 **Severity:** Critical (permissionless, atomic, no preconditions, PoC-proven). Current funds-at-risk are small
-(~50 USD₩0 in the deployed contract today) but 100% of the balance is drainable now and the magnitude scales
-1:1 with any future TVL — and the collateral is a real liquid stablecoin (USD₩0, ~$112.6M supply).
+(~50 USD₮0 in the deployed contract today) but 100% of the balance is drainable now and the magnitude scales
+1:1 with any future TVL — and the collateral is a real liquid stablecoin (USD₮0, ~$112.6M supply).
 **Status:** Live on X Layer mainnet, un-audited. PoC re-run independently: 2/2 PASS.
 **Contract:** `LuxMarket` — `0xFb7154E06B068031502051D285dE910b16A5aF0D` (X Layer, chain 196). Collateral
-= USD₩0 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` (6 dp). Source: `github.com/kingskuan/luxmarket-contracts`
+= USD₮0 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` (6 dp). Source: `github.com/kingskuan/luxmarket-contracts`
 (deployed bytecode revert-string-matched to `src/LuxMarket.sol` + `src/LMSRLib.sol`).
 **Class:** LMSR AMM cost-curve accounting — `sell()` uses the spot price for a whole batch instead of
 integrating the reverse cost curve (reasoning-tier; no T0 detector catches it — recon fired 0 relevant hits).
@@ -91,7 +91,7 @@ forge test --match-path test/PoolDrainPoC.t.sol -vv
 - **Informational — centralized resolution (disclosed MVP).** The owner EOA is both market creator and dispute
   arbiter (README labels this MVP). `reportOutcome()` is correctly single-shot; `settle()`/`redeem()` are
   correctly double-settle/double-redeem guarded in isolation from Findings 1–2. README's placeholder USDT addr
-  is stale vs the real deployed USD₩0 — doc drift only.
+  is stale vs the real deployed USD₮0 — doc drift only.
 
 ---
 
