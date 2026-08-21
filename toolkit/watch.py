@@ -122,9 +122,22 @@ def snapshot(entry, now_iso, _rpc=None):
             "value": int(value or 0), "has_code": len(code) > 4, "last_days": last_days}
 
 
+def _fmtv(v, snap):
+    """Human-readable value using the snapshot's token decimals+symbol (e.g. '50.82 USD-T0'), else raw/ETH."""
+    v = int(v or 0)
+    dec, sym = snap.get("token_dec"), snap.get("token_sym")
+    if dec is not None:
+        n = v / (10 ** dec)
+        s = ("%.2f" % n) if (n >= 1000 or dec <= 2) else ("%.4f" % n).rstrip("0").rstrip(".")
+        return "%s %s" % (s, sym or "tokens")
+    if sym or snap.get("token_val") is not None:
+        return "%d %s" % (v, sym or "units")
+    return "%s ETH" % (("%.4f" % (v / 1e18)).rstrip("0").rstrip("."))
+
+
 def classify(prev, cur):
     """prev/cur snapshots -> list of event dicts {type, sev, detail}. Pure -> golden-tested.
-    prev None = first-ever snapshot (baseline) -> no events."""
+    prev None = first-ever snapshot (baseline) -> no events. HIGH events push to Telegram + browser."""
     if prev is None:
         return []
     ev = []
@@ -135,14 +148,15 @@ def classify(prev, cur):
     pv, cv = int(prev.get("value") or 0), int(cur.get("value") or 0)
     if pv == 0 and cv > 0:
         ev.append({"type": "FUNDED", "sev": "HIGH",
-                   "detail": "value 0 -> %d (a dormant finding may have gone LIVE -> reassess + disclose)" % cv})
+                   "detail": "value 0 -> %s (a dormant finding may have gone LIVE -> reassess + disclose)" % _fmtv(cv, cur)})
     elif pv > 0 and cv <= pv * _DRAIN:
         ev.append({"type": "DRAINED", "sev": "HIGH",
-                   "detail": "value %d -> %d (>=%.0f%% drop -> POSSIBLE EXPLOIT / withdrawal -> INVESTIGATE)"
-                             % (pv, cv, _DRAIN * 100)})
+                   "detail": "value %s -> %s (>=%.0f%% drop -> POSSIBLE EXPLOIT / withdrawal -> INVESTIGATE)"
+                             % (_fmtv(pv, prev), _fmtv(cv, cur), _DRAIN * 100)})
     elif pv > 0 and cv >= pv * _GROW:
-        ev.append({"type": "GREW", "sev": "MED",
-                   "detail": "value %d -> %d (>=%.0fx -> TVL growth, bounded finding now worth more)" % (pv, cv, _GROW)})
+        ev.append({"type": "GREW", "sev": "HIGH",
+                   "detail": "value %s -> %s (>=%.0fx -> TVL GROWTH: a live finding's honeypot just got bigger)"
+                             % (_fmtv(pv, prev), _fmtv(cv, cur), _GROW)})
     pd, cd = prev.get("last_days"), cur.get("last_days")
     if pd is not None and cd is not None and pd > 30 and cd < 7:
         ev.append({"type": "REACTIVATED", "sev": "MED",
@@ -208,7 +222,7 @@ def run(notify=False, now_iso="", prio_only=False, _snap=snapshot):
         for ev in all_events:
             mark = ">>> " if ev["sev"] == "HIGH" else "    "
             print("%s%-11s [%s] %s @ %s -- %s" % (mark, ev["type"], ev["sev"], ev["key"], ev["chain"], ev["detail"]))
-            if ev["type"] in _HIGH:
+            if ev["sev"] == "HIGH":
                 title = "🚨 security-lab: %s %s" % (ev["type"], ev["key"])
                 _notify_telegram(title, "%s @ chain %s\n%s" % (ev["addr"], ev["chain"], ev["detail"][:600]))
                 if notify:

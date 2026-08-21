@@ -41,7 +41,7 @@ check(len(drained) == 1 and drained[0]["type"] == "DRAINED" and drained[0]["sev"
       "value dropped >=50% -> DRAINED (HIGH): possible exploit")
 check(W.classify(snap(1000), snap(600)) == [], "value dropped 40% (<50%) -> no DRAINED (threshold)")
 grew = W.classify(snap(100), snap(250))
-check(len(grew) == 1 and grew[0]["type"] == "GREW" and grew[0]["sev"] == "MED", "value >=2x -> GREW (MED)")
+check(len(grew) == 1 and grew[0]["type"] == "GREW" and grew[0]["sev"] == "HIGH", "value >=2x -> GREW (HIGH, pushes)")
 check(W.classify(snap(100), snap(0))[0]["type"] == "DRAINED", "value -> 0 -> DRAINED (full drain)")
 
 print("== classify: code + activity ==")
