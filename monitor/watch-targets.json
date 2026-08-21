@@ -1,12 +1,5 @@
 [
  {
-  "key": "luxmarket",
-  "chain": "196",
-  "addr": "0xFb7154E06B068031502051D285dE910b16A5aF0D",
-  "note": "",
-  "token": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
- },
- {
   "key": "hoodbet-prizevault",
   "chain": "4663",
   "addr": "0x11da9bE66d20328c6eA16d52079890322fA90f24",
@@ -30,5 +23,13 @@
   "chain": "1",
   "addr": "0x57C3571f10767E49C9d7b60feb6c67804783B7aE",
   "note": ""
+ },
+ {
+  "key": "luxmarket",
+  "chain": "196",
+  "addr": "0xFb7154E06B068031502051D285dE910b16A5aF0D",
+  "note": "CRITICAL sell() drain, exploitable now",
+  "token": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+  "prio": "critical"
  }
 ]

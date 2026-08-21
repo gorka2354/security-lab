@@ -29,6 +29,8 @@ import json
 import os
 import subprocess
 import sys
+import urllib.parse
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_source as fs  # noqa: E402  (RPC map + _rpc)
@@ -163,9 +165,27 @@ def _notify_windows(title, msg):
         pass
 
 
-def run(notify=False, now_iso="", _snap=snapshot):
-    """Snapshot every watchlist target, diff vs last state, emit + persist + notify. Returns the new events."""
+def _notify_telegram(title, msg, _open=urllib.request.urlopen):
+    """Push a HIGH event to a Telegram bot. Reads TG_BOT_TOKEN + TG_CHAT_ID from env (in ~/.seclab_env).
+    Graceful no-op when unset -> the feature activates the moment the two creds are added. Returns bool sent."""
+    tok, chat = os.environ.get("TG_BOT_TOKEN"), os.environ.get("TG_CHAT_ID")
+    if not tok or not chat:
+        return False
+    try:
+        data = urllib.parse.urlencode({"chat_id": chat, "text": (title + "\n" + msg)[:3900],
+                                       "disable_web_page_preview": "true"}).encode()
+        _open("https://api.telegram.org/bot%s/sendMessage" % tok, data=data, timeout=15)
+        return True
+    except Exception:
+        return False
+
+
+def run(notify=False, now_iso="", prio_only=False, _snap=snapshot):
+    """Snapshot each watchlist target, diff vs last state, emit + persist + notify. Returns the new events.
+    prio_only -> only entries flagged `prio` (the critical/live findings we check on a tighter cadence)."""
     wl = _load(WATCHLIST, [])
+    if prio_only:
+        wl = [e for e in wl if e.get("prio")]
     state = _load(STATE, {})
     all_events, new_state = [], dict(state)
     for e in wl:
@@ -188,8 +208,11 @@ def run(notify=False, now_iso="", _snap=snapshot):
         for ev in all_events:
             mark = ">>> " if ev["sev"] == "HIGH" else "    "
             print("%s%-11s [%s] %s @ %s -- %s" % (mark, ev["type"], ev["sev"], ev["key"], ev["chain"], ev["detail"]))
-            if notify and ev["type"] in _HIGH:
-                _notify_windows("security-lab watch: %s %s" % (ev["type"], ev["key"]), ev["detail"][:200])
+            if ev["type"] in _HIGH:
+                title = "🚨 security-lab: %s %s" % (ev["type"], ev["key"])
+                _notify_telegram(title, "%s @ chain %s\n%s" % (ev["addr"], ev["chain"], ev["detail"][:600]))
+                if notify:
+                    _notify_windows(title, ev["detail"][:200])
     else:
         print("watch: no material change across %d target(s)." % len(wl))
     return all_events
@@ -212,8 +235,10 @@ def main():
     a.add_argument("key"); a.add_argument("chain"); a.add_argument("addr")
     a.add_argument("--token", default=None, help="ERC20 whose balance IS the tracked value (e.g. the vault collateral)")
     a.add_argument("--note", default="")
+    a.add_argument("--prio", default=None, help="frequent-check tier tag (e.g. 'critical') -> `run --only-prio`")
     r = sub.add_parser("run")
-    r.add_argument("--notify", action="store_true", help="pop a Windows balloon for HIGH events")
+    r.add_argument("--notify", action="store_true", help="pop a Windows balloon for HIGH events (Telegram fires regardless)")
+    r.add_argument("--only-prio", action="store_true", help="check only prio-tagged targets (the tight-cadence tier)")
     r.add_argument("--date", default="", help="timestamp override (tests/determinism)")
     sub.add_parser("list")
     ev = sub.add_parser("events"); ev.add_argument("--n", type=int, default=20)
@@ -225,6 +250,8 @@ def main():
         entry = {"key": args.key, "chain": args.chain, "addr": args.addr, "note": args.note}
         if args.token:
             entry["token"] = args.token
+        if args.prio:
+            entry["prio"] = args.prio
         wl.append(entry)
         _save(WATCHLIST, wl)
         print("watchlist: %d target(s); added/updated %s (chain %s, %s%s)" % (
@@ -232,7 +259,7 @@ def main():
     elif args.cmd == "run":
         import datetime
         now = args.date or datetime.datetime.now().replace(microsecond=0).isoformat()
-        sys.exit(10 if run(notify=args.notify, now_iso=now) else 0)
+        sys.exit(10 if run(notify=args.notify, now_iso=now, prio_only=args.only_prio) else 0)
     elif args.cmd == "list":
         for e in _load(WATCHLIST, []):
             print("  %-26s chain %-6s %s%s" % (e["key"], e["chain"], e["addr"],

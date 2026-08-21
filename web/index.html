@@ -60,6 +60,16 @@
   .tool:focus-visible,.tab:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{
     outline:2px solid var(--acc);outline-offset:1px}
   .pubtag{color:var(--dig);border-color:var(--dig)}
+  #notifbtn.on{color:var(--live);border-color:color-mix(in srgb,var(--live) 45%,transparent)}
+  #notifbtn.off{color:var(--txt3)}
+  .alertbanner{display:none;align-items:center;gap:10px;max-width:1220px;margin:12px auto 0;padding:11px 15px;
+    background:color-mix(in srgb,var(--crit) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--crit) 45%,transparent);
+    border-radius:var(--r);font-size:13px;color:var(--txt)}
+  .alertbanner.show{display:flex}
+  .alertbanner .ab-dot{width:9px;height:9px;border-radius:50%;background:var(--crit);flex:0 0 auto}
+  .alertbanner b{color:var(--crit)}
+  .alertbanner .ab-x{margin-left:auto;background:none;border:0;color:var(--txt2);cursor:pointer;font-size:15px}
+  .alertbanner .ab-x:hover{color:var(--txt)}
 
   main{max-width:1220px;margin:0 auto;padding:22px}
   .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:2px 0 16px;flex-wrap:wrap}
@@ -217,9 +227,11 @@
   <div class="brand"><span class="mark"></span><b>security</b><span>-lab</span></div>
   <nav class="tabs" id="tabs"></nav>
   <div class="spacer"></div>
+  <button class="tool" id="notifbtn" title="notifications">🔔</button>
   <button class="tool" id="refreshbtn" title="reload">↻ <span id="refreshlbl">refresh</span></button>
   <button class="tool" id="langbtn" title="язык / language">RU</button>
 </header>
+<div id="alertbanner" class="alertbanner" role="alert"></div>
 <main id="app"><div class="empty"><div class="big" id="loadmsg">loading…</div></div></main>
 <div class="foot" id="foot"></div>
 
@@ -617,11 +629,57 @@ document.addEventListener("click",e=>{
   const idt=e.target.closest("[data-tab-id]"); if(idt){ go(null,idt.getAttribute("data-tab-id")); return; }
   if(e.target.closest("[data-back]")){ if(history.length>1) history.back(); else go(VIEW.tab||"overview"); return; }
 });
+/* ---------- browser notifications for new HIGH watch-events (poll /api/watch_events) ---------- */
+const NOTIF_SUPPORTED = ("Notification" in window);
+function updateNotifBtn(){
+  const b=$("notifbtn"); if(!b) return;
+  const p = NOTIF_SUPPORTED ? Notification.permission : "unsupported";
+  b.textContent = p==="granted" ? "🔔" : (p==="denied"||p==="unsupported" ? "🔕" : "🔔");
+  b.className = "tool " + (p==="granted"?"on":(p==="denied"?"off":""));
+  b.title = p==="granted" ? "browser alerts ON (click to test)"
+          : p==="denied" ? "alerts blocked in the browser settings"
+          : p==="unsupported" ? "this browser has no Notification API"
+          : "enable browser alerts for DRAINED / FUNDED events";
+}
+function fireNotif(e){
+  if(!NOTIF_SUPPORTED || Notification.permission!=="granted") return;
+  try{ const n=new Notification("🚨 "+e.type+" · "+e.key, {body:(e.detail||"").slice(0,180), tag:"lab-"+(e.ts||"")});
+    n.onclick=()=>{ window.focus(); go(null,e.key); n.close(); }; }catch(_){}
+}
+function showBanner(high){
+  const b=$("alertbanner"); if(!b||!high.length) return;
+  const o=high[0];
+  b.innerHTML=`<span class="ab-dot"></span><b>${esc(o.type)}</b> · ${esc(o.key)} — ${esc((o.detail||"").slice(0,130))}`
+    +`${high.length>1?` <span class="vt">(+${high.length-1})</span>`:""} <button class="ab-x" id="ab_x" title="dismiss">✕</button>`;
+  b.classList.add("show");
+  $("ab_x").onclick=()=>b.classList.remove("show");
+  b.onclick=(e)=>{ if(e.target.id!=="ab_x") go(null,o.key); };
+}
+function pollAlerts(initial){
+  fetch(apiUrl("/api/watch_events?n=25"),{cache:"no-store"}).then(r=>r.json()).then(evs=>{
+    if(!Array.isArray(evs)||!evs.length) return;
+    const last=localStorage.getItem("lab_seen_ts")||"";
+    const fresh=evs.filter(e=>(e.ts||"")>last);
+    localStorage.setItem("lab_seen_ts", evs[0].ts||last);   // evs newest-first
+    if(initial) return;                                      // on first load just set the baseline, don't alert history
+    const high=fresh.filter(e=>e.sev==="HIGH");
+    if(high.length){ high.forEach(fireNotif); showBanner(high); }
+  }).catch(()=>{});
+}
+
+$("notifbtn").addEventListener("click",()=>{
+  if(!NOTIF_SUPPORTED) return;
+  if(Notification.permission==="granted"){ new Notification("security-lab",{body:"alerts are on — DRAINED / FUNDED will notify here"}); return; }
+  Notification.requestPermission().then(updateNotifBtn);
+});
 $("refreshbtn").addEventListener("click",()=>{ $("refreshbtn").disabled=true; refresh().finally(()=>$("refreshbtn").disabled=false); });
 $("langbtn").addEventListener("click",()=>{ LANG=LANG==="ru"?"en":"ru"; localStorage.setItem("lab_lang",LANG); if(window.__state){applyChrome(window.__state);renderApp();} });
 
+updateNotifBtn();
 VIEW=parseHash();
 loadState().then(render).catch(showErr);
+pollAlerts(true);                                           // baseline on load (no alert for existing history)
+setInterval(pollAlerts, 60000);                            // then poll every 60s for new HIGH events
 </script>
 </body>
 </html>

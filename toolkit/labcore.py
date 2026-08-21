@@ -99,6 +99,14 @@ def _keymatch(a, b):
     return na == nb or na in nb or nb in na or (len(na) >= 6 and len(nb) >= 6 and na[:6] == nb[:6])
 
 
+def watch_events(n=30):
+    """Recent change-events from the watch monitor (monitor/watch-events.json), newest first -> browser/TG alerts."""
+    ev = labstate.load(os.path.join(labstate.ROOT, "monitor", "watch-events.json"), [])
+    if not isinstance(ev, list):
+        ev = []
+    return sorted(ev, key=lambda e: e.get("ts", ""), reverse=True)[:int(n or 30)]
+
+
 def finding_detail(key):
     """Rich per-finding detail for the dashboard detail card: the FINDING.md write-up (bugs+fixes+source) +
     the live watch snapshot + recent change-events for the target. Lazy (not baked into lab-state)."""
@@ -117,7 +125,7 @@ def finding_detail(key):
             break
     ws = labstate.load(os.path.join(root, "monitor", "watch-state.json"), {})
     wt = labstate.load(os.path.join(root, "monitor", "watch-targets.json"), [])
-    we = labstate.load(os.path.join(root, "monitor", "watch-events.json"), [])
+    we = watch_events(9999)
     wk = next((w for w in ws if _keymatch(w, key)), None)
     if wk:
         out["liveness"] = ws.get(wk)
