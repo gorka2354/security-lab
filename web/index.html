@@ -471,12 +471,21 @@ function mdToHtml(md){
   h=h.replace(/@@C(\d+)@@/g,(m,i)=>"<pre class='code'>"+esc(blocks[+i].replace(/\s+$/,''))+"</pre>");
   return h;
 }
+function fmtVal(l){
+  const v=Number(l.value||0);
+  if(!v) return (l.token_sym?"0 "+l.token_sym:(l.token_dec!=null?"0":"0 ETH"));
+  if(l.token_dec!=null){ const n=v/Math.pow(10,l.token_dec);
+    const s=n.toLocaleString("en-US",{maximumFractionDigits:n>=1000?2:(l.token_dec>4?4:l.token_dec)});
+    return s+" "+(l.token_sym||"tokens"); }
+  if(l.token_sym||l.token_val!=null) return v.toLocaleString("en-US")+" "+(l.token_sym||"units");
+  return (v/1e18).toLocaleString("en-US",{maximumFractionDigits:4})+" ETH";
+}
 function liveboxFull(d){
   const l=d.liveness; if(!l) return `<div class="empty">${tr("no_watch")}</div>`;
-  const wt=d.watch_target||{}, k=liveKind(l), unit=wt.token?"token-units":"wei";
+  const wt=d.watch_target||{};
   const act=(l.last_days!=null)?(l.last_days<7?tr("active"):(l.last_days<30?tr("quiet"):tr("idle")+" "+Math.round(l.last_days)+"d")):"";
   return `<div class="livebox">${liveBadgeMini(l)}
-    <div class="meta">${tr("value")} <b class="mono">${esc(String(l.value||0))}</b> ${unit}${act?` · ${act}`:""}${l.ts?` · ${tr("checked")} ${esc(l.ts.slice(0,16).replace("T"," "))}`:""}</div>
+    <div class="meta">${tr("value")} <b class="mono">${esc(fmtVal(l))}</b>${act?` · ${act}`:""}${l.ts?` · ${tr("checked")} ${esc(l.ts.slice(0,16).replace("T"," "))}`:""}</div>
     ${wt.note?`<div class="vt" style="font-size:12px">${esc(wt.note)}</div>`:""}</div>`;
 }
 function eventsFull(d){

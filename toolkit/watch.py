@@ -70,6 +70,29 @@ def _save(path, obj):
         json.dump(obj, f, indent=1)
 
 
+def _token_meta(token, chain, rpc, call):
+    """(decimals, symbol) of an ERC20 via eth_call -> human-readable value formatting. Best-effort -> (None,None)."""
+    dec = sym = None
+    try:
+        r = call(rpc, "eth_call", [{"to": token, "data": "0x313ce567"}, "latest"])  # decimals()
+        if r and r != "0x":
+            dec = int(r, 16)
+    except Exception:
+        pass
+    try:
+        r = call(rpc, "eth_call", [{"to": token, "data": "0x95d89b41"}, "latest"])  # symbol()
+        if r and len(r) > 2:
+            h = r[2:]
+            if len(h) >= 128:  # dynamic string: offset(32) + length(32) + data
+                ln = int(h[64:128], 16)
+                sym = bytes.fromhex(h[128:128 + ln * 2]).decode("utf-8", "ignore").strip("\x00�").strip()
+            if not sym:  # bytes32 fallback (older tokens)
+                sym = bytes.fromhex(h[:64]).decode("utf-8", "ignore").strip("\x00�").strip()
+    except Exception:
+        pass
+    return dec, (sym or None)
+
+
 def snapshot(entry, now_iso, _rpc=None):
     """On-chain state of one watchlist target -> a comparable snapshot dict. Network; _rpc injectable for tests.
     entry = {key, chain, addr, token?}. value = tracked-token balance if `token` given, else native balance."""
@@ -80,18 +103,20 @@ def snapshot(entry, now_iso, _rpc=None):
     code_hash = hashlib.sha256(code.encode()).hexdigest()[:16]
     native = int(call(rpc, "eth_getBalance", [addr, "latest"]) or "0x0", 16)
     token = entry.get("token")
-    tval = None
+    tval = tdec = tsym = None
     if token:
         try:
             tval = T._erc20_balance(addr, token, chain, rpc)
         except Exception:
             tval = None
+        tdec, tsym = _token_meta(token, chain, rpc, call)
     value = tval if token else native
     try:
         last_days = T.last_activity_days(addr, chain) if chain.isdigit() else None
     except Exception:
         last_days = None
     return {"ts": now_iso, "code_hash": code_hash, "native": native, "token_val": tval,
+            "token_dec": tdec, "token_sym": tsym,
             "value": int(value or 0), "has_code": len(code) > 4, "last_days": last_days}
 
 
