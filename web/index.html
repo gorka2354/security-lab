@@ -1,217 +1,303 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>security-lab · dashboard</title>
 <!--
-  Inc 2 of the platform (research/platform/DESIGN-platform.md): READ-ONLY view over the lab-state CONTRACT.
-  Self-contained (no framework, no CDN, works offline). Fetches /monitor/lab-state.json, so serve from the
-  repo root: `python toolkit/dashboard.py` (regenerates the contract + opens this). Mutations are NOT here
-  (stdio MCP can't reach a browser) — they arrive in Inc 3/4 via the localhost HTTP bridge.
+  Read-only view over the lab-state CONTRACT (monitor/lab-state.json), plus per-finding detail
+  (/api/finding_detail) and the two mutations (record_verdict / record_finding) over the localhost bridge.
+  Self-contained: no framework, no CDN, works offline. Serve from the repo root (toolkit/lab_http.py).
 -->
 <style>
   :root{
-    --bg:#0c0f14; --panel:#11161f; --panel2:#161d28; --line:#232c3a; --txt:#cdd6e4; --dim:#7c8aa0;
-    --real:#ff5c7a; --dig:#ffb454; --park:#5cc8ff; --skip:#5a6678; --clean:#3fb37f; --acc:#8a7cff;
-    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    /* neutrals (dark, cool) */
+    --bg:#0b0e13; --surface:#111621; --surface2:#161c28; --raise:#1b2331;
+    --border:#222c3b; --border2:#303c4e;
+    --txt:#e7ecf4; --txt2:#9fadc2; --txt3:#6c7a90;
+    /* accent (actions + current nav only) */
+    --acc:#6ea8ff; --acc-ink:#08111f; --acc-soft:#16233a;
+    /* pipeline status */
+    --real:#ff5c7a; --dig:#ffb454; --park:#5cc8ff; --skip:#5a6678; --clean:#3fb37f;
+    /* severity */
+    --crit:#ff415f; --high:#ff8a4c; --med:#ffc251; --low:#79b8ff;
+    /* liveness */
+    --live:#40c187; --dorm:#8894a8; --drain:#ff415f;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sh:0 6px 22px -8px rgba(0,0,0,.55);
+    --r:11px;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.5 var(--mono);}
-  a{color:var(--park);text-decoration:none}
-  header{display:flex;align-items:baseline;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);
-    position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
-  header h1{font-size:15px;margin:0;letter-spacing:.5px}
-  header h1 b{color:var(--real)}
-  .gen{color:var(--dim);font-size:12px}
-  .tiles{display:flex;gap:10px;flex-wrap:wrap;padding:14px 20px}
-  .tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:120px}
-  .tile .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-  .tile .v{font-size:20px;font-weight:600;margin-top:2px}
-  section{padding:8px 20px 20px}
-  h2{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;font-weight:600}
+  html{scrollbar-color:var(--border2) var(--bg)}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased;letter-spacing:.1px}
+  .mono,code,pre,.addr,.num{font-family:var(--mono)}
+  a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+  button{font-family:inherit}
+  ::selection{background:var(--acc-soft)}
+
+  /* ---- top bar + nav ---- */
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(11,14,19,.86);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);display:flex;align-items:center;gap:22px;padding:0 22px;height:56px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:650;font-size:15px;letter-spacing:.2px;white-space:nowrap}
+  .brand .mark{width:9px;height:9px;border-radius:2px;background:var(--acc)}
+  .brand b{color:var(--txt)} .brand span{color:var(--txt3);font-weight:500}
+  nav.tabs{display:flex;gap:2px;margin-left:6px}
+  .tab{appearance:none;background:none;border:0;color:var(--txt2);font-size:13.5px;font-weight:550;
+    padding:8px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:7px;line-height:1;
+    transition:color .15s,background .15s}
+  .tab:hover{color:var(--txt);background:var(--surface2)}
+  .tab.on{color:var(--txt);background:var(--acc-soft)}
+  .tab .cnt{font:600 11px/1 var(--mono);color:var(--txt3);background:var(--bg);border:1px solid var(--border);
+    border-radius:20px;padding:2px 6px}
+  .tab.on .cnt{color:var(--acc);border-color:var(--acc)}
+  .spacer{flex:1}
+  .tool{appearance:none;display:inline-flex;align-items:center;gap:6px;background:var(--surface2);
+    border:1px solid var(--border);color:var(--txt2);border-radius:8px;padding:7px 11px;font-size:12.5px;
+    font-weight:550;cursor:pointer;transition:.15s}
+  .tool:hover{color:var(--txt);border-color:var(--border2)}
+  .tool:focus-visible,.tab:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{
+    outline:2px solid var(--acc);outline-offset:1px}
+  .pubtag{color:var(--dig);border-color:var(--dig)}
+
+  main{max-width:1220px;margin:0 auto;padding:22px}
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:2px 0 16px;flex-wrap:wrap}
+  .pagehead h1{font-size:19px;font-weight:640;margin:0;letter-spacing:.2px}
+  .pagehead .sub{color:var(--txt3);font-size:13px;margin-top:3px}
+  .eyebrow{color:var(--txt3);font-size:11px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;margin:22px 0 10px}
+  .eyebrow:first-child{margin-top:0}
+
+  /* ---- stat strip ---- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px}
+  .stat .v{font:600 23px/1.1 var(--mono);color:var(--txt)}
+  .stat .k{color:var(--txt2);font-size:12px;margin-top:5px}
+  .stat.click{cursor:pointer;transition:.15s} .stat.click:hover{border-color:var(--border2);background:var(--surface2)}
+  .stat .v .s2{color:var(--txt3);font-size:16px}
+
+  /* ---- generic panels / rows ---- */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  .panel + .panel{margin-top:10px}
+  .prow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 15px}
+  .prow + .prow{border-top:1px solid var(--border)}
+  .prow .sub{color:var(--txt2);font-size:12px;margin-top:2px}
+  .empty{padding:26px 16px;text-align:center;color:var(--txt3);font-size:13px}
+  .empty .big{font-size:15px;color:var(--txt2);margin-bottom:4px}
+
+  /* ---- finding cards (the hero) ---- */
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .fcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 15px;
+    cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;display:flex;flex-direction:column;gap:9px}
+  .fcard:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--sh)}
+  .fcard .top{display:flex;align-items:center;gap:8px}
+  .fcard .nm{font-weight:620;font-size:14.5px;color:var(--txt);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fcard .desc{color:var(--txt2);font-size:12.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .fcard .foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:1px}
+
+  /* severity chip */
+  .sev{font:600 11px/1 var(--sans);letter-spacing:.3px;padding:4px 8px;border-radius:6px;text-transform:uppercase;white-space:nowrap}
+  .sev-critical{color:#fff;background:var(--crit)} .sev-high{color:#211006;background:var(--high)}
+  .sev-medium{color:#241a04;background:var(--med)} .sev-low,.sev-lowmed{color:var(--low);background:var(--acc-soft)}
+  .sev-unknown{color:var(--txt2);background:var(--surface2)}
+
+  /* live badge */
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px 3px 7px;
+    border-radius:20px;border:1px solid var(--border)}
+  .live .d{width:7px;height:7px;border-radius:50%}
+  .live-funded{color:var(--live);border-color:color-mix(in srgb,var(--live) 45%,transparent)} .live-funded .d{background:var(--live)}
+  .live-dormant{color:var(--dorm)} .live-dormant .d{background:var(--dorm)}
+  .live-drained{color:var(--drain);border-color:color-mix(in srgb,var(--drain) 45%,transparent)} .live-drained .d{background:var(--drain)}
+  .live-unknown{color:var(--txt3)} .live-unknown .d{background:var(--txt3)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--txt2);
+    background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px}
+  .chip .dot{width:7px;height:7px;border-radius:50%}
+  .lock{color:var(--dig)}
+
+  /* ---- pipeline board ---- */
   .board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start}
-  .col{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-height:60px;max-height:62vh;
-    overflow:auto;display:flex;flex-direction:column}
-  .col h3{font-size:12px;margin:0;padding:8px 10px;position:sticky;top:0;background:var(--panel2);
-    border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
-  .col h3 .n{color:var(--dim)}
-  .card{padding:7px 10px;border-bottom:1px solid var(--line)}
-  .card:last-child{border-bottom:0}
-  .card .nm{font-weight:600;display:flex;gap:6px;align-items:center}
-  .card .meta{color:var(--dim);font-size:11px;margin-top:2px}
-  .badge{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--dim)}
-  .lock{color:var(--dig);border-color:var(--dig)}
+  .col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);min-height:56px;
+    max-height:64vh;overflow:auto;display:flex;flex-direction:column}
+  .col h3{margin:0;padding:10px 12px;position:sticky;top:0;background:var(--surface2);z-index:1;
+    border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;font-weight:650;letter-spacing:.4px}
+  .col h3 .n{font:600 12px/1 var(--mono);color:var(--txt3)}
+  .tcard{padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+  .tcard:last-child{border-bottom:0} .tcard:hover{background:var(--surface2)}
+  .tcard .nm{font-weight:560;font-size:13px;display:flex;gap:6px;align-items:center}
+  .tcard .meta{color:var(--txt3);font-size:11.5px;margin-top:3px;font-family:var(--mono)}
   .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 auto}
   .d-REAL{background:var(--real)} .d-DIG{background:var(--dig)} .d-PARK{background:var(--park)}
   .d-SKIP{background:var(--skip)} .d-CLEAN{background:var(--clean)}
-  .h-REAL{color:var(--real)} .h-DIG{color:var(--dig)} .h-PARK{color:var(--park)}
-  .h-SKIP{color:var(--skip)} .h-CLEAN{color:var(--clean)}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 0}
-  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line)}
-  .row:last-child{border-bottom:0}
-  .row .sub{color:var(--dim);font-size:11px}
-  .fresh{color:var(--dig)} .quiet{color:var(--clean)}
+  .h-REAL{color:var(--real)} .h-DIG{color:var(--dig)} .h-PARK{color:var(--park)} .h-SKIP{color:var(--skip)} .h-CLEAN{color:var(--clean)}
+
+  /* ---- table ---- */
   table{width:100%;border-collapse:collapse}
-  th,td{text-align:left;padding:6px 14px;border-bottom:1px solid var(--line);font-size:12px}
-  th{color:var(--dim);text-transform:uppercase;font-size:10px;letter-spacing:.5px}
-  .pill{font-size:10px;padding:1px 6px;border-radius:10px;border:1px solid var(--line)}
-  .st-accepted,.st-fixed-silent,.st-duplicate{color:var(--clean);border-color:var(--clean)}
+  th,td{text-align:left;padding:10px 15px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  th{color:var(--txt3);text-transform:uppercase;font-size:10.5px;letter-spacing:.6px;font-weight:650}
+  tbody tr{cursor:pointer;transition:background .12s} tbody tr:hover{background:var(--surface2)}
+  .pill{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--txt2);white-space:nowrap}
+  .st-accepted,.st-fixed-silent,.st-duplicate{color:var(--clean);border-color:color-mix(in srgb,var(--clean) 45%,transparent)}
   .st-withdrawn,.st-disputed{color:var(--skip);border-color:var(--skip)}
-  .st-drafted,.st-parked{color:var(--dig);border-color:var(--dig)}
-  .k-live{color:var(--clean);border-color:var(--clean)}
+  .st-drafted,.st-parked,.st-disclosed{color:var(--dig);border-color:color-mix(in srgb,var(--dig) 45%,transparent)}
+  .k-live{color:var(--live);border-color:color-mix(in srgb,var(--live) 40%,transparent)}
   .k-non-live{color:var(--skip);border-color:var(--skip)}
-  tr.nonlive td{opacity:.62}
-  #verdictbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;
-    border-bottom:1px solid var(--line);background:var(--panel)}
-  #verdictbar .vlabel{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-  #verdictbar input,#verdictbar select{background:var(--bg);color:var(--txt);border:1px solid var(--line);
-    border-radius:6px;padding:5px 8px;font:12px var(--mono)}
-  #verdictbar input#v_reason{flex:1;min-width:160px}
-  #verdictbar button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:6px 12px;
-    font:12px var(--mono);cursor:pointer}
-  #verdictbar button:disabled{opacity:.5;cursor:default}
-  .vmsg{font-size:12px}.vmsg.ok{color:var(--clean)}.vmsg.bad{color:var(--real)}
-  .card.clickable{cursor:pointer} .card.clickable:hover{background:var(--panel2)}
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:20;padding:40px 16px;overflow:auto}
-  .modal.show{display:flex;justify-content:center;align-items:flex-start}
-  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:720px;width:100%;
-    padding:0;box-shadow:0 12px 48px rgba(0,0,0,.5)}
-  .modal-card .mh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
-  .modal-card .mh h2{margin:0;font-size:15px;text-transform:none;letter-spacing:0;color:var(--txt)}
-  .modal-card .mh .x{margin-left:auto;cursor:pointer;color:var(--dim);font-size:18px;border:0;background:none}
-  .modal-card .mb{padding:14px 18px}
-  .kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;font-size:12px;margin-bottom:12px}
-  .kv .k{color:var(--dim)}
-  .vlist .vi{padding:6px 10px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;font-size:12px}
-  .vlist .vi .vt{color:var(--dim)}
-  .find{border:1px solid var(--clean);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px}
-  .fchip{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;padding:3px 8px;margin:3px 4px 0 0;
-    border:1px solid var(--line);border-radius:6px;background:var(--bg)}
-  .fchip:hover{background:var(--panel2);border-color:var(--acc)}
-  .dchip{display:inline-block;font-size:11px;padding:2px 7px;margin:3px 4px 0 0;border-radius:6px;border:1px solid var(--line)}
-  .dchip.d-v{color:var(--real);border-color:var(--real)} .dchip.d-s{color:var(--clean);border-color:var(--clean)}
-  .dchip.d-n{color:var(--dim)}
-  .mh2{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
-  .logf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
-  .logf input,.logf select{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;
-    padding:5px 8px;font:12px var(--mono)} .logf input.t{flex:1;min-width:180px}
-  .logf button{background:var(--clean);color:#06281c;border:0;border-radius:6px;padding:6px 12px;font:12px var(--mono);cursor:pointer;font-weight:600}
-  .err{padding:40px 20px;color:var(--real)}
-  .foot{color:var(--dim);padding:10px 20px 30px;font-size:11px;border-top:1px solid var(--line);margin-top:10px}
-  /* Phase-2 enriched finding detail */
-  .fdetail{margin:6px 0 2px}
-  .livebox{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:4px}
-  .lb{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;border:1px solid var(--line)}
-  .lb-live{color:var(--clean);border-color:var(--clean)}
-  .lb-dorm{color:var(--dim)} .lb-un{color:var(--skip)}
-  .wev{background:var(--panel2);border-left:3px solid var(--line);border-radius:4px;padding:5px 9px;margin:4px 0;font-size:12px}
-  .wev-HIGH{border-left-color:var(--real)} .wev-MED{border-left-color:var(--dig)}
-  .mdbox{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 12px;margin-top:4px;max-height:420px;overflow:auto}
-  .mdbox h2,.mdbox h3,.mdbox h4{color:var(--acc);text-transform:none;letter-spacing:0;font-size:12.5px;margin:12px 0 4px}
-  .mdbox p{margin:6px 0;color:var(--txt)} .mdbox b{color:#fff}
-  .mdbox li{margin:2px 0 2px 16px;list-style:disc}
-  .mdbox code{background:#0b0e14;border:1px solid var(--line);border-radius:3px;padding:0 3px;color:var(--dig)}
-  .mdbox pre.code{background:#0b0e14;border:1px solid var(--line);border-radius:5px;padding:8px 10px;overflow:auto;white-space:pre;color:#b9c4d6;font-size:11.5px;line-height:1.45}
+  tr.nonlive{opacity:.6}
+
+  /* ---- buttons + forms ---- */
+  .btn{appearance:none;border:1px solid var(--border);background:var(--surface2);color:var(--txt);
+    border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+    display:inline-flex;align-items:center;gap:7px;line-height:1}
+  .btn:hover{border-color:var(--border2);background:var(--raise)}
+  .btn-primary{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+  .btn-primary:hover{background:#83b6ff;border-color:#83b6ff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11.5px;color:var(--txt2);font-weight:600}
+  input,select{background:var(--bg);color:var(--txt);border:1px solid var(--border);border-radius:8px;
+    padding:8px 10px;font:13px var(--sans)} input:hover,select:hover{border-color:var(--border2)}
+  input::placeholder{color:var(--txt3)}
+  .toolbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r);padding:14px 15px;margin-bottom:14px}
+  .toolbar .grow{flex:1;min-width:170px}
+  .msg{font-size:12.5px;font-weight:600} .msg.ok{color:var(--live)} .msg.bad{color:var(--crit)}
+
+  /* ---- detail page ---- */
+  .back{display:inline-flex;align-items:center;gap:7px;color:var(--txt2);background:none;border:0;
+    font-size:13px;font-weight:600;cursor:pointer;padding:6px 0;margin-bottom:10px}
+  .back:hover{color:var(--txt)}
+  .dhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  .dhead h1{font-size:22px;font-weight:660;margin:0;letter-spacing:.1px}
+  .dhead .addr{color:var(--txt3);font-size:12.5px}
+  .dgrid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;margin-top:16px}
+  .kv{display:grid;grid-template-columns:118px 1fr;gap:7px 14px;font-size:13px}
+  .kv .k{color:var(--txt2)} .kv .v{color:var(--txt);word-break:break-word}
+  .sect{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;margin-bottom:14px}
+  .sect > h2{font-size:13px;font-weight:650;margin:0 0 11px;letter-spacing:.2px;color:var(--txt);
+    display:flex;align-items:center;gap:8px}
+  .sect > h2 .hint{color:var(--txt3);font-size:11.5px;font-weight:500;margin-left:auto}
+  .vi{padding:9px 11px;border:1px solid var(--border);border-radius:8px;margin-bottom:7px;font-size:12.5px;background:var(--surface2)}
+  .vi:last-child{margin-bottom:0} .vt{color:var(--txt3)}
+  .vi b{color:var(--txt)}
+  .fchip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;padding:5px 9px;margin:0 6px 6px 0;
+    border:1px solid var(--border);border-radius:8px;background:var(--surface2);transition:.15s}
+  .fchip:hover{border-color:var(--acc);color:var(--txt)}
+  .dchip{display:inline-block;font-size:11.5px;padding:3px 8px;margin:0 6px 6px 0;border-radius:7px;border:1px solid var(--border);color:var(--txt2)}
+  .dchip.d-v{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,transparent)}
+  .dchip.d-s{color:var(--clean);border-color:color-mix(in srgb,var(--clean) 45%,transparent)}
+  /* liveness + events + md render */
+  .livebox{display:flex;flex-direction:column;gap:8px}
+  .livebox .meta{color:var(--txt2);font-size:12.5px}
+  .wev{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;margin:7px 0;font-size:12.5px}
+  .wev .tp{font-weight:700} .wev-HIGH .tp{color:var(--crit)} .wev-MED .tp{color:var(--dig)}
+  .mdbox{max-height:520px;overflow:auto;font-size:13px;line-height:1.6}
+  .mdbox h2,.mdbox h3,.mdbox h4{color:var(--txt);font-size:13.5px;font-weight:650;margin:16px 0 6px;letter-spacing:.1px}
+  .mdbox h2:first-child,.mdbox h3:first-child{margin-top:2px}
+  .mdbox p{margin:8px 0;color:var(--txt2)} .mdbox b{color:var(--txt);font-weight:650}
+  .mdbox li{margin:3px 0 3px 18px;list-style:disc;color:var(--txt2)}
+  .mdbox code{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--med);font-size:12px}
+  .mdbox pre.code{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 13px;
+    overflow:auto;white-space:pre;color:#c3cee0;font-size:12px;line-height:1.5;margin:9px 0}
+  .badge{font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);color:var(--txt2)}
+
+  .foot{color:var(--txt3);padding:22px;text-align:center;font-size:12px;border-top:1px solid var(--border);margin-top:26px}
+  .foot code{color:var(--txt2)}
+  .errbox{padding:40px 22px;color:var(--crit);max-width:640px;margin:0 auto;text-align:center}
+
+  @media(max-width:900px){
+    .board{grid-template-columns:repeat(2,1fr)} .dgrid{grid-template-columns:1fr}
+    nav.tabs .tab span.lbl{display:none} main{padding:16px}
+  }
+  @media(max-width:560px){ .board{grid-template-columns:1fr} .topbar{gap:10px;padding:0 14px} }
 </style>
 </head>
 <body>
-<header>
-  <h1><b>security</b>-lab · dashboard</h1>
-  <span class="gen" id="gen">loading…</span>
-  <span class="gen" style="margin-left:auto" id="subtitle">lab-state contract · white-hat</span>
-  <button id="langbtn" class="badge" style="cursor:pointer" title="язык / language">RU</button>
+<header class="topbar">
+  <div class="brand"><span class="mark"></span><b>security</b><span>-lab</span></div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="spacer"></div>
+  <button class="tool" id="refreshbtn" title="reload">↻ <span id="refreshlbl">refresh</span></button>
+  <button class="tool" id="langbtn" title="язык / language">RU</button>
 </header>
-<div id="verdictbar">
-  <span class="vlabel" id="lbl_rv">record verdict:</span>
-  <input id="v_target" placeholder="target name" list="targetlist" autocomplete="off">
-  <datalist id="targetlist"></datalist>
-  <select id="v_verdict">
-    <option value="todo">todo</option><option value="real">real</option><option value="fp">fp</option>
-    <option value="known">known</option><option value="wontfix">wontfix</option>
-  </select>
-  <input id="v_reason" placeholder="reason (why)" autocomplete="off">
-  <button id="v_btn">save → ledger</button>
-  <span id="v_msg" class="vmsg"></span>
-</div>
-<div id="app"><div class="err" id="err" style="display:none"></div></div>
-<div class="foot" id="foot">
-  source: <code>monitor/lab-state.json</code> (read-through projection) · serve via
-  <code>python toolkit/dashboard.py</code> · mutations land in Inc 3/4 (MCP + HTTP bridge)
-</div>
+<main id="app"><div class="empty"><div class="big" id="loadmsg">loading…</div></div></main>
+<div class="foot" id="foot"></div>
 
 <script>
-const COLS = ["REAL","DIG","PARK","SKIP","CLEAN"];      // logical pipeline columns
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const TOKEN = new URLSearchParams(location.search).get("token") || "";  // for the public/LAN bridge
+const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const apiUrl = p => p + (TOKEN ? (p.includes("?")?"&":"?")+"token="+encodeURIComponent(TOKEN) : "");
+const $ = id => document.getElementById(id);
 
-// --- i18n: an extensible string map (ru default + en). Translate the UI CHROME only; data (target names,
-// zones, verdict codes) stays as-is. Add a language by adding a key block; t() falls back ru->en->key. ---
+/* ---------- i18n (ru default + en); translate CHROME only, data stays as-is ---------- */
 const I18N = {
-  ru:{ subtitle:"контракт lab-state · white-hat", loading:"загрузка…", generated:"сгенерировано",
-    pub:"ПУБЛИЧНЫЙ (очищено)", record_verdict:"записать вердикт:", target_name:"имя цели",
-    reason_why:"причина (почему)", save_ledger:"в ledger →", reason_req:"нужны цель + причина",
-    saving:"сохранение…", saved:"сохранено", bridge_off:"мост офлайн — запусти dashboard.py",
-    t_targets:"цели", t_real_dig:"REAL / DIG", t_findings:"находки", t_parked:"паркинг",
-    t_repos:"репо под наблюдением", t_precision:"точность", t_recall:"полнота",
-    pipeline:"Конвейер", targets_n:"целей", verdict_one:"вердикт", verdict_few:"вердикта", verdict_many:"вердиктов",
-    more:"ещё", radars:"Радары", r_change:"радар изменений", r_fresh_deploy:"свежие деплои",
-    r_fresh_feed:"свежий фид", r_secrets:"свип секретов", r_impl:"апгрейды impl", r_bounty:"запуски баунти",
-    r_watched:"деплоеров под наблюдением", r_listed:"листингов видено", r_repos:"репо", r_leaks:"утечек",
-    fresh:"СВЕЖЕЕ", quiet:"тихо", findings_lc:"Находки (жизненный цикл)", no_findings:"нет отслеживаемых находок",
-    th_target:"цель", th_class:"класс", th_sev:"критичность", th_status:"статус", th_bounty:"баунти",
-    k_live:"live", k_nonlive:"non-live", lf_kind:"класс:", nonlive_hint:"non-live = реальный баг, но цель мёртвая/пустая/невызываемая (нет живого импакта)",
-    parked_leads:"Запаркованные лиды", none_parked:"нет запаркованных", fires:"сработает",
-    parked_hidden:"запаркованных — детали скрыты в публичном режиме", m_findings:"Находки",
-    no_finding_t:"находок по этой цели нет", m_verdicts:"Вердикты", no_verdicts:"вердиктов пока нет",
-    fork_family:"форк-семья", no_siblings:"нет сиблингов в реестре", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
-    known_bugs:"известные баги (fingerprint)",
-    kv_zones:"зоны", kv_chains:"сети", kv_fork:"форк-база", kv_owasp:"owasp", kv_sources:"источники",
-    kv_first:"впервые", kv_updated:"обновлено", log_finding:"Записать находку (→ ledger + дашборд, один шаг)",
-    finding_title:"название находки", log_btn:"записать → находку", title_req:"нужно название",
-    logged:"записано", failed:"ошибка", err_load:"Не удалось загрузить lab-state",
-    err_serve:"Запусти из корня репо:", err_file:"Открытие через file:// не сработает (CORS + путь).",
-    foot:'источник: <code>monitor/lab-state.json</code> (read-through проекция) · запуск через <code>python toolkit/dashboard.py</code> · мутации идут через MCP + HTTP-мост' },
-  en:{ subtitle:"lab-state contract · white-hat", loading:"loading…", generated:"generated",
-    pub:"PUBLIC (sanitized)", record_verdict:"record verdict:", target_name:"target name",
-    reason_why:"reason (why)", save_ledger:"save → ledger", reason_req:"target + reason required",
-    saving:"saving…", saved:"saved", bridge_off:"bridge offline — run dashboard.py",
-    t_targets:"targets", t_real_dig:"REAL / DIG", t_findings:"findings", t_parked:"parked",
-    t_repos:"repos watched", t_precision:"precision", t_recall:"recall",
-    pipeline:"Pipeline", targets_n:"targets", verdict_one:"verdict", verdict_few:"verdicts", verdict_many:"verdicts",
-    more:"more", radars:"Radars", r_change:"change radar", r_fresh_deploy:"fresh-deploy",
-    r_fresh_feed:"fresh-feed", r_secrets:"secrets-sweep", r_impl:"impl-upgrades", r_bounty:"bounty-launches",
-    r_watched:"watched deployer(s)", r_listed:"listed seen", r_repos:"repos", r_leaks:"leak(s)",
-    fresh:"FRESH", quiet:"quiet", findings_lc:"Findings (lifecycle)", no_findings:"no tracked findings",
-    th_target:"target", th_class:"class", th_sev:"severity", th_status:"status", th_bounty:"bounty",
-    k_live:"live", k_nonlive:"non-live", lf_kind:"class:", nonlive_hint:"non-live = real bug but the target is dead/empty/non-callable (no live impact)",
-    parked_leads:"Parked leads", none_parked:"none parked", fires:"fires",
-    parked_hidden:"parked — detail hidden in public mode", m_findings:"Findings",
-    no_finding_t:"no finding logged for this target", m_verdicts:"Verdicts", no_verdicts:"no verdicts yet",
-    fork_family:"fork family", no_siblings:"no siblings in registry", jump_hint:"click a sibling to jump (batch-CVE)",
-    known_bugs:"known-bug rechecks (fingerprint)",
-    kv_zones:"zones", kv_chains:"chains", kv_fork:"fork base", kv_owasp:"owasp", kv_sources:"sources",
-    kv_first:"first seen", kv_updated:"updated", log_finding:"Log a finding (→ ledger + dashboard, one step)",
-    finding_title:"finding title", log_btn:"log → finding", title_req:"title required",
-    logged:"logged", failed:"failed", err_load:"Could not load lab-state",
-    err_serve:"Serve from the repo root:", err_file:"Opening via file:// will not work (CORS + path).",
-    foot:'source: <code>monitor/lab-state.json</code> (read-through projection) · serve via <code>python toolkit/dashboard.py</code> · mutations via MCP + HTTP bridge' }
+ ru:{ loading:"загрузка…", refresh:"обновить", generated:"сгенерировано", pub:"публичный · очищено",
+   nav_overview:"Обзор", nav_findings:"Находки", nav_targets:"Цели", nav_watch:"Мониторинг",
+   ov_title:"Обзор", ov_sub:"состояние лаборатории на один взгляд",
+   s_findings:"находок", s_real:"REAL-целей", s_dig:"в работе (DIG)", s_targets:"целей всего",
+   s_parked:"в паркинге", s_repos:"репо под наблюдением", s_precision:"точность", s_recall:"полнота",
+   attention:"Требуют внимания", attention_sub:"живые находки — критичность × актуальность",
+   recent:"Последние события мониторинга", pipeline:"Конвейер",
+   fnd_title:"Находки", fnd_sub:"подтверждённые баги — клик открывает карточку с исходниками и live-статусом",
+   fnd_real:"Подтверждённые (REAL)", fnd_lifecycle:"Жизненный цикл (калибровка)",
+   tg_title:"Цели", tg_sub:"конвейер триажа — REAL · DIG · PARK · SKIP · CLEAN",
+   wt_title:"Мониторинг", wt_sub:"радары изменений + события живости по нашим находкам",
+   wt_events:"События изменений (watch)", wt_radars:"Радары", wt_parked:"Запаркованные лиды",
+   no_events:"событий пока нет — базовая точка снята; FUNDED / DRAINED / CODE-CHANGE появятся здесь",
+   no_findings_attn:"нет живых находок, требующих внимания", no_findings:"нет отслеживаемых находок",
+   none_parked:"нет запаркованных", parked_hidden:"в паркинге — детали скрыты в публичном режиме",
+   th_target:"цель", th_class:"класс", th_sev:"критичность", th_status:"статус", th_bounty:"баунти",
+   k_live:"live", k_nonlive:"non-live",
+   record_verdict:"Записать вердикт", target_name:"имя цели", reason_why:"причина (почему)",
+   save_ledger:"в ledger →", reason_req:"нужны цель + причина", saving:"сохранение…", saved:"сохранено",
+   bridge_off:"мост офлайн — запусти lab_http.py", failed:"ошибка",
+   back:"назад", d_summary:"Сводка", d_liveness:"Актуальность / слежение", d_events:"События изменений",
+   d_bugs:"Баги, исходники и фикс", d_verdicts:"Вердикты", d_known:"Известные баги (fingerprint)",
+   d_fork:"Форк-семья", d_log:"Записать находку", no_verdicts:"вердиктов пока нет",
+   no_finding_md:"нет FINDING.md для этой цели", no_watch:"нет данных мониторинга",
+   kv_zones:"зоны", kv_chains:"сети", kv_owasp:"owasp", kv_sources:"источники", kv_first:"впервые",
+   kv_updated:"обновлено", kv_addr:"адрес", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
+   no_siblings:"нет сиблингов", finding_title:"название находки", log_btn:"записать →", title_req:"нужно название",
+   logged:"записано", value:"баланс", checked:"проверено", active:"активен", quiet:"тихо", idle:"простой",
+   funded:"LIVE · есть средства", dormant:"dormant / пусто", drained:"СЛИТО",
+   err_load:"Не удалось загрузить lab-state", err_serve:"Запусти из корня репо:", err_file:"file:// не сработает (CORS).",
+   foot:'источник <code>monitor/lab-state.json</code> · мост <code>toolkit/lab_http.py</code> · white-hat, the researcher discloses' },
+ en:{ loading:"loading…", refresh:"refresh", generated:"generated", pub:"public · sanitized",
+   nav_overview:"Overview", nav_findings:"Findings", nav_targets:"Targets", nav_watch:"Watch",
+   ov_title:"Overview", ov_sub:"the lab at a glance",
+   s_findings:"findings", s_real:"REAL targets", s_dig:"digging (DIG)", s_targets:"targets total",
+   s_parked:"parked", s_repos:"repos watched", s_precision:"precision", s_recall:"recall",
+   attention:"Needs attention", attention_sub:"live findings — severity × liveness",
+   recent:"Recent watch events", pipeline:"Pipeline",
+   fnd_title:"Findings", fnd_sub:"confirmed bugs — click one for its sources + live status",
+   fnd_real:"Confirmed (REAL)", fnd_lifecycle:"Lifecycle (calibration)",
+   tg_title:"Targets", tg_sub:"triage pipeline — REAL · DIG · PARK · SKIP · CLEAN",
+   wt_title:"Watch", wt_sub:"change radars + liveness events over our findings",
+   wt_events:"Change events (watch)", wt_radars:"Radars", wt_parked:"Parked leads",
+   no_events:"no events yet — baseline set; FUNDED / DRAINED / CODE-CHANGE will appear here",
+   no_findings_attn:"no live findings need attention", no_findings:"no tracked findings",
+   none_parked:"none parked", parked_hidden:"parked — detail hidden in public mode",
+   th_target:"target", th_class:"class", th_sev:"severity", th_status:"status", th_bounty:"bounty",
+   k_live:"live", k_nonlive:"non-live",
+   record_verdict:"Record verdict", target_name:"target name", reason_why:"reason (why)",
+   save_ledger:"save → ledger", reason_req:"target + reason required", saving:"saving…", saved:"saved",
+   bridge_off:"bridge offline — run lab_http.py", failed:"failed",
+   back:"back", d_summary:"Summary", d_liveness:"Liveness / tracking", d_events:"Change events",
+   d_bugs:"Bugs, source & fix", d_verdicts:"Verdicts", d_known:"Known-bug rechecks (fingerprint)",
+   d_fork:"Fork family", d_log:"Log a finding", no_verdicts:"no verdicts yet",
+   no_finding_md:"no FINDING.md for this target", no_watch:"no watch data",
+   kv_zones:"zones", kv_chains:"chains", kv_owasp:"owasp", kv_sources:"sources", kv_first:"first seen",
+   kv_updated:"updated", kv_addr:"address", jump_hint:"click a sibling to jump (batch-CVE)",
+   no_siblings:"no siblings", finding_title:"finding title", log_btn:"log →", title_req:"title required",
+   logged:"logged", value:"balance", checked:"checked", active:"active", quiet:"quiet", idle:"idle",
+   funded:"LIVE · funded", dormant:"dormant / empty", drained:"DRAINED",
+   err_load:"Could not load lab-state", err_serve:"Serve from the repo root:", err_file:"file:// won't work (CORS).",
+   foot:'source <code>monitor/lab-state.json</code> · bridge <code>toolkit/lab_http.py</code> · white-hat, the researcher discloses' }
 };
-let LANG = localStorage.getItem("lab_lang") || "ru";   // default Russian
-// `tr` (not `t`) — several functions bind `t` to a TARGET object; this name avoids shadowing the translator.
-const tr = k => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
-// russian plural for "verdicts" (1 вердикт, 2-4 вердикта, 5+ вердиктов; en just adds s)
-function verdictWord(n){
-  if(LANG!=="ru") return n===1?tr("verdict_one"):tr("verdict_many");
-  const m10=n%10, m100=n%100;
-  if(m10===1&&m100!==11) return tr("verdict_one");
-  if(m10>=2&&m10<=4&&(m100<10||m100>=20)) return tr("verdict_few");
-  return tr("verdict_many");
-}
+let LANG = localStorage.getItem("lab_lang") || "ru";
+const tr = k => (I18N[LANG]&&I18N[LANG][k]) || I18N.en[k] || k;
 
-// status REAL/DIG/CLEAN is what registry emits; PARK/SKIP are folded into CLEAN and recovered via `disposition`.
+/* ---------- helpers ---------- */
 function colOf(t){
   if(t.status==="REAL") return "REAL";
   if(t.status==="DIG")  return "DIG";
@@ -219,244 +305,313 @@ function colOf(t){
   if(t.disposition==="skip") return "SKIP";
   return "CLEAN";
 }
-
-function tile(k,v){ return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
-
-function targetCard(t){
-  const meta = [t.zones&&t.zones.join(","), t.fork_base&&("fork:"+t.fork_base), t.chains&&t.chains.join(",")]
-    .filter(Boolean).join(" · ");
-  const lock = t.sensitivity==="high" ? `<span class="badge lock" title="parked exploitable lead — keep private">🔒</span>` : "";
-  const nv = (t.verdicts||[]).length;
-  const fn = (window.__state&&(window.__state.findings||[]).some(f=>(f.target||"").toLowerCase()===(t.id||"").toLowerCase()))?' 🐞':'';
-  return `<div class="card clickable" data-id="${esc(t.id)}">
-    <div class="nm">${esc(t.name||t.id)} ${lock}${fn}</div>
-    <div class="meta">${esc(meta||"—")}${nv?` · ${nv} ${verdictWord(nv)}`:""}</div></div>`;
+const SEVRANK={critical:5,high:4,medium:3,"low-med":2,lowmed:2,low:1};
+function sevClass(s){ s=(s||"").toLowerCase().replace(/[^a-z-]/g,""); if(s==="low-med"||s==="lowmed")return "lowmed"; return SEVRANK[s]?s:"unknown"; }
+function findingsFor(id){ return (((window.__state||{}).findings)||[]).filter(f=>(f.target||"").toLowerCase()===(id||"").toLowerCase()); }
+function latestReason(t){ if(t.last_reason) return t.last_reason; const v=t.verdicts||[]; return v.length?(v[v.length-1].reason||""):""; }
+function reasonText(t){ return latestReason(t).replace(/^\s*\[[A-Z][^\]]*\]\s*/,"").trim(); }
+function sevText(t){ // severity: from its first live finding, else parse the latest verdict/registry reason
+  const f=findingsFor(t.id).find(x=>x.kind!=="non-live")||findingsFor(t.id)[0];
+  if(f&&f.sev_claimed) return f.sev_claimed;
+  const r=latestReason(t).toLowerCase();
+  for(const s of ["critical","high","medium","low-med","low"]) if(r.includes(s)) return s;
+  return t.status==="REAL"?"medium":"";
 }
 
-function board(targets){
-  const buckets = Object.fromEntries(COLS.map(c=>[c,[]]));
-  targets.forEach(t=>buckets[colOf(t)].push(t));
-  return `<section><h2>${tr("pipeline")} — ${targets.length} ${tr("targets_n")}</h2><div class="board">` + COLS.map(c=>{
-    const items = buckets[c];
-    const cap = (c==="CLEAN"||c==="SKIP") ? 40 : 200;
-    const cards = items.slice(0,cap).map(targetCard).join("") || `<div class="card meta" style="color:var(--dim)">—</div>`;
-    const more = items.length>cap ? `<div class="card meta" style="color:var(--dim)">+${items.length-cap} ${tr("more")}</div>` : "";
-    return `<div class="col"><h3><span class="h-${c}"><span class="dot d-${c}"></span> ${c}</span>
-      <span class="n">${items.length}</span></h3>${cards}${more}</div>`;
-  }).join("") + `</div></section>`;
+/* liveness (from finding_detail cache or a target's watch snapshot passed in) */
+function liveKind(l){ if(!l) return "unknown"; return (l.value||0)>0 ? "funded" : "dormant"; }
+function liveBadgeMini(l){
+  const k=liveKind(l); const map={funded:tr("funded"),dormant:tr("dormant"),unknown:tr("no_watch")};
+  return `<span class="live live-${k}"><span class="d"></span>${map[k]}</span>`;
 }
 
-function radarRow(name,counts,fresh){
-  const f = (fresh&&fresh.length) ? `<span class="fresh">▲ ${fresh.length} ${tr("fresh")}</span>` : `<span class="quiet">${tr("quiet")}</span>`;
-  return `<div class="row"><div>${name}<div class="sub">${counts}</div></div><div>${f}</div></div>`;
-}
-
-function radars(rd){
-  const q=rd.queue||{}, fd=rd.freshdeploy||{}, ff=rd.freshfeed||{}, sc=rd.secrets||{};
-  return `<div class="panel">
-    ${radarRow(tr("r_change"), `${tr("r_impl")} ${q.impl_upgrades||0} · ${tr("r_bounty")} ${q.bounty_launches||0}`, q.fresh_items)}
-    ${radarRow(tr("r_fresh_deploy"), `${fd.watched||0} ${tr("r_watched")}`, fd.fresh_items)}
-    ${radarRow(tr("r_fresh_feed"), `${ff.seen||0} ${tr("r_listed")}`, ff.fresh_items)}
-    ${radarRow(tr("r_secrets"), `${sc.repos||0} ${tr("r_repos")} · ${sc.leaks||0} ${tr("r_leaks")}`, sc.fresh_items)}
-  </div>`;
-}
-
-function findings(F){
-  if(!F.length) return `<div class="panel"><div class="row sub">${tr("no_findings")}</div></div>`;
-  const sorted=[...F].sort((a,b)=>((a.kind==="non-live")-(b.kind==="non-live")));   // live first, non-live below
-  const rows = sorted.map(f=>{
-    const k=(f.kind==="non-live")?"non-live":"live";
-    return `<tr class="${k==="non-live"?"nonlive":""}">
-    <td>${esc(f.target||"")}</td>
-    <td><span class="pill k-${k}">${tr(k==="non-live"?"k_nonlive":"k_live")}</span></td>
-    <td>${esc(f.sev_claimed||"?")}${f.sev_awarded?` → ${esc(f.sev_awarded)}`:""}</td>
-    <td><span class="pill st-${esc(f.status||"")}">${esc(f.status||"?")}</span></td>
-    <td>${f.bounty_received?("$"+f.bounty_received):"—"}</td></tr>`;}).join("");
-  const hasNon = F.some(f=>f.kind==="non-live");
-  const hint = hasNon ? `<div class="row sub" style="border:0;padding-top:4px">${tr("nonlive_hint")}</div>` : "";
-  return `<table><tr><th>${tr("th_target")}</th><th>${tr("th_class")}</th><th>${tr("th_sev")}</th><th>${tr("th_status")}</th><th>${tr("th_bounty")}</th></tr>${rows}</table>${hint}`;
-}
-
-function parked(P){
-  if(!P.length) return `<div class="panel"><div class="row sub">${tr("none_parked")}</div></div>`;
-  return `<div class="panel">`+P.map(p=>`<div class="row"><div>${esc(p.title||p.id)}
-    <div class="sub">${tr("fires")}: ${esc(p.fire_means||"?")}</div></div></div>`).join("")+`</div>`;
-}
-
-function render(s){
-  window.__state = s;
-  document.getElementById("gen").textContent = tr("generated")+" "+(s.generated||"?")+" · v"+(s.version||"?");
-  document.getElementById("targetlist").innerHTML =
-    (s.targets||[]).map(t=>`<option value="${esc(t.name||t.id)}">`).join("");
-  const pub = !!s._public;
-  document.getElementById("verdictbar").style.display = pub ? "none" : "";   // no mutations in public mode
-  if(pub) document.getElementById("gen").textContent += "  ·  "+tr("pub");
-  const m=s.metrics||{}, p=m.precision||{}, r=m.recall||{};
-  const byStatus = {};
-  (s.targets||[]).forEach(t=>{const c=colOf(t);byStatus[c]=(byStatus[c]||0)+1;});
-  const tiles = tile(tr("t_targets"), (s.targets||[]).length)
-    + tile(tr("t_real_dig"), `${byStatus.REAL||0} / ${byStatus.DIG||0}`)
-    + tile(tr("t_findings"), (s.findings||[]).length)
-    + tile(tr("t_parked"), (s.parked||[]).length)
-    + tile(tr("t_repos"), (s.repos||[]).length)
-    + tile(tr("t_precision"), p.value==null?"n/a":p.value)
-    + tile(tr("t_recall"), r.value==null?"n/a":r.value);
-  document.getElementById("app").innerHTML =
-    `<div class="tiles">${tiles}</div>`
-    + board(s.targets||[])
-    + `<section><h2>${tr("radars")}</h2>${radars(s.radars||{})}</section>`
-    + `<section class="grid2">
-        <div><h2>${tr("findings_lc")}</h2>${findings(s.findings||[])}</div>
-        <div><h2>${tr("parked_leads")}</h2>${pub
-            ? `<div class="panel"><div class="row sub">${s.parked_count||0} ${tr("parked_hidden")}</div></div>`
-            : parked(s.parked||[])}</div>
-       </section>`;
-}
-
-// Prefer the live bridge (/api/state = fresh re-derive); fall back to the static file (plain http.server).
+/* ---------- data ---------- */
 function loadState(){
   return fetch(apiUrl("/api/state"),{cache:"no-store"})
     .then(r=>{ if(!r.ok) throw 0; return r.json(); })
-    .catch(()=>fetch("/monitor/lab-state.json",{cache:"no-store"}).then(r=>{
-      if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }));
+    .catch(()=>fetch("/monitor/lab-state.json",{cache:"no-store"}).then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }));
 }
-function refresh(){ return loadState().then(render); }
-
-function showErr(e){
-  document.getElementById("app").innerHTML =
-    `<div class="err">${tr("err_load")} (${esc(e&&e.message||e)}).<br><br>
-     ${tr("err_serve")} <code>python toolkit/dashboard.py</code>.<br>${tr("err_file")}</div>`;
+const DETAIL_CACHE={};
+function loadDetail(id){
+  if(DETAIL_CACHE[id]) return Promise.resolve(DETAIL_CACHE[id]);
+  return fetch(apiUrl("/api/finding_detail?key="+encodeURIComponent(id)),{cache:"no-store"})
+    .then(r=>r.json()).then(d=>{ if(d&&!d.error){DETAIL_CACHE[id]=d; return d;} return null; }).catch(()=>null);
 }
 
-// verdict mutation -> POST /api/record_verdict (the HTTP bridge over labcore) -> re-derive + re-render
-const $ = id => document.getElementById(id);
-$("v_btn").addEventListener("click", ()=>{
-  const target=$("v_target").value.trim(), verdict=$("v_verdict").value, reason=$("v_reason").value.trim();
-  const msg=$("v_msg");
-  if(!target||!reason){ msg.className="vmsg bad"; msg.textContent=tr("reason_req"); return; }
-  $("v_btn").disabled=true; msg.className="vmsg"; msg.textContent=tr("saving");
-  fetch("/api/record_verdict",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({target,verdict,reason})})
-    .then(r=>r.json().then(j=>({ok:r.ok,j})))
-    .then(({ok,j})=>{
-      if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||tr("failed")); return; }
-      msg.className="vmsg ok"; msg.textContent="✓ "+tr("saved")+" ("+esc(j.verdict)+")"; $("v_reason").value="";
-      return refresh();
-    })
-    .catch(e=>{ msg.className="vmsg bad"; msg.textContent="✗ "+tr("bridge_off"); })
-    .finally(()=>{ $("v_btn").disabled=false; });
-});
-
-// --- apply the static chrome (header/verdictbar/footer) + language toggle (default ru, persisted) ---
-function applyChrome(){
-  $("subtitle").textContent = tr("subtitle");
-  $("lbl_rv").textContent = tr("record_verdict");
-  $("v_target").placeholder = tr("target_name");
-  $("v_reason").placeholder = tr("reason_why");
-  $("v_btn").textContent = tr("save_ledger");
-  $("foot").innerHTML = tr("foot");
-  $("langbtn").textContent = LANG==="ru" ? "EN" : "RU";   // shows the language you'll switch TO
-  document.documentElement.lang = LANG;
+/* ---------- router ---------- */
+let VIEW={tab:"overview",id:null};
+function parseHash(){
+  const h=(location.hash||"").replace(/^#\/?/,"");
+  const [a,b]=h.split("/");
+  if(a==="t"&&b) return {tab:VIEW.tab||"overview",id:decodeURIComponent(b)};
+  if(["overview","findings","targets","watch"].includes(a)) return {tab:a,id:null};
+  return {tab:"overview",id:null};
 }
-$("langbtn").addEventListener("click", ()=>{
-  LANG = LANG==="ru" ? "en" : "ru";
-  localStorage.setItem("lab_lang", LANG);
-  applyChrome();
-  if(window.__state) render(window.__state); else loadState().then(render).catch(showErr);
-});
-applyChrome();
+function go(tab,id){ location.hash = id?("#/t/"+encodeURIComponent(id)):("#/"+tab); }
+window.addEventListener("hashchange",()=>{ VIEW=parseHash(); renderApp(); });
 
-// --- clickable target card -> detail modal: project info + verdicts + its bug + one-step log-finding ---
-const modal = document.createElement("div"); modal.className = "modal"; document.body.appendChild(modal);
-modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("show"); });
-function findingsFor(id){ return (((window.__state||{}).findings)||[]).filter(f=>(f.target||"").toLowerCase()===(id||"").toLowerCase()); }
-// --- enriched finding detail (Phase 2): FINDING.md write-up + live watch status + change-events ---
+/* ---------- pages ---------- */
+function statCard(v,k,onTab){ return `<div class="stat ${onTab?'click':''}" ${onTab?`data-tab="${onTab}"`:''}><div class="v">${v}</div><div class="k">${esc(k)}</div></div>`; }
+
+function pageOverview(s){
+  const m=s.metrics||{}, p=m.precision||{}, r=m.recall||{};
+  const by={}; (s.targets||[]).forEach(t=>{const c=colOf(t);by[c]=(by[c]||0)+1;});
+  const reals=(s.targets||[]).filter(t=>t.status==="REAL");
+  const stats=`<div class="stats">
+     ${statCard((s.findings||[]).length,tr("s_findings"),"findings")}
+     ${statCard(by.REAL||0,tr("s_real"),"findings")}
+     ${statCard(by.DIG||0,tr("s_dig"),"targets")}
+     ${statCard((s.targets||[]).length,tr("s_targets"),"targets")}
+     ${statCard((s.parked||[]).length,tr("s_parked"),"watch")}
+     ${statCard(p.value==null?"n/a":p.value,tr("s_precision"))}
+   </div>`;
+  const attn = reals.length
+    ? `<div class="fgrid">${reals.map(findingCard).join("")}</div>`
+    : `<div class="panel"><div class="empty">${tr("no_findings_attn")}</div></div>`;
+  const events = collectEvents(s).slice(0,6);
+  const ev = events.length
+    ? `<div class="panel">${events.map(e=>`<div class="prow"><div><b>${esc(e.type)}</b> <span class="chip" data-tab-id="${esc(e.key)}">${esc(e.key)}</span><div class="sub">${esc(e.detail||"")}</div></div><div class="vt mono" style="color:var(--txt3);font-size:11.5px">${esc((e.ts||'').slice(0,16).replace('T',' '))}</div></div>`).join("")}</div>`
+    : `<div class="panel"><div class="empty">${tr("no_events")}</div></div>`;
+  return `<div class="pagehead"><div><h1>${tr("ov_title")}</h1><div class="sub">${tr("ov_sub")}</div></div></div>
+    ${stats}
+    <div class="eyebrow">${tr("attention")} · <span style="text-transform:none;letter-spacing:0;font-weight:500">${tr("attention_sub")}</span></div>${attn}
+    <div class="eyebrow">${tr("recent")}</div>${ev}`;
+}
+
+function findingCard(t){
+  const sev=sevText(t), sc=sevClass(sev);
+  const l = (DETAIL_CACHE[t.id]||{}).liveness;
+  const meta=[ (t.chains&&t.chains[0]), (t.zones&&t.zones[0]) ].filter(Boolean).join(" · ");
+  return `<div class="fcard" data-id="${esc(t.id)}">
+    <div class="top">${sev?`<span class="sev sev-${sc}">${esc(sev)}</span>`:""}<span class="nm">${esc(t.name||t.id)}</span>${t.sensitivity==="high"?'<span class="lock" title="keep private">🔒</span>':''}</div>
+    <div class="desc">${esc(reasonText(t)||"—")}</div>
+    <div class="foot">${l?liveBadgeMini(l):""}${meta?`<span class="chip"><span class="dot d-${colOf(t)}"></span>${esc(meta)}</span>`:""}</div>
+  </div>`;
+}
+
+function pageFindings(s){
+  const reals=(s.targets||[]).filter(t=>t.status==="REAL")
+    .sort((a,b)=>(SEVRANK[sevClass(sevText(b))]||0)-(SEVRANK[sevClass(sevText(a))]||0));
+  const cards = reals.length ? `<div class="fgrid">${reals.map(findingCard).join("")}</div>`
+    : `<div class="panel"><div class="empty"><div class="big">${tr("no_findings")}</div></div></div>`;
+  return `<div class="pagehead"><div><h1>${tr("fnd_title")}</h1><div class="sub">${tr("fnd_sub")}</div></div></div>
+    <div class="eyebrow">${tr("fnd_real")} · ${reals.length}</div>${cards}
+    <div class="eyebrow">${tr("fnd_lifecycle")}</div>${findingsTable(s.findings||[])}`;
+}
+
+function findingsTable(F){
+  if(!F.length) return `<div class="panel"><div class="empty">${tr("no_findings")}</div></div>`;
+  const sorted=[...F].sort((a,b)=>((a.kind==="non-live")-(b.kind==="non-live")));
+  const rows=sorted.map(f=>{const k=(f.kind==="non-live")?"non-live":"live"; const sc=sevClass(f.sev_claimed);
+    return `<tr class="${k==="non-live"?"nonlive":""}" data-id="${esc(f.target||"")}">
+      <td>${esc(f.target||"")}</td>
+      <td><span class="pill k-${k}">${tr(k==="non-live"?"k_nonlive":"k_live")}</span></td>
+      <td>${f.sev_claimed?`<span class="sev sev-${sc}">${esc(f.sev_claimed)}</span>`:"?"}${f.sev_awarded?` → ${esc(f.sev_awarded)}`:""}</td>
+      <td><span class="pill st-${esc(f.status||"")}">${esc(f.status||"?")}</span></td>
+      <td class="num">${f.bounty_received?("$"+f.bounty_received):"—"}</td></tr>`;}).join("");
+  return `<div class="panel"><table><thead><tr><th>${tr("th_target")}</th><th>${tr("th_class")}</th><th>${tr("th_sev")}</th><th>${tr("th_status")}</th><th>${tr("th_bounty")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function pageTargets(s){
+  const COLS=["REAL","DIG","PARK","SKIP","CLEAN"];
+  const buckets=Object.fromEntries(COLS.map(c=>[c,[]]));
+  (s.targets||[]).forEach(t=>buckets[colOf(t)].push(t));
+  const board=`<div class="board">`+COLS.map(c=>{
+    const items=buckets[c], cap=(c==="CLEAN"||c==="SKIP")?40:200;
+    const cards=items.slice(0,cap).map(t=>{
+      const meta=[t.zones&&t.zones.join(","),t.fork_base&&("fork:"+t.fork_base),t.chains&&t.chains.join(",")].filter(Boolean).join(" · ");
+      const nv=(t.verdicts||[]).length, fn=findingsFor(t.id).length?" 🐞":"";
+      return `<div class="tcard" data-id="${esc(t.id)}"><div class="nm"><span class="dot d-${c}"></span>${esc(t.name||t.id)}${t.sensitivity==="high"?' 🔒':''}${fn}</div><div class="meta">${esc(meta||"—")}${nv?` · ${nv}v`:""}</div></div>`;
+    }).join("")||`<div class="tcard meta" style="color:var(--txt3);cursor:default">—</div>`;
+    const more=items.length>cap?`<div class="tcard meta" style="color:var(--txt3);cursor:default">+${items.length-cap}</div>`:"";
+    return `<div class="col"><h3><span class="h-${c}">${c}</span><span class="n">${items.length}</span></h3>${cards}${more}</div>`;
+  }).join("")+`</div>`;
+  const form = s._public ? "" : `<div class="toolbar">
+      <div class="field grow"><label>${tr("target_name")}</label><input id="v_target" list="targetlist" autocomplete="off"><datalist id="targetlist">${(s.targets||[]).map(t=>`<option value="${esc(t.name||t.id)}">`).join("")}</datalist></div>
+      <div class="field"><label>verdict</label><select id="v_verdict"><option value="todo">todo</option><option value="real">real</option><option value="fp">fp</option><option value="known">known</option><option value="wontfix">wontfix</option></select></div>
+      <div class="field grow"><label>${tr("reason_why")}</label><input id="v_reason" autocomplete="off"></div>
+      <button class="btn btn-primary" id="v_btn">${tr("save_ledger")}</button><span id="v_msg" class="msg"></span></div>`;
+  return `<div class="pagehead"><div><h1>${tr("tg_title")}</h1><div class="sub">${tr("tg_sub")}</div></div></div>${form}${board}`;
+}
+
+function collectEvents(s){
+  const w=(s.watch&&s.watch.events)||window.__events||[];
+  return [...w].sort((a,b)=>(b.ts||"").localeCompare(a.ts||""));
+}
+function pageWatch(s){
+  const events=collectEvents(s);
+  const ev = events.length
+    ? `<div class="panel">${events.map(e=>`<div class="wev wev-${esc(e.sev||'')}"><span class="tp">${esc(e.type||'')}</span> <span class="chip" data-tab-id="${esc(e.key)}">${esc(e.key)}</span> <span class="vt">${esc((e.ts||'').slice(0,16).replace('T',' '))}</span><div style="color:var(--txt2);margin-top:4px">${esc(e.detail||'')}</div></div>`).join("")}</div>`
+    : `<div class="panel"><div class="empty">${tr("no_events")}</div></div>`;
+  const rd=s.radars||{}, q=rd.queue||{}, fd=rd.freshdeploy||{}, ff=rd.freshfeed||{}, sc=rd.secrets||{};
+  const rrow=(nm,cnt,fresh)=>`<div class="prow"><div>${nm}<div class="sub">${cnt}</div></div><div>${(fresh&&fresh.length)?`<span class="sev sev-high">▲ ${fresh.length}</span>`:`<span class="chip">${tr("quiet")}</span>`}</div></div>`;
+  const radars=`<div class="panel">
+    ${rrow("change radar",`impl ${q.impl_upgrades||0} · bounty ${q.bounty_launches||0}`,q.fresh_items)}
+    ${rrow("fresh-deploy",`${fd.watched||0} watched`,fd.fresh_items)}
+    ${rrow("fresh-feed",`${ff.seen||0} listed`,ff.fresh_items)}
+    ${rrow("secrets-sweep",`${sc.repos||0} repos · ${sc.leaks||0} leaks`,sc.fresh_items)}</div>`;
+  const parked = s._public
+    ? `<div class="panel"><div class="empty">${(s.parked_count||0)} ${tr("parked_hidden")}</div></div>`
+    : ((s.parked||[]).length ? `<div class="panel">${(s.parked||[]).map(p=>`<div class="prow"><div>${esc(p.title||p.id)}<div class="sub">${esc(p.fire_means||"")}</div></div></div>`).join("")}</div>` : `<div class="panel"><div class="empty">${tr("none_parked")}</div></div>`);
+  return `<div class="pagehead"><div><h1>${tr("wt_title")}</h1><div class="sub">${tr("wt_sub")}</div></div></div>
+    <div class="eyebrow">${tr("wt_events")}</div>${ev}
+    <div class="eyebrow">${tr("wt_radars")}</div>${radars}
+    <div class="eyebrow">${tr("wt_parked")}</div>${parked}`;
+}
+
+/* ---------- markdown + detail render ---------- */
 function mdToHtml(md){
   if(!md) return "";
-  const blocks=[]; md=md.replace(/```[\w]*\n?([\s\S]*?)```/g,(m,c)=>{blocks.push(c);return " C"+(blocks.length-1)+" ";});
+  const blocks=[]; md=md.replace(/```[\w]*\n?([\s\S]*?)```/g,(m,c)=>{blocks.push(c);return "@@C"+(blocks.length-1)+"@@";});
   let h=esc(md);
-  h=h.replace(/^\s{0,3}###\s+(.*)$/gm,"<h4>$1</h4>").replace(/^\s{0,3}##\s+(.*)$/gm,"<h3>$1</h3>").replace(/^\s{0,3}#\s+(.*)$/gm,"<h3>$1</h3>");
+  h=h.replace(/^\s{0,3}####?\s+(.*)$/gm,"<h4>$1</h4>").replace(/^\s{0,3}##\s+(.*)$/gm,"<h3>$1</h3>").replace(/^\s{0,3}#\s+(.*)$/gm,"<h2>$1</h2>");
   h=h.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`([^`\n]+)`/g,"<code>$1</code>");
   h=h.replace(/^\s*[-*]\s+(.*)$/gm,"<li>$1</li>");
-  h=h.replace(/\n{2,}/g,"</p><p>");
-  h="<p>"+h+"</p>";
-  h=h.replace(/ C(\d+) /g,(m,i)=>"<pre class='code'>"+esc(blocks[+i].replace(/\s+$/,''))+"</pre>");
+  h=h.replace(/\n{2,}/g,"</p><p>"); h="<p>"+h+"</p>";
+  h=h.replace(/@@C(\d+)@@/g,(m,i)=>"<pre class='code'>"+esc(blocks[+i].replace(/\s+$/,''))+"</pre>");
   return h;
 }
-function liveBadge(d){
-  const l=d.liveness; if(!l) return '<span class="lb lb-un">no live-watch data</span>';
-  const wt=d.watch_target||{}, funded=(l.value||0)>0;
-  const unit = wt.token ? "token-units" : "wei";
-  const act = (l.last_days!=null) ? (l.last_days<7?"active":(l.last_days<30?"quiet":"idle "+Math.round(l.last_days)+"d")) : "recency n/a";
-  const chk = l.ts ? " · checked "+esc(l.ts.slice(0,16).replace("T"," ")) : "";
-  return `<span class="lb ${funded?'lb-live':'lb-dorm'}">${funded?'● LIVE-FUNDED':'○ dormant / empty'}</span>`
-    + ` <span class="vt">value ${esc(String(l.value||0))} ${unit} · ${esc(act)}${chk}</span>`
-    + (wt.note?`<div class="vt">${esc(wt.note)}</div>`:"");
+function liveboxFull(d){
+  const l=d.liveness; if(!l) return `<div class="empty">${tr("no_watch")}</div>`;
+  const wt=d.watch_target||{}, k=liveKind(l), unit=wt.token?"token-units":"wei";
+  const act=(l.last_days!=null)?(l.last_days<7?tr("active"):(l.last_days<30?tr("quiet"):tr("idle")+" "+Math.round(l.last_days)+"d")):"";
+  return `<div class="livebox">${liveBadgeMini(l)}
+    <div class="meta">${tr("value")} <b class="mono">${esc(String(l.value||0))}</b> ${unit}${act?` · ${act}`:""}${l.ts?` · ${tr("checked")} ${esc(l.ts.slice(0,16).replace("T"," "))}`:""}</div>
+    ${wt.note?`<div class="vt" style="font-size:12px">${esc(wt.note)}</div>`:""}</div>`;
 }
-function renderFindingDetail(d){
-  const ev=(d.events||[]).slice().reverse().map(e=>`<div class="wev wev-${esc(e.sev||'')}"><b>${esc(e.type||'')}</b> <span class="vt">${esc((e.ts||'').slice(0,16).replace('T',' '))}</span><br>${esc(e.detail||'')}</div>`).join("")
-    || `<div class="row sub">no change-events yet (watch baseline set — FUNDED/DRAINED/CODE-CHANGE will appear here)</div>`;
-  const md=d.finding_md? `<div class="mdbox">${mdToHtml(d.finding_md)}</div>` : `<div class="row sub">no FINDING.md write-up for this target yet</div>`;
-  const poc=d.poc_path? `<span class="vt">📄 ${esc(d.poc_path)}</span>`:"";
-  return `<div class="mh2">🔴 liveness / tracking</div><div class="livebox">${liveBadge(d)}</div>`
-    + `<div class="mh2">change-events</div>${ev}`
-    + `<div class="mh2">bugs, source &amp; fix ${poc}</div>${md}`;
+function eventsFull(d){
+  const ev=(d.events||[]);
+  if(!ev.length) return `<div class="empty">${tr("no_events")}</div>`;
+  return ev.slice().reverse().map(e=>`<div class="wev wev-${esc(e.sev||'')}"><span class="tp">${esc(e.type||'')}</span> <span class="vt">${esc((e.ts||'').slice(0,16).replace('T',' '))}</span><div style="color:var(--txt2);margin-top:3px">${esc(e.detail||'')}</div></div>`).join("");
 }
-function openDetail(id){
-  const s = window.__state||{}; const t = (s.targets||[]).find(x=>x.id===id); if(!t) return;
-  const kv=(k,v)=> (v&&v.length)? `<div class="k">${esc(k)}</div><div>${esc(Array.isArray(v)?v.join(", "):v)}</div>`:"";
-  const verds=(t.verdicts||[]).map(v=>`<div class="vi"><b>${esc(v.verdict)}</b> <span class="vt">${esc(v.detector||"")} · ${esc(v.date||"")}</span><br>${esc((v.reason||"").slice(0,220))}</div>`).join("") || `<div class="row sub">${tr("no_verdicts")}</div>`;
-  const sibs=t.fork_base ? (s.targets||[]).filter(x=>x.fork_base===t.fork_base && x.id!==t.id) : [];
-  const forkfam=t.fork_base ? `<div class="mh2">${tr("fork_family")}: <span class="badge">${esc(t.fork_base)}</span> <span class="vt">${tr("jump_hint")}</span></div>`
-    + (sibs.length ? `<div>`+sibs.map(x=>`<span class="fchip" data-id="${esc(x.id)}"><span class="dot d-${colOf(x)}"></span> ${esc(x.name||x.id)}</span>`).join("")+`</div>` : `<div class="row sub">${tr("no_siblings")}</div>`) : "";
-  const det=t.detect, fpr=(det&&det.fingerprints)||[];
-  const dch=f=>`<span class="dchip d-${f.verdict==='vuln?'?'v':(f.verdict==='safe'?'s':'n')}" title="${esc(f.desc||'')}">${f.verdict==='vuln?'?'⚠ ':''}${esc(f.id)} · ${esc(f.verdict)}</span>`;
-  const naCount=fpr.filter(f=>f.verdict==='n/a').length;
-  const detect=det ? `<div class="mh2">${tr("known_bugs")} <span class="vt">${esc(det.generated||'')}</span></div>`
-    + fpr.filter(f=>f.verdict!=='n/a').map(dch).join("") + (naCount?`<span class="dchip d-n">n/a · ${naCount}</span>`:"") : "";
-  const finds=findingsFor(id).map(f=>{const k=(f.kind==="non-live")?"non-live":"live";
-    return `<div class="find">🐞 <b>${esc(f.title||"")}</b> <span class="pill k-${k}">${tr(k==="non-live"?"k_nonlive":"k_live")}</span><br><span class="vt">sev ${esc(f.sev_claimed||"?")}${f.sev_awarded?" → "+esc(f.sev_awarded):""} · ${esc(f.status||"")} · ${esc(f.file||"")}${f.line?":"+esc(f.line):""}${f.bounty_received?" · $"+esc(f.bounty_received):""}</span></div>`;}).join("") || `<div class="row sub">${tr("no_finding_t")}</div>`;
-  modal.innerHTML = `<div class="modal-card">
-    <div class="mh"><span class="dot d-${colOf(t)}"></span><h2>${esc(t.name||t.id)}</h2>
-      <span class="badge h-${colOf(t)}">${esc(t.status)}${t.disposition?"/"+esc(t.disposition):""}</span>
-      ${t.sensitivity==="high"?'<span class="badge lock">🔒 high</span>':""}<button class="x" id="mx">✕</button></div>
-    <div class="mb">
-      <div class="kv">${kv(tr("kv_zones"),t.zones)}${kv(tr("kv_chains"),t.chains)}${kv(tr("kv_fork"),t.fork_base)}${kv(tr("kv_owasp"),t.owasp)}${kv(tr("kv_sources"),t.sources)}${kv(tr("kv_first"),t.firstseen)}${kv(tr("kv_updated"),t.lastupdated)}</div>
-      <div class="mh2">${tr("m_findings")}</div>${finds}
-      <div id="fdetail" class="fdetail"><div class="row sub">loading finding detail…</div></div>
-      ${detect}
-      <div class="mh2">${tr("m_verdicts")} (${(t.verdicts||[]).length})</div><div class="vlist">${verds}</div>
-      ${forkfam}
-      ${s._public?"":`<div class="mh2">${tr("log_finding")}</div>
-        <div class="logf"><input class="t" id="lf_title" placeholder="${tr("finding_title")}" autocomplete="off">
-          <select id="lf_sev"><option>low</option><option>low-med</option><option>medium</option><option>high</option><option>critical</option></select>
-          <select id="lf_kind"><option value="live">live</option><option value="non-live">non-live</option></select>
-          <select id="lf_status"><option>drafted</option><option>disclosed</option><option>accepted</option><option>disputed</option></select>
-          <button id="lf_btn">${tr("log_btn")}</button><span id="lf_msg" class="vmsg"></span></div>`}
-    </div></div>`;
-  modal.classList.add("show");
-  document.getElementById("mx").onclick = ()=>modal.classList.remove("show");
-  const fd=document.getElementById("fdetail");
-  if(fd){ fetch(apiUrl("/api/finding_detail?key="+encodeURIComponent(id)),{cache:"no-store"})
-    .then(r=>r.json()).then(d=>{ if(d&&!d.error) fd.innerHTML=renderFindingDetail(d);
-      else fd.innerHTML='<div class="row sub">'+esc((d&&d.error)||"no detail")+'</div>'; })
-    .catch(()=>{ fd.innerHTML='<div class="row sub">detail bridge off (static mode)</div>'; }); }
-  const b = document.getElementById("lf_btn");
-  if(b) b.onclick = ()=>{
-    const title=$("lf_title").value.trim(), msg=$("lf_msg");
-    if(!title){ msg.className="vmsg bad"; msg.textContent=tr("title_req"); return; }
-    b.disabled=true; msg.className="vmsg"; msg.textContent=tr("saving");
-    fetch(apiUrl("/api/record_finding"),{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({target:t.name||t.id, title, sev:$("lf_sev").value, kind:$("lf_kind").value, status:$("lf_status").value})})
-      .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
-        if(!ok||j.error){ msg.className="vmsg bad"; msg.textContent="✗ "+(j.error||tr("failed")); return; }
-        msg.className="vmsg ok"; msg.textContent="✓ "+tr("logged"); return refresh().then(()=>openDetail(id));
-      }).catch(()=>{ msg.className="vmsg bad"; msg.textContent="✗ "+tr("bridge_off"); })
-      .finally(()=>{ b.disabled=false; });
-  };
-}
-document.addEventListener("click", e=>{ const c=e.target.closest(".card.clickable[data-id], .fchip[data-id]"); if(c) openDetail(c.getAttribute("data-id")); });
 
+function pageDetail(s,id){
+  const t=(s.targets||[]).find(x=>x.id===id);
+  if(!t) return `<button class="back" data-back>← ${tr("back")}</button><div class="empty"><div class="big">${esc(id)}</div>not a known target</div>`;
+  const sev=sevText(t), sc=sevClass(sev);
+  const kv=(k,v)=>(v&&(Array.isArray(v)?v.length:true))?`<div class="k">${esc(k)}</div><div class="v${k===tr('kv_addr')?' addr':''}">${esc(Array.isArray(v)?v.join(", "):v)}</div>`:"";
+  const verds=(t.verdicts||[]).map(v=>`<div class="vi"><b>${esc(v.verdict)}</b> <span class="vt">${esc(v.detector||"")} · ${esc(v.date||"")}</span><br>${esc((v.reason||"").slice(0,320))}</div>`).join("")||`<div class="empty">${tr("no_verdicts")}</div>`;
+  const sibs=t.fork_base?(s.targets||[]).filter(x=>x.fork_base===t.fork_base&&x.id!==t.id):[];
+  const forkfam=t.fork_base?`<div class="sect"><h2>${tr("d_fork")} <span class="badge">${esc(t.fork_base)}</span><span class="hint">${tr("jump_hint")}</span></h2>${sibs.length?sibs.map(x=>`<span class="fchip" data-id="${esc(x.id)}"><span class="dot d-${colOf(x)}"></span>${esc(x.name||x.id)}</span>`).join(""):`<div class="vt">${tr("no_siblings")}</div>`}</div>`:"";
+  const det=t.detect,fpr=(det&&det.fingerprints)||[];
+  const dch=f=>`<span class="dchip d-${f.verdict==='vuln?'?'v':(f.verdict==='safe'?'s':'n')}" title="${esc(f.desc||'')}">${f.verdict==='vuln?'?'⚠ ':''}${esc(f.id)} · ${esc(f.verdict)}</span>`;
+  const naC=fpr.filter(f=>f.verdict==='n/a').length;
+  const known=det?`<div class="sect"><h2>${tr("d_known")}<span class="hint">${esc(det.generated||'')}</span></h2>${fpr.filter(f=>f.verdict!=='n/a').map(dch).join("")}${naC?`<span class="dchip">n/a · ${naC}</span>`:""}</div>`:"";
+  const logf = s._public?"":`<div class="sect"><h2>${tr("d_log")}</h2>
+      <div class="toolbar" style="margin:0;border:0;padding:0;background:none">
+        <div class="field grow"><input id="lf_title" placeholder="${tr("finding_title")}" autocomplete="off"></div>
+        <div class="field"><select id="lf_sev"><option>low</option><option>low-med</option><option>medium</option><option>high</option><option>critical</option></select></div>
+        <div class="field"><select id="lf_kind"><option value="live">live</option><option value="non-live">non-live</option></select></div>
+        <div class="field"><select id="lf_status"><option>drafted</option><option>disclosed</option><option>accepted</option><option>disputed</option></select></div>
+        <button class="btn btn-primary" id="lf_btn">${tr("log_btn")}</button><span id="lf_msg" class="msg"></span></div></div>`;
+
+  const left=`<div>
+    <div class="sect"><h2>${tr("d_liveness")}</h2><div id="d_live"><div class="empty">${tr("loading")}</div></div></div>
+    <div class="sect"><h2>${tr("d_bugs")} <span id="d_pocpath" class="hint"></span></h2><div id="d_md" class="mdbox"><div class="empty">${tr("loading")}</div></div></div>
+    ${known}${logf}</div>`;
+  const right=`<div>
+    <div class="sect"><h2>${tr("d_summary")}</h2><div class="kv">
+      ${kv(tr("kv_addr"),(t.addresses&&t.addresses[0]))}${kv(tr("kv_chains"),t.chains)}${kv(tr("kv_zones"),t.zones)}
+      ${kv(tr("kv_owasp"),t.owasp||t.owasp_classes)}${kv(tr("kv_sources"),t.sources)}${kv(tr("kv_first"),t.firstseen)}${kv(tr("kv_updated"),t.lastupdated)}</div></div>
+    <div class="sect"><h2>${tr("d_verdicts")} <span class="hint">${(t.verdicts||[]).length}</span></h2>${verds}</div>
+    <div class="sect"><h2>${tr("d_events")}</h2><div id="d_events"><div class="empty">${tr("loading")}</div></div></div>
+    ${forkfam}</div>`;
+
+  setTimeout(()=>hydrateDetail(id),0);
+  return `<button class="back" data-back>← ${tr("back")}</button>
+    <div class="dhead"><span class="dot d-${colOf(t)}" style="width:11px;height:11px"></span>
+      <h1>${esc(t.name||t.id)}</h1>${sev?`<span class="sev sev-${sc}">${esc(sev)}</span>`:""}
+      <span class="badge h-${colOf(t)}">${esc(t.status)}${t.disposition?"/"+esc(t.disposition):""}</span>
+      ${t.sensitivity==="high"?'<span class="badge lock">🔒 high</span>':''}
+      <span id="d_livebadge"></span></div>
+    ${(t.addresses&&t.addresses[0])?`<div class="addr mono">${esc(t.addresses[0])}</div>`:""}
+    <div class="dgrid">${left}${right}</div>`;
+}
+function hydrateDetail(id){
+  loadDetail(id).then(d=>{
+    if(!d) d={};
+    const live=$("d_live"), md=$("d_md"), evb=$("d_events"), pp=$("d_pocpath"), lb=$("d_livebadge");
+    if(live) live.innerHTML=liveboxFull(d);
+    if(evb) evb.innerHTML=eventsFull(d);
+    if(md) md.innerHTML=d.finding_md?mdToHtml(d.finding_md):`<div class="empty">${tr("no_finding_md")}</div>`;
+    if(pp&&d.poc_path) pp.textContent="📄 "+d.poc_path;
+    if(lb&&d.liveness) lb.innerHTML=liveBadgeMini(d.liveness);
+  });
+  const b=$("lf_btn"); if(b) b.onclick=()=>doLogFinding(id);
+}
+
+/* ---------- mutations ---------- */
+function doRecordVerdict(){
+  const target=$("v_target").value.trim(),verdict=$("v_verdict").value,reason=$("v_reason").value.trim(),msg=$("v_msg"),b=$("v_btn");
+  if(!target||!reason){msg.className="msg bad";msg.textContent=tr("reason_req");return;}
+  b.disabled=true;msg.className="msg";msg.textContent=tr("saving");
+  fetch("/api/record_verdict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target,verdict,reason})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(!ok||j.error){msg.className="msg bad";msg.textContent="✗ "+(j.error||tr("failed"));return;}
+      msg.className="msg ok";msg.textContent="✓ "+tr("saved");$("v_reason").value="";refresh();
+    }).catch(()=>{msg.className="msg bad";msg.textContent="✗ "+tr("bridge_off");}).finally(()=>{b.disabled=false;});
+}
+function doLogFinding(id){
+  const t=(window.__state.targets||[]).find(x=>x.id===id)||{};
+  const title=$("lf_title").value.trim(),msg=$("lf_msg"),b=$("lf_btn");
+  if(!title){msg.className="msg bad";msg.textContent=tr("title_req");return;}
+  b.disabled=true;msg.className="msg";msg.textContent=tr("saving");
+  fetch(apiUrl("/api/record_finding"),{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({target:t.name||id,title,sev:$("lf_sev").value,kind:$("lf_kind").value,status:$("lf_status").value})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(!ok||j.error){msg.className="msg bad";msg.textContent="✗ "+(j.error||tr("failed"));return;}
+      msg.className="msg ok";msg.textContent="✓ "+tr("logged");refresh();
+    }).catch(()=>{msg.className="msg bad";msg.textContent="✗ "+tr("bridge_off");}).finally(()=>{b.disabled=false;});
+}
+
+/* ---------- app shell ---------- */
+function renderTabs(s){
+  const by={}; (s.targets||[]).forEach(t=>{const c=colOf(t);by[c]=(by[c]||0)+1;});
+  const tabs=[["overview",tr("nav_overview"),""],["findings",tr("nav_findings"),(s.findings||[]).length||(by.REAL||"")],
+    ["targets",tr("nav_targets"),(s.targets||[]).length],["watch",tr("nav_watch"),collectEvents(s).length||""]];
+  $("tabs").innerHTML=tabs.map(([k,l,c])=>`<button class="tab ${VIEW.tab===k&&!VIEW.id?'on':''}" data-tab="${k}"><span class="lbl">${esc(l)}</span>${c!==""?`<span class="cnt">${esc(c)}</span>`:""}</button>`).join("");
+}
+function renderApp(){
+  const s=window.__state; if(!s) return;
+  renderTabs(s);
+  const app=$("app");
+  if(VIEW.id){ app.innerHTML=pageDetail(s,VIEW.id); }
+  else if(VIEW.tab==="findings") app.innerHTML=pageFindings(s);
+  else if(VIEW.tab==="targets"){ app.innerHTML=pageTargets(s); const b=$("v_btn"); if(b) b.onclick=doRecordVerdict; }
+  else if(VIEW.tab==="watch") app.innerHTML=pageWatch(s);
+  else app.innerHTML=pageOverview(s);
+  window.scrollTo(0,0);
+}
+function render(s){
+  window.__state=s;
+  window.__events=(s.watch&&s.watch.events)||[];
+  applyChrome(s);
+  renderApp();
+  // warm liveness for REAL targets so their live badges show on cards
+  (s.targets||[]).filter(t=>t.status==="REAL").slice(0,12).forEach(t=>loadDetail(t.id).then(()=>{ if(!VIEW.id) { const c=document.querySelector(`.fcard[data-id="${CSS.escape(t.id)}"] .foot`); if(c&&DETAIL_CACHE[t.id]&&DETAIL_CACHE[t.id].liveness&&!c.querySelector(".live")) c.insertAdjacentHTML("afterbegin",liveBadgeMini(DETAIL_CACHE[t.id].liveness)); } }));
+}
+function refresh(){ Object.keys(DETAIL_CACHE).forEach(k=>delete DETAIL_CACHE[k]); return loadState().then(render); }
+function showErr(e){ $("app").innerHTML=`<div class="errbox">${tr("err_load")} (${esc(e&&e.message||e)}).<br><br>${tr("err_serve")} <code>python toolkit/lab_http.py</code>.<br>${tr("err_file")}</div>`; }
+
+function applyChrome(s){
+  const pub=!!(s&&s._public);
+  $("foot").innerHTML=tr("foot")+(pub?` · <b style="color:var(--dig)">${tr("pub")}</b>`:"")+(s&&s.generated?` · ${tr("generated")} ${esc(s.generated)}`:"");
+  $("refreshlbl").textContent=tr("refresh");
+  $("langbtn").textContent=LANG==="ru"?"EN":"RU";
+  document.documentElement.lang=LANG;
+}
+
+/* events */
+document.addEventListener("click",e=>{
+  const tab=e.target.closest("[data-tab]"); if(tab){ go(tab.getAttribute("data-tab")); return; }
+  const idc=e.target.closest("[data-id]"); if(idc){ go(null,idc.getAttribute("data-id")); return; }
+  const idt=e.target.closest("[data-tab-id]"); if(idt){ go(null,idt.getAttribute("data-tab-id")); return; }
+  if(e.target.closest("[data-back]")){ if(history.length>1) history.back(); else go(VIEW.tab||"overview"); return; }
+});
+$("refreshbtn").addEventListener("click",()=>{ $("refreshbtn").disabled=true; refresh().finally(()=>$("refreshbtn").disabled=false); });
+$("langbtn").addEventListener("click",()=>{ LANG=LANG==="ru"?"en":"ru"; localStorage.setItem("lab_lang",LANG); if(window.__state){applyChrome(window.__state);renderApp();} });
+
+VIEW=parseHash();
 loadState().then(render).catch(showErr);
 </script>
 </body>
