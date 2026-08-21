@@ -100,6 +100,20 @@
   .logf button{background:var(--clean);color:#06281c;border:0;border-radius:6px;padding:6px 12px;font:12px var(--mono);cursor:pointer;font-weight:600}
   .err{padding:40px 20px;color:var(--real)}
   .foot{color:var(--dim);padding:10px 20px 30px;font-size:11px;border-top:1px solid var(--line);margin-top:10px}
+  /* Phase-2 enriched finding detail */
+  .fdetail{margin:6px 0 2px}
+  .livebox{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:4px}
+  .lb{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;border:1px solid var(--line)}
+  .lb-live{color:var(--clean);border-color:var(--clean)}
+  .lb-dorm{color:var(--dim)} .lb-un{color:var(--skip)}
+  .wev{background:var(--panel2);border-left:3px solid var(--line);border-radius:4px;padding:5px 9px;margin:4px 0;font-size:12px}
+  .wev-HIGH{border-left-color:var(--real)} .wev-MED{border-left-color:var(--dig)}
+  .mdbox{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 12px;margin-top:4px;max-height:420px;overflow:auto}
+  .mdbox h2,.mdbox h3,.mdbox h4{color:var(--acc);text-transform:none;letter-spacing:0;font-size:12.5px;margin:12px 0 4px}
+  .mdbox p{margin:6px 0;color:var(--txt)} .mdbox b{color:#fff}
+  .mdbox li{margin:2px 0 2px 16px;list-style:disc}
+  .mdbox code{background:#0b0e14;border:1px solid var(--line);border-radius:3px;padding:0 3px;color:var(--dig)}
+  .mdbox pre.code{background:#0b0e14;border:1px solid var(--line);border-radius:5px;padding:8px 10px;overflow:auto;white-space:pre;color:#b9c4d6;font-size:11.5px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -356,6 +370,38 @@ applyChrome();
 const modal = document.createElement("div"); modal.className = "modal"; document.body.appendChild(modal);
 modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("show"); });
 function findingsFor(id){ return (((window.__state||{}).findings)||[]).filter(f=>(f.target||"").toLowerCase()===(id||"").toLowerCase()); }
+// --- enriched finding detail (Phase 2): FINDING.md write-up + live watch status + change-events ---
+function mdToHtml(md){
+  if(!md) return "";
+  const blocks=[]; md=md.replace(/```[\w]*\n?([\s\S]*?)```/g,(m,c)=>{blocks.push(c);return " C"+(blocks.length-1)+" ";});
+  let h=esc(md);
+  h=h.replace(/^\s{0,3}###\s+(.*)$/gm,"<h4>$1</h4>").replace(/^\s{0,3}##\s+(.*)$/gm,"<h3>$1</h3>").replace(/^\s{0,3}#\s+(.*)$/gm,"<h3>$1</h3>");
+  h=h.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`([^`\n]+)`/g,"<code>$1</code>");
+  h=h.replace(/^\s*[-*]\s+(.*)$/gm,"<li>$1</li>");
+  h=h.replace(/\n{2,}/g,"</p><p>");
+  h="<p>"+h+"</p>";
+  h=h.replace(/ C(\d+) /g,(m,i)=>"<pre class='code'>"+esc(blocks[+i].replace(/\s+$/,''))+"</pre>");
+  return h;
+}
+function liveBadge(d){
+  const l=d.liveness; if(!l) return '<span class="lb lb-un">no live-watch data</span>';
+  const wt=d.watch_target||{}, funded=(l.value||0)>0;
+  const unit = wt.token ? "token-units" : "wei";
+  const act = (l.last_days!=null) ? (l.last_days<7?"active":(l.last_days<30?"quiet":"idle "+Math.round(l.last_days)+"d")) : "recency n/a";
+  const chk = l.ts ? " · checked "+esc(l.ts.slice(0,16).replace("T"," ")) : "";
+  return `<span class="lb ${funded?'lb-live':'lb-dorm'}">${funded?'● LIVE-FUNDED':'○ dormant / empty'}</span>`
+    + ` <span class="vt">value ${esc(String(l.value||0))} ${unit} · ${esc(act)}${chk}</span>`
+    + (wt.note?`<div class="vt">${esc(wt.note)}</div>`:"");
+}
+function renderFindingDetail(d){
+  const ev=(d.events||[]).slice().reverse().map(e=>`<div class="wev wev-${esc(e.sev||'')}"><b>${esc(e.type||'')}</b> <span class="vt">${esc((e.ts||'').slice(0,16).replace('T',' '))}</span><br>${esc(e.detail||'')}</div>`).join("")
+    || `<div class="row sub">no change-events yet (watch baseline set — FUNDED/DRAINED/CODE-CHANGE will appear here)</div>`;
+  const md=d.finding_md? `<div class="mdbox">${mdToHtml(d.finding_md)}</div>` : `<div class="row sub">no FINDING.md write-up for this target yet</div>`;
+  const poc=d.poc_path? `<span class="vt">📄 ${esc(d.poc_path)}</span>`:"";
+  return `<div class="mh2">🔴 liveness / tracking</div><div class="livebox">${liveBadge(d)}</div>`
+    + `<div class="mh2">change-events</div>${ev}`
+    + `<div class="mh2">bugs, source &amp; fix ${poc}</div>${md}`;
+}
 function openDetail(id){
   const s = window.__state||{}; const t = (s.targets||[]).find(x=>x.id===id); if(!t) return;
   const kv=(k,v)=> (v&&v.length)? `<div class="k">${esc(k)}</div><div>${esc(Array.isArray(v)?v.join(", "):v)}</div>`:"";
@@ -377,6 +423,7 @@ function openDetail(id){
     <div class="mb">
       <div class="kv">${kv(tr("kv_zones"),t.zones)}${kv(tr("kv_chains"),t.chains)}${kv(tr("kv_fork"),t.fork_base)}${kv(tr("kv_owasp"),t.owasp)}${kv(tr("kv_sources"),t.sources)}${kv(tr("kv_first"),t.firstseen)}${kv(tr("kv_updated"),t.lastupdated)}</div>
       <div class="mh2">${tr("m_findings")}</div>${finds}
+      <div id="fdetail" class="fdetail"><div class="row sub">loading finding detail…</div></div>
       ${detect}
       <div class="mh2">${tr("m_verdicts")} (${(t.verdicts||[]).length})</div><div class="vlist">${verds}</div>
       ${forkfam}
@@ -389,6 +436,11 @@ function openDetail(id){
     </div></div>`;
   modal.classList.add("show");
   document.getElementById("mx").onclick = ()=>modal.classList.remove("show");
+  const fd=document.getElementById("fdetail");
+  if(fd){ fetch(apiUrl("/api/finding_detail?key="+encodeURIComponent(id)),{cache:"no-store"})
+    .then(r=>r.json()).then(d=>{ if(d&&!d.error) fd.innerHTML=renderFindingDetail(d);
+      else fd.innerHTML='<div class="row sub">'+esc((d&&d.error)||"no detail")+'</div>'; })
+    .catch(()=>{ fd.innerHTML='<div class="row sub">detail bridge off (static mode)</div>'; }); }
   const b = document.getElementById("lf_btn");
   if(b) b.onclick = ()=>{
     const title=$("lf_title").value.trim(), msg=$("lf_msg");

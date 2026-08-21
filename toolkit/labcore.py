@@ -10,7 +10,9 @@ takes an optional pre-built `s=` state for isolated testing.
 Stdlib only. Reuses labstate.build (reads) + ledger.add (the single mutation).
 """
 import datetime
+import glob
 import os
+import re
 import subprocess
 import sys
 import types
@@ -83,6 +85,45 @@ def next_dig(s=None):
 
 def findings(s=None):
     return (s or state())["findings"]
+
+
+def _fnorm(x):
+    return re.sub(r"[^a-z0-9]", "", (x or "").lower())
+
+
+def _keymatch(a, b):
+    """Fuzzy target<->poc/watch key match: equal / substring / shared >=6-char prefix (krystal<->krystal-vault)."""
+    na, nb = _fnorm(a), _fnorm(b)
+    if not na or not nb:
+        return False
+    return na == nb or na in nb or nb in na or (len(na) >= 6 and len(nb) >= 6 and na[:6] == nb[:6])
+
+
+def finding_detail(key):
+    """Rich per-finding detail for the dashboard detail card: the FINDING.md write-up (bugs+fixes+source) +
+    the live watch snapshot + recent change-events for the target. Lazy (not baked into lab-state)."""
+    root = labstate.ROOT
+    out = {"key": key, "finding_md": None, "poc_path": None, "liveness": None, "watch_target": None, "events": []}
+    for p in sorted(glob.glob(os.path.join(root, "*-poc", "FINDING.md"))):
+        d = os.path.basename(os.path.dirname(p))[:-4] if os.path.basename(os.path.dirname(p)).endswith("-poc") \
+            else os.path.basename(os.path.dirname(p))
+        if _keymatch(d, key):
+            out["poc_path"] = os.path.relpath(p, root).replace("\\", "/")
+            try:
+                with open(p, encoding="utf-8") as f:
+                    out["finding_md"] = f.read()
+            except Exception:
+                pass
+            break
+    ws = labstate.load(os.path.join(root, "monitor", "watch-state.json"), {})
+    wt = labstate.load(os.path.join(root, "monitor", "watch-targets.json"), [])
+    we = labstate.load(os.path.join(root, "monitor", "watch-events.json"), [])
+    wk = next((w for w in ws if _keymatch(w, key)), None)
+    if wk:
+        out["liveness"] = ws.get(wk)
+        out["watch_target"] = next((t for t in (wt or []) if t.get("key") == wk), None)
+        out["events"] = [e for e in (we or []) if _keymatch(e.get("key", ""), wk)][-10:]
+    return out
 
 
 def parked(s=None):

@@ -33,6 +33,7 @@ _READS = {
     "pipeline": lambda q: C.pipeline(),
     "next_dig": lambda q: C.next_dig(),
     "findings": lambda q: C.findings(),
+    "finding_detail": lambda q: C.finding_detail(q.get("key")),
     "parked": lambda q: C.parked(),
     "radars": lambda q: C.radars(),
     "metrics": lambda q: C.metrics(),
