@@ -1,0 +1,34 @@
+[
+ {
+  "key": "luxmarket",
+  "chain": "196",
+  "addr": "0xFb7154E06B068031502051D285dE910b16A5aF0D",
+  "note": "",
+  "token": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"
+ },
+ {
+  "key": "hoodbet-prizevault",
+  "chain": "4663",
+  "addr": "0x11da9bE66d20328c6eA16d52079890322fA90f24",
+  "note": "",
+  "token": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"
+ },
+ {
+  "key": "clawking-opbnb",
+  "chain": "204",
+  "addr": "0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10",
+  "note": ""
+ },
+ {
+  "key": "krystal-vault",
+  "chain": "42161",
+  "addr": "0xff630c5d2fb9920c29c264b85e968d435f07e293",
+  "note": ""
+ },
+ {
+  "key": "maseer-one",
+  "chain": "1",
+  "addr": "0x57C3571f10767E49C9d7b60feb6c67804783B7aE",
+  "note": ""
+ }
+]

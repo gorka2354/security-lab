@@ -1,0 +1,47 @@
+{
+ "luxmarket": {
+  "ts": "2026-08-21T12:00:00",
+  "code_hash": "d176b3c6bba3a525",
+  "native": 0,
+  "token_val": 50817734,
+  "value": 50817734,
+  "has_code": true,
+  "last_days": null
+ },
+ "hoodbet-prizevault": {
+  "ts": "2026-08-21T12:00:00",
+  "code_hash": "2f389ea95797d54f",
+  "native": 0,
+  "token_val": 0,
+  "value": 0,
+  "has_code": true,
+  "last_days": null
+ },
+ "clawking-opbnb": {
+  "ts": "2026-08-21T12:00:00",
+  "code_hash": "1d0f004db16edbf0",
+  "native": 0,
+  "token_val": null,
+  "value": 0,
+  "has_code": true,
+  "last_days": null
+ },
+ "krystal-vault": {
+  "ts": "2026-08-21T12:00:00",
+  "code_hash": "2d8e33c07333ae34",
+  "native": 0,
+  "token_val": null,
+  "value": 0,
+  "has_code": true,
+  "last_days": 87.6265625
+ },
+ "maseer-one": {
+  "ts": "2026-08-21T12:00:00",
+  "code_hash": "4e923e04d29a61d3",
+  "native": 0,
+  "token_val": null,
+  "value": 0,
+  "has_code": true,
+  "last_days": 1.2671643518518518
+ }
+}
