@@ -1,5 +1,5 @@
 {
- "count": 113,
+ "count": 118,
  "generated": "2026-08-15",
  "targets": {
   "1sec": {
@@ -2706,6 +2706,150 @@
    ],
    "status": "CLEAN",
    "zones": []
+  },
+  "luxmarket": {
+   "addresses": [
+    "0xFb7154E06B068031502051D285dE910b16A5aF0D"
+   ],
+   "chains": [
+    "xlayer"
+   ],
+   "firstseen": "2026-08-21",
+   "fork_base": null,
+   "key": "luxmarket",
+   "last_reason": "[REAL] CRITICAL sell() LMSR spot-vs-integral -> permissionless pool-drain (PoC 2/2). Live X Layer ~$50, disclose-before-TVL.",
+   "lastupdated": "2026-08-21",
+   "ledger_entries": 1,
+   "name": "LuXMarket",
+   "owasp_classes": [
+    "SC02-LogicErrors"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-08-21",
+   "sources": [
+    "ledger",
+    "gamefi-hunt"
+   ],
+   "status": "REAL",
+   "zones": [
+    "prediction",
+    "lmsr",
+    "gamefi"
+   ]
+  },
+  "maseer-one-wstgbp": {
+   "addresses": [
+    "0x57C3571f10767E49C9d7b60feb6c67804783B7aE"
+   ],
+   "chains": [
+    "eth"
+   ],
+   "firstseen": "2026-08-21",
+   "fork_base": null,
+   "key": "maseer-one-wstgbp",
+   "last_reason": "[REAL] redeem() burncost-zero burns principal for 0 (Low, admin-gated). LIVE.",
+   "lastupdated": "2026-08-21",
+   "ledger_entries": 1,
+   "name": "Maseer One (wstGBP)",
+   "owasp_classes": [
+    "SC02-LogicErrors"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-08-21",
+   "sources": [
+    "ledger",
+    "gamefi-hunt"
+   ],
+   "status": "REAL",
+   "zones": [
+    "rwa",
+    "vault"
+   ]
+  },
+  "hoodbet-fun": {
+   "addresses": [
+    "0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19"
+   ],
+   "chains": [
+    "robinhood"
+   ],
+   "firstseen": "2026-08-21",
+   "fork_base": null,
+   "key": "hoodbet-fun",
+   "last_reason": "[REAL] grindable draw-RNG (permissionless fulfillRandomness + call-time entropy). DORMANT.",
+   "lastupdated": "2026-08-21",
+   "ledger_entries": 1,
+   "name": "HoodBet.fun",
+   "owasp_classes": [
+    "SC08-Randomness"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-08-21",
+   "sources": [
+    "ledger",
+    "gamefi-hunt"
+   ],
+   "status": "REAL",
+   "zones": [
+    "gamefi",
+    "gambling"
+   ]
+  },
+  "head2head-monkebet": {
+   "addresses": [],
+   "chains": [
+    "apechain"
+   ],
+   "firstseen": "2026-08-21",
+   "fork_base": null,
+   "key": "head2head-monkebet",
+   "last_reason": "[REAL] entropyCallback push-payment, revert-Griefer DoS (Med). DORMANT.",
+   "lastupdated": "2026-08-21",
+   "ledger_entries": 1,
+   "name": "HEAD2HEAD (monke.bet)",
+   "owasp_classes": [
+    "SC05-DoS"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-08-21",
+   "sources": [
+    "ledger",
+    "gamefi-hunt"
+   ],
+   "status": "REAL",
+   "zones": [
+    "gamefi",
+    "wager"
+   ]
+  },
+  "clawking": {
+   "addresses": [
+    "0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10"
+   ],
+   "chains": [
+    "opbnb",
+    "polygon"
+   ],
+   "firstseen": "2026-08-21",
+   "fork_base": null,
+   "key": "clawking",
+   "last_reason": "[REAL] predictable RNG (same-tx reveal+consume, no commit-reveal). DORMANT.",
+   "lastupdated": "2026-08-21",
+   "ledger_entries": 1,
+   "name": "ClawKing",
+   "owasp_classes": [
+    "SC08-Randomness"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-08-21",
+   "sources": [
+    "ledger",
+    "gamefi-hunt"
+   ],
+   "status": "REAL",
+   "zones": [
+    "gamefi"
+   ]
   }
  }
 }
