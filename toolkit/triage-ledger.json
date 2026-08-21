@@ -672,6 +672,17 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "clawking|contracts/src/ClawArena.sol|manual|",
+      "target": "clawking",
+      "file": "contracts/src/ClawArena.sol",
+      "line": 175,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "Predictable-RNG (exploitable via wrapper), DORMANT -> low current threat. ClawArena.playMatch():175 + GameLib.runGame():52-153 -- seed=uint32(keccak256(block.prevrandao,block.timestamp,msg.sender,p.totalMatches)) is the ONLY randomness in the 40-turn battle (RngLib.next called 2x: Fisher-Yates spawn shuffle + speed-tie). Reveal+consume SAME atomic tx as payout, no commit-reveal, no EOA-only gate -> a thin wrapper contract can eth_call/staticcall-grind and only submit a winning match. LobsterHub.mint() NFT stat/rarity roll same flaw. Polygon prevrandao provably=0 (6 consecutive blocks) confirmed on-chain. LIVE deployed Polygon 0x.. + opBNB proxy 0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10, DORMANT (Polygon matchCount=27 total, last playMatch ~2026-03-27 ~5mo ago; repo jinruozai/ClawKing pushed 2026-05-01). Reasoning-tier (same-tx reveal+consume). No bounty -> disclose-and-move-on. Matches predictable-RNG seed.",
+      "date": "2026-08-21"
+    },
+    {
       "sig": "curve-llamalend-v2|(labcore)|ityfuzz|",
       "target": "curve-llamalend-v2",
       "file": "(labcore)",
@@ -1101,6 +1112,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "head2head-monkebet|HeadToHead.sol|manual|",
+      "target": "head2head-monkebet",
+      "file": "HeadToHead.sol",
+      "line": 53,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "Medium (griefing/DoS), DORMANT -> low current threat. HeadToHead.sol:53 entropyCallback: (bool ok,)=winner.call{value:betAmount*2-requestFee}(''); if(!ok) revert TransferFailed(); = push-payment with ZERO retry/pull/owner-rescue (no admin fns at all). A Griefer{receive() payable {revert();}} contract that joins as a player and wins will permanently DoS its own payout (funds stuck / callback reverts), and can be used to grief matches. RNG is CORRECT (Pyth Entropy VRF -- the block.timestamp/number/msg.sender seed is only the user's commit contribution, safely combined with the provider secret -> det_predictable_rng [!] = confirmed FALSE POSITIVE). VERIFIED source (extracted addr+chainId from monke.bet live JS bundle, 3-way confirmed). LIVE-FUNDED but DORMANT (1 APE, last tx 144d ago). ApeChain 33139 fuzz-blocked (not in CHAIN map). Matches wager/PvP-settlement + push-refund-loop seeds.",
+      "date": "2026-08-21"
+    },
+    {
       "sig": "heavy-helms|src/game/modes/TournamentGame.sol|weakrand|function _getEnhancedRandomness(uint256 futureBlock)",
       "target": "heavy-helms",
       "file": "src/game/modes/TournamentGame.sol",
@@ -1110,6 +1132,17 @@
       "verdict": "real",
       "reason": "RNG outcome grinding: commit-reveal seed mixes reveal-tx entropy (block.timestamp/number/gasleft/tx.origin) on top of blockhash(futureBlock); reveal via permissionless tryStartTournament/tryStartGauntlet -> participant grinds outcome off-chain, biases selection+bracket+winners. Same in GauntletGame:1560. Medium. GPL no-bounty -> responsible disclosure, the researcher sends.",
       "date": "2026-06-11"
+    },
+    {
+      "sig": "hoodbet-fun|HoodRngBlockhash.sol|manual|",
+      "target": "hoodbet-fun",
+      "file": "HoodRngBlockhash.sol",
+      "line": 36,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "Medium-High code class, DORMANT -> LOW current threat. HoodRngBlockhash.fulfillRandomness() (0x8B6Edfec, Robinhood Chain 4663) is FULLY PERMISSIONLESS (no access control) and mixes CALL-TIME block.prevrandao/block.timestamp (sampled when called, NOT committed at request time) into the PT-V5 draw random number. On Arbitrum-Orbit L2s prevrandao is hardcoded=1, so timestamp is the only variable -> ANY address can FREE eth_call-simulate the outcome across the ~251-block blockhash window and submit the one-shot irreversible tx only on a favorable block -> grindable/biasable prize draw (same class as PoolTogether's disclosed 'Randomness Selection Vulnerability Pool #2'). Source-to-bytecode MATCH verified. BOUNDED: PT-V5 no-loss -> biases only WHO wins the yield pot, never principal. DORMANT: nextRequestId()==1 (0 requests ever), 0/33 draws awarded, TVL ~$227 -> reassess+disclose the moment draws run with real TVL. Reasoning-tier (T0 misses it; det_encodepacked:49 = FP, all args fixed-size).",
+      "date": "2026-08-21"
     },
     {
       "sig": "hyperbeat-liquid-bank (USD+ / beatUSD neobank)|(fanout)|fanout|fanout triage: -",
@@ -1319,6 +1352,17 @@
       "verdict": "fp",
       "reason": "isDirector(tokenId) custom auth modifier in the signature -> gated. recon missed it (not only*/INLINE_AUTH). Precision-fix candidate: recognize is<Role>(id) modifier-position gates (carefully, no over-suppression).",
       "date": "2026-06-11"
+    },
+    {
+      "sig": "luxmarket|src/LuxMarket.sol|manual|",
+      "target": "luxmarket",
+      "file": "src/LuxMarket.sol",
+      "line": 161,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "CRITICAL class, PoC-CONFIRMED (2/2, test/PoolDrainPoC.t.sol), permissionless. LuxMarket.sol:161-191 sell(): payout = priceOf(qUp,qDown,b) [pre-trade LMSR SPOT price] * shares -- prices the ENTIRE sold batch at the single highest marginal price instead of integrating the reverse cost-curve (the cost(q)-cost(q-shares) integral that buy()/LMSRLib.costToBuy() correctly does). Since price(q) is monotone-increasing, a single same-block buy()+sell() round-trip is RISK-FREE PROFIT paid from the SHARED collateral pool -> permissionless drain, no oracle/settlement/privilege. LIVE + funded small-scale (~$50 USD-W0 collateral, X Layer/196). Fresh github kingskuan/luxmarket-contracts. Real+permissionless+PoC but tiny TVL -> low current $ at risk, HIGH if it grows. Fuzz-blocked (X Layer 196 not in ityfuzz CHAIN map) but PoC>fuzz here. Matches new hypothesize seed (payout/LMSR conservation). Disclosure-ready write-up pending.",
+      "date": "2026-08-21"
     },
     {
       "sig": "magicswap|src/Rewards/StakingContractMainnet.sol|ac|function claimRewards(uint256[] calldata incentiveIds)",
@@ -1693,6 +1737,17 @@
       "verdict": "wontfix",
       "reason": "LIVE-FIRST kill (2026-06-13 on-chain check): DEAD target. positionPerBlock=0 (no emissions), single-pool pid=1 empty (staking holds 0 POSI, lastRewardBlock~25M=2022), deployed vaults 0x75Ec/0x0385 totalSupply=0 + 1e14 dust POSI, POSI -99.98% (ATL Feb2026, swap in maintenance, migrated to StakingManagerV2). Repo->live link UNPROVEN: POSIAutoCompoundVault (cleanest F2) not deployed; deployed BNB/BUSD vaults expose a DIFFERENT ABI (rewardPerTokenStored missing) + repo files are on testnet config. Real bug (quadratic reward inflation, math confirmed) but ZERO live impact -> not a finding.",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "predmart|(labcore)|manual|",
+      "target": "predmart",
+      "file": "(labcore)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "CLEAN (LIVE-ACTIVE-FUNDED ~$6K, Polygon/137, UUPS ERC4626 vault proxy 0xD90D012990F0245cAD29823bDF0B4C9AF207d9ee -> impl PredmartLendingPool v2.10.0 reinitializer V31 0xabff3757). Polymarket-CTF-collateral margin lending. Deep-read the requested attack surface (resolved/near-resolved-market borrow-against-worthless-collateral) at EVERY mutating entry (depositCollateral, _executeBorrow, _withdrawCollateral, onERC1155Received push-path, pullUsdcForLeverage) -> CONFIRMED CLEAN: mature, heavily-hardened (31 versioned upgrade reinitializers), collateral valuation checks market resolution state. Verified (Sourcify). fuzz-backstop on the stand pending (Polygon = fuzzable). Not fresh-unaudited in practice = well-maintained.",
+      "date": "2026-08-21"
     },
     {
       "sig": "punks-terminal|(fanout)|fanout|fanout triage: -",
