@@ -153,6 +153,19 @@ def finding_detail(key):
             except Exception:
                 pass
             break
+    # a saved disclosure draft ("Письмо команде"), if the researcher composed one
+    out["draft_md"], out["draft_path"] = None, None
+    for dp in (sorted(glob.glob(os.path.join(root, "*-poc", "DISCLOSURE.md")))
+               + sorted(glob.glob(os.path.join(root, "disclosures", "*.md")))):
+        par = os.path.basename(os.path.dirname(dp))
+        d = par[:-4] if par.endswith("-poc") else os.path.basename(dp)[:-3].replace("-DISCLOSURE", "")
+        if _keymatch(d, key):
+            out["draft_path"] = os.path.relpath(dp, root).replace("\\", "/")
+            try:
+                out["draft_md"] = open(dp, encoding="utf-8").read()
+            except Exception:
+                pass
+            break
     ws = labstate.load(os.path.join(root, "monitor", "watch-state.json"), {})
     wt = labstate.load(os.path.join(root, "monitor", "watch-targets.json"), [])
     we = watch_events(9999)
@@ -162,6 +175,56 @@ def finding_detail(key):
         out["watch_target"] = next((t for t in (wt or []) if t.get("key") == wk), None)
         out["events"] = [e for e in (we or []) if _keymatch(e.get("key", ""), wk)][-10:]
     return out
+
+
+def _poc_dir_for(key):
+    """The *-poc directory whose name fuzzy-matches a target key (where its DISCLOSURE.md draft lives)."""
+    for p in sorted(glob.glob(os.path.join(labstate.ROOT, "*-poc"))):
+        d = os.path.basename(p)
+        if _keymatch(d[:-4] if d.endswith("-poc") else d, key):
+            return p
+    return None
+
+
+def discover_contact(target):
+    """On-demand disclosure-contact discovery (dashboard 'Найти контакт' button): run contacts.py for the
+    target's links.json key, then return the freshly-cached contact record. Discovery only -- never sends."""
+    if not target:
+        raise ValueError("target required")
+    root = labstate.ROOT
+    links = labstate.load(os.path.join(root, "monitor", "links.json"), {})
+    lk = next((k for k in links if not k.startswith("_") and isinstance(links[k], dict) and _keymatch(k, target)), None)
+    if lk:
+        try:
+            subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "contacts.py"), "--target", lk],
+                           capture_output=True, text=True, timeout=30)
+        except Exception:
+            pass
+    cache = labstate.load(os.path.join(root, "monitor", "contacts.json"), {})
+    hit = next((cache[k] for k in cache
+                if not k.startswith("_") and isinstance(cache[k], dict) and _keymatch(k, target)), {})
+    return {"ok": True, "target": target, "contacts": hit,
+            "note": None if lk else "no github/website for this target -> add one in monitor/links.json first"}
+
+
+def save_draft(target, subject, body):
+    """Persist a composed disclosure draft to <poc>/DISCLOSURE.md (or disclosures/<key>-DISCLOSURE.md if the
+    target has no PoC dir). DRAFT ONLY -- writes a local file; the researcher sends it. Never emails/submits."""
+    if not target:
+        raise ValueError("target required")
+    root = labstate.ROOT
+    pd = _poc_dir_for(target)
+    if pd:
+        path = os.path.join(pd, "DISCLOSURE.md")
+    else:
+        os.makedirs(os.path.join(root, "disclosures"), exist_ok=True)
+        safe = re.sub(r"[^a-z0-9._-]", "-", (target or "").lower())[:60] or "target"
+        path = os.path.join(root, "disclosures", safe + "-DISCLOSURE.md")
+    hdr = ("<!-- security-lab disclosure DRAFT -- target: %s -- %s -- the researcher reviews & SENDS; "
+           "this tool never emails/submits -->\n\n" % (target, datetime.date.today().isoformat()))
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(hdr + ("Subject: %s\n\n" % subject if subject else "") + (body or "") + "\n")
+    return {"ok": True, "target": target, "path": os.path.relpath(path, root).replace("\\", "/")}
 
 
 def parked(s=None):

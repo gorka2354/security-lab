@@ -81,6 +81,10 @@ def api_post(path, body):
                                          file=body.get("file", ""), line=int(body.get("line", 0) or 0),
                                          status=body.get("status", "drafted"), kind=body.get("kind", "live"),
                                          channel=body.get("channel", "direct"), notes=body.get("notes", ""))
+        if name == "discover_contact":                # find a disclosure channel for a target (read-only)
+            return 200, C.discover_contact(body.get("target"))
+        if name == "save_draft":                      # persist a composed disclosure letter (DRAFT, never sent)
+            return 200, C.save_draft(body.get("target"), body.get("subject", ""), body.get("body", ""))
         return 404, {"error": f"unknown write api: {name}"}
     except ValueError as e:                           # validation -> 400 (caller's fault)
         return 400, {"error": str(e)}
@@ -109,6 +113,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if not got:
             got = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("token", [""])[0]
         return got == self.token
+
+    def end_headers(self):
+        # the dashboard is a single static HTML file that changes on every sync -> tell browsers to revalidate
+        # so a UI update is never masked by a stale cached page (API responses are already fetched no-store).
+        if not self.path.startswith("/api/") and (self.path.rstrip("/") == "" or ".html" in self.path):
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+        super().end_headers()
 
     def do_GET(self):
         if self.path.startswith("/api/"):

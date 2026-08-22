@@ -75,6 +75,17 @@ def _gh_for(links, repo_meta):
     return (repo_meta or {}).get(m.group(1)) if m else None
 
 
+def _contacts_for(tid, name, contacts_cache):
+    """Disclosure-contact discovery for a target (see contacts.py), joined by the same fuzzy key match as
+    links. {} if none discovered. Kept separate from links so a NONE result is explicit on the card."""
+    for ck, cv in (contacts_cache or {}).items():
+        if ck.startswith("_") or not isinstance(cv, dict):
+            continue
+        if _keymatch(ck, tid) or _keymatch(ck, name or ""):
+            return cv
+    return {}
+
+
 def _fnorm(x):
     return re.sub(r"[^a-z0-9]", "", (x or "").lower())
 
@@ -171,6 +182,7 @@ def build(root=ROOT, today=None):
     deployers = load(os.path.join(root, "monitor/deployers.json"), {"deployers": []})
     curated_links = load(os.path.join(root, "monitor/links.json"), {})
     repo_meta = load(os.path.join(root, "monitor/repo-meta.json"), {})
+    contacts_cache = load(os.path.join(root, "monitor/contacts.json"), {})
 
     led_by = _ledger_by_target(ledger)
 
@@ -197,6 +209,7 @@ def build(root=ROOT, today=None):
             "disposition": _disposition(t.get("last_reason")),   # SKIP/PARK folded into CLEAN by registry; recover it
             "zones": t.get("zones", []), "chains": chains, "addresses": addresses, "fork_base": t.get("fork_base"),
             "links": _links, "gh": _gh_for(_links, repo_meta),   # card link chips + github liveness meta
+            "contacts": _contacts_for(tid, t.get("name"), contacts_cache),   # disclosure-channel discovery
             "owasp": t.get("owasp_classes", []), "sources": t.get("sources", []),
             "firstseen": t.get("firstseen"), "lastupdated": t.get("lastupdated"),
             "verdicts": led_by.get(R.norm_key(t.get("name") or k), []),

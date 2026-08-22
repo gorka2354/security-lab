@@ -56,3 +56,7 @@ hunts/**/_*/
 
 # authorized-scope layer cache (regenerate: programs.py fetch)
 monitor/programs.json
+
+# disclosure letter drafts (working docs; may hold pre-disclosure detail) -- local/stand-only, like inc/
+*-poc/DISCLOSURE.md
+/disclosures/

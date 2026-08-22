@@ -216,6 +216,26 @@ def cmd_list(args):
         print("  (source errors: %s)" % "; ".join(data["errors"]))
 
 
+def match(query):
+    """Programmatic match (reused by contacts.py for disclosure-channel discovery): return the programs
+    whose name/repo/url match `query`, ranked OPEN-first then reward desc. [] if no store / no match."""
+    data = _load()
+    if not data:
+        return []
+    q = (query or "").lower().strip()
+    q_norm = re.sub(r"[^a-z0-9]", "", q)
+    if not q_norm:
+        return []
+    hits = []
+    for p in data["programs"]:
+        hay = " ".join(str(p.get(k) or "") for k in ("name", "repo", "url")).lower()
+        hay_norm = re.sub(r"[^a-z0-9]", "", hay)
+        if (q and q in hay) or (len(q_norm) >= 4 and q_norm in hay_norm):
+            hits.append(p)
+    hits.sort(key=lambda p: (not p["open"], -(p["reward_usd"] or 0)))
+    return hits
+
+
 def cmd_match(args):
     data = _load()
     if not data:

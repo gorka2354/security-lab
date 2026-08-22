@@ -142,6 +142,16 @@
   .reschips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .ghmeta{font-size:11px;color:var(--txt3);font-family:var(--mono);white-space:nowrap}
   .gh-arch{color:var(--drain);font-weight:600}
+  .conf{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:999px;
+    border:1px solid var(--border);color:var(--txt2)}
+  .conf-high{color:var(--live);border-color:color-mix(in srgb,var(--live) 45%,transparent)}
+  .conf-low{color:var(--dorm)}
+  /* ---- disclosure compose ("Письмо команде") ---- */
+  .disc-body{width:100%;min-height:230px;resize:vertical;box-sizing:border-box;font-family:var(--mono);
+    font-size:12.5px;line-height:1.55;color:var(--txt);background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;padding:11px 13px}
+  .disc-body:focus{outline:none;border-color:color-mix(in srgb,var(--accent,#5b8cff) 55%,var(--border))}
+  .disc-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px}
 
   /* ---- pipeline board ---- */
   .board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start}
@@ -288,6 +298,14 @@ const I18N = {
    d_resources:"Ресурсы", res_hint:"официальные ссылки проекта", res_project:"Проект", res_code:"Код",
    res_onchain:"Ончейн", res_social:"Связь", res_empty:"ссылок пока нет — добавьте в monitor/links.json",
    gh_pushed:"обновлён {d} дн назад", gh_issues:"откр. issues", gh_archived:"ЗААРХИВИРОВАН",
+   d_contacts:"Контакты", con_channel:"канал", con_hint:"куда сообщать об уязвимости",
+   con_note:"инструмент только НАХОДИТ канал — отправляешь ты", con_open:"открыть", con_opench:"канал disclosure",
+   con_discover:"Найти контакт", con_searching:"ищу…", con_done:"обновлено",
+   d_letter:"Письмо команде", let_hint:"черновик на английском — отредактируй и отправь сам",
+   let_copy:"Копировать", let_mail:"Открыть в почте", let_save:"Сохранить черновик", let_reset:"Шаблон",
+   let_note:"черновик; инструмент ничего не отправляет — copy / mailto / save только по твоему клику",
+   let_copied:"скопировано", let_toolong:"длинно для mailto — тело скопировано, вставь вручную",
+   let_reset_done:"шаблон восстановлен", let_saved:"сохранено:",
    no_finding_md:"нет FINDING.md для этой цели", no_watch:"нет данных мониторинга",
    kv_zones:"зоны", kv_chains:"сети", kv_owasp:"owasp", kv_sources:"источники", kv_first:"впервые",
    kv_updated:"обновлено", kv_addr:"адрес", lk_site:"Сайт", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
@@ -322,6 +340,14 @@ const I18N = {
    d_resources:"Resources", res_hint:"official project links", res_project:"Project", res_code:"Code",
    res_onchain:"On-chain", res_social:"Social", res_empty:"no links yet — add them in monitor/links.json",
    gh_pushed:"pushed {d}d ago", gh_issues:"open issues", gh_archived:"ARCHIVED",
+   d_contacts:"Contacts", con_channel:"channel", con_hint:"where to report a vulnerability",
+   con_note:"the tool only FINDS the channel — you send", con_open:"open", con_opench:"disclosure channel",
+   con_discover:"Find contact", con_searching:"searching…", con_done:"updated",
+   d_letter:"Letter to the team", let_hint:"English draft — edit and send it yourself",
+   let_copy:"Copy", let_mail:"Open in mail", let_save:"Save draft", let_reset:"Template",
+   let_note:"draft only; the tool sends nothing — copy / mailto / save are all your click",
+   let_copied:"copied", let_toolong:"too long for mailto — body copied, paste manually",
+   let_reset_done:"template restored", let_saved:"saved:",
    no_finding_md:"no FINDING.md for this target", no_watch:"no watch data",
    kv_zones:"zones", kv_chains:"chains", kv_owasp:"owasp", kv_sources:"sources", kv_first:"first seen",
    kv_updated:"updated", kv_addr:"address", lk_site:"Site", jump_hint:"click a sibling to jump (batch-CVE)",
@@ -466,6 +492,68 @@ function resourcesPanel(t){
   }).filter(Boolean).join("");
   const body = rows || `<div class="vt">${tr("res_empty")}</div>`;
   return `<div class="sect"><h2>${tr("d_resources")} <span class="hint">${tr("res_hint")}</span></h2><div class="resgrid">${body}</div></div>`;
+}
+
+// Контакты = the discovered disclosure CHANNEL for a target (contacts.py), with a confidence tier so the
+// researcher sees whether it's an official reward-backed channel or a fallback. Discovery only; sending is manual.
+const CON_TIER={PROGRAM:"🎯 Bounty / Contest", GITHUB:"🐙 GitHub Security", SECURITYTXT:"✉ security.txt", NONE:"—"};
+function contactsPanel(t){
+  const c=t&&t.contacts||{}, pref=c.preferred_channel||"NONE";
+  const conf=(c.confidence&&c.confidence!=="none")?`<span class="conf conf-${esc(c.confidence)}">${esc(c.confidence)}</span>`:"";
+  const rows=[`<div class="resrow"><span class="reslabel">${tr("con_channel")}</span><div class="reschips">`
+    +`<span class="chip">${esc(CON_TIER[pref]||pref)}</span>${conf}`
+    +`${c.reward_usd?`<span class="sev sev-low">$${Number(c.reward_usd).toLocaleString()}</span>`:""}</div></div>`];
+  if(c.preferred_url) rows.push(`<div class="resrow"><span class="reslabel">${tr("con_open")}</span><div class="reschips"><a class="linkchip" href="${esc(c.preferred_url)}" target="_blank" rel="noopener noreferrer">🔗 ${tr("con_opench")}</a></div></div>`);
+  if(c.email) rows.push(`<div class="resrow"><span class="reslabel">Email</span><div class="reschips"><a class="linkchip" href="mailto:${esc(c.email)}">✉ ${esc(c.email)}</a></div></div>`);
+  const pub = window.__state && window.__state._public;
+  const btn = pub?"":`<div style="margin-top:10px"><button class="btn" id="c_discover">🔍 ${tr("con_discover")}</button> <span id="c_msg" class="msg"></span></div>`;
+  return `<div class="sect"><h2>${tr("d_contacts")} <span class="hint">${tr("con_hint")}</span></h2>
+    <div class="resgrid">${rows.join("")}</div>
+    <div class="vt" style="margin-top:9px">${tr("con_note")}</div>${btn}</div>`;
+}
+
+// A template disclosure letter auto-filled from the finding. English by default (disclosure lingua franca);
+// fully editable. NEVER auto-sent -- copy / mailto / save-draft are all human-initiated.
+function disclosureTemplate(t){
+  // a readable project name: drop a -0x<addr> suffix and -poc, dashes -> spaces
+  const raw=(t.name||t.id||"").replace(/-0x[0-9a-fA-F]{6,}.*$/,"").replace(/-poc$/,"").replace(/[-_]+/g," ").trim();
+  const name=raw||t.id, sev=(sevText(t)||"a").toString();
+  const addrMatch=((t.id||"")+" "+(t.name||"")).match(/0x[0-9a-fA-F]{40}/);
+  const addr=(t.addresses&&t.addresses[0])||(addrMatch&&addrMatch[0])||"(contract address)";
+  const chain=(t.chains&&t.chains[0])||"(chain)";
+  const gist=((reasonText(t)||"").replace(/\s+/g," ").trim().slice(0,180))||"a security issue in a deployed contract";
+  return { subject:`Security disclosure — ${name} (${sev})`,
+    body:`Hello ${name} team,
+
+I'm an independent security researcher reaching out in good faith. While reviewing your publicly deployed code I found what appears to be a ${sev}-severity issue.
+
+- Affected contract: ${addr}
+- Chain: ${chain}
+- Summary: ${gist}
+
+I have a working proof-of-concept, produced against a local fork of your own deployed code — no funds or live state were touched, and nothing has been shared publicly.
+
+I'd like to share the full details privately and coordinate a fix before any public disclosure. Could you share your preferred security contact or a PGP key? I'm happy to follow a coordinated-disclosure timeline (e.g. 90 days).
+
+You can reach me at: [your reply contact].
+
+Thank you,
+[your name]` };
+}
+function disclosurePanel(t){
+  if(window.__state && window.__state._public) return "";
+  const tpl=disclosureTemplate(t);
+  return `<div class="sect"><h2>${tr("d_letter")} <span class="hint">${tr("let_hint")}</span></h2>
+    <div class="field grow" style="margin:0 0 8px"><input id="disc_subject" value="${esc(tpl.subject)}" autocomplete="off"></div>
+    <textarea id="disc_body" class="disc-body" spellcheck="false">${esc(tpl.body)}</textarea>
+    <div class="disc-actions">
+      <button class="btn" id="disc_copy">📋 ${tr("let_copy")}</button>
+      <button class="btn" id="disc_mail">✉ ${tr("let_mail")}</button>
+      <button class="btn btn-primary" id="disc_save">💾 ${tr("let_save")}</button>
+      <button class="btn" id="disc_reset">↺ ${tr("let_reset")}</button>
+      <span id="disc_msg" class="msg"></span>
+    </div>
+    <div class="vt" style="margin-top:8px">${tr("let_note")}</div></div>`;
 }
 
 function findingCard(t){
@@ -626,7 +714,9 @@ function pageDetail(s,id){
       <span id="d_livebadge"></span></div>
     ${(t.addresses&&t.addresses[0])?`<div class="addr mono">${esc(t.addresses[0])}</div>`:""}
     ${resourcesPanel(t)}
-    <div class="dgrid">${left}${right}</div>`;
+    <div class="dgrid">${left}${right}</div>
+    ${contactsPanel(t)}
+    ${disclosurePanel(t)}`;
 }
 function hydrateDetail(id){
   loadDetail(id).then(d=>{
@@ -639,6 +729,49 @@ function hydrateDetail(id){
     if(lb&&d.liveness) lb.innerHTML=liveBadgeMini(d.liveness);
   });
   const b=$("lf_btn"); if(b) b.onclick=()=>doLogFinding(id);
+  wireDisclosure(id);
+}
+
+// Письмо команде: restore the per-viewer draft (localStorage safety-net), wire copy / mailto / save / reset,
+// and the "Найти контакт" discovery button. The tool never sends -- every action is a human click.
+function wireDisclosure(id){
+  const t=(window.__state && (window.__state.targets||[]).find(x=>x.id===id))||{};
+  const cd=$("c_discover"); if(cd) cd.onclick=()=>doDiscoverContact(id);
+  const sub=$("disc_subject"), body=$("disc_body"); if(!sub||!body) return;
+  const LK="lab_draft_"+id, dmsg=$("disc_msg");
+  try{ const sv=JSON.parse(localStorage.getItem(LK)||"null"); if(sv){ if(sv.subject!=null)sub.value=sv.subject; if(sv.body!=null)body.value=sv.body; } }catch(_){}
+  const persist=()=>{ try{ localStorage.setItem(LK, JSON.stringify({subject:sub.value, body:body.value})); }catch(_){} };
+  sub.oninput=persist; body.oninput=persist;
+  $("disc_copy").onclick=()=>{ const txt="Subject: "+sub.value+"\n\n"+body.value;
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject())
+      .then(()=>{dmsg.className="msg ok";dmsg.textContent="✓ "+tr("let_copied");},
+            ()=>{dmsg.className="msg bad";dmsg.textContent=tr("failed");}); };
+  $("disc_mail").onclick=()=>{ const to=(t.contacts||{}).email||"";
+    const url="mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(sub.value)+"&body="+encodeURIComponent(body.value);
+    if(url.length>1950){ if(navigator.clipboard)navigator.clipboard.writeText(body.value); dmsg.className="msg";dmsg.textContent=tr("let_toolong"); return; }
+    window.location.href=url; };
+  $("disc_reset").onclick=()=>{ const tpl=disclosureTemplate(t); sub.value=tpl.subject; body.value=tpl.body; persist();
+    dmsg.className="msg";dmsg.textContent=tr("let_reset_done"); };
+  $("disc_save").onclick=()=>doSaveDraft(id, sub, body, dmsg);
+}
+function doSaveDraft(id, sub, body, msg){
+  msg.className="msg";msg.textContent=tr("saving");
+  fetch(apiUrl("/api/save_draft"),{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({target:id, subject:sub.value, body:body.value})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(!ok||j.error){msg.className="msg bad";msg.textContent="✗ "+(j.error||tr("failed"));return;}
+      msg.className="msg ok";msg.textContent="✓ "+tr("let_saved")+" "+esc(j.path||"");
+    }).catch(()=>{msg.className="msg bad";msg.textContent="✗ "+tr("bridge_off");});
+}
+function doDiscoverContact(id){
+  const m=$("c_msg"), b=$("c_discover"); if(b)b.disabled=true;
+  if(m){m.className="msg";m.textContent=tr("con_searching");}
+  fetch(apiUrl("/api/discover_contact"),{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({target:id})})
+    .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+      if(!ok||j.error){if(m){m.className="msg bad";m.textContent="✗ "+(j.error||tr("failed"));}return;}
+      if(m){m.className="msg ok";m.textContent="✓ "+(j.note?esc(j.note):tr("con_done"));} refresh();
+    }).catch(()=>{if(m){m.className="msg bad";m.textContent="✗ "+tr("bridge_off");}}).finally(()=>{if(b)b.disabled=false;});
 }
 
 /* ---------- mutations ---------- */

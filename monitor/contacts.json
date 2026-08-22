@@ -1,0 +1,139 @@
+{
+ "pulso-market": {
+  "key": "pulso-market",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "luxmarket": {
+  "key": "luxmarket",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "equivaults": {
+  "key": "equivaults",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "krystal": {
+  "key": "krystal",
+  "preferred_channel": "GITHUB",
+  "preferred_url": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2/security/advisories/new",
+  "email": null,
+  "reward_usd": null,
+  "confidence": "high",
+  "candidates": [
+   {
+    "tier": "GITHUB",
+    "channel": "GitHub Private Vulnerability Reporting",
+    "url": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2/security/advisories/new",
+    "confidence": "high"
+   }
+  ],
+  "checked_at": "2026-08-22"
+ },
+ "hoodbet-fun": {
+  "key": "hoodbet-fun",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "capyfi": {
+  "key": "capyfi",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "maseer-one-wstgbp": {
+  "key": "maseer-one-wstgbp",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "head2head-monkebet": {
+  "key": "head2head-monkebet",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "clawking": {
+  "key": "clawking",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "heavy-helms": {
+  "key": "heavy-helms",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "wager-chess-fenestbuc": {
+  "key": "wager-chess-fenestbuc",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "witty": {
+  "key": "witty",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ },
+ "ea-finance-staking-wcc": {
+  "key": "ea-finance-staking-wcc",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-22"
+ }
+}
