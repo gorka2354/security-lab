@@ -26,8 +26,18 @@ done
 while IFS= read -r p; do FILES+=("${p#./}"); done < <(find . -maxdepth 2 -name "FINDING.md" -path "*-poc*")
 
 echo "[sync-stand] pushing ${#FILES[@]} path(s) -> $STAND ..."
+# Remote: extract -> rebuild lab-state -> restart the dashboard ONLY IF toolkit code changed (the systemd
+# service caches labstate/labcore in memory, so a .py change is invisible until restart; data-only syncs
+# skip the restart so per-finding auto-syncs don't blip the dashboard). Hash guard via monitor/.toolkit-hash.
 tar czf - "${FILES[@]}" \
   | ssh -o BatchMode=yes -o ConnectTimeout=12 "$STAND" \
       'tar xzf - -C ~/security-lab && cd ~/security-lab && . ~/.seclab_env \
        && python3 toolkit/labstate.py >/dev/null 2>&1 \
-       && echo "[sync-stand] extracted + lab-state rebuilt ($(python3 -c "import json;print(len(json.load(open(\"monitor/lab-state.json\"))[\"findings\"]))") findings on the dashboard)"'
+       && echo "[sync-stand] extracted + lab-state rebuilt ($(python3 -c "import json;print(len(json.load(open(\"monitor/lab-state.json\"))[\"findings\"]))") findings on the dashboard)" \
+       && NEWH=$(cat toolkit/*.py 2>/dev/null | md5sum | cut -d" " -f1) \
+       && OLDH=$(cat monitor/.toolkit-hash 2>/dev/null || echo none) \
+       && if [ "$NEWH" != "$OLDH" ]; then echo "$NEWH" > monitor/.toolkit-hash; \
+            (systemctl list-unit-files 2>/dev/null | grep -q seclab-dashboard \
+             && sudo systemctl restart seclab-dashboard \
+             && echo "[sync-stand] toolkit code changed -> dashboard service restarted") || true; \
+          fi'
