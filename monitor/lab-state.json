@@ -14,6 +14,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -48,6 +49,7 @@
    "addresses": [],
    "fork_base": "velodrome",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -79,6 +81,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -107,6 +110,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -138,6 +142,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -174,6 +179,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -202,6 +208,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -229,6 +236,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -258,6 +266,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -292,6 +301,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -322,6 +332,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -351,6 +362,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -405,6 +417,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -432,6 +445,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -463,6 +477,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -493,6 +508,7 @@
    "addresses": [],
    "fork_base": "uniswap",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -525,6 +541,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -559,6 +576,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -589,6 +607,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -620,6 +639,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -655,6 +675,19 @@
     "explorer": "https://etherscan.io/address/0x00dc4965916e03A734190fA382633657c71f867E",
     "twitter": "https://x.com/CapyFi_Protocol",
     "discord": "https://discord.com/invite/jwEhKaPY"
+   },
+   "gh": {
+    "repo": "Capyfi/capyfi-smart-contracts",
+    "stars": 2,
+    "forks": 6,
+    "open_issues": 2,
+    "pushed_at": "2025-07-28T14:02:05Z",
+    "updated_at": "2026-01-19T20:16:24Z",
+    "created_at": "2025-10-23T16:42:56Z",
+    "archived": false,
+    "license": "BSD-3-Clause",
+    "description": null,
+    "fetched": "2026-08-22"
    },
    "owasp": [
     "SC01-AccessControl"
@@ -697,6 +730,19 @@
     "explorer": "https://etherscan.io/address/0x00dc4965916e03A734190fA382633657c71f867E",
     "twitter": "https://x.com/CapyFi_Protocol",
     "discord": "https://discord.com/invite/jwEhKaPY"
+   },
+   "gh": {
+    "repo": "Capyfi/capyfi-smart-contracts",
+    "stars": 2,
+    "forks": 6,
+    "open_issues": 2,
+    "pushed_at": "2025-07-28T14:02:05Z",
+    "updated_at": "2026-01-19T20:16:24Z",
+    "created_at": "2025-10-23T16:42:56Z",
+    "archived": false,
+    "license": "BSD-3-Clause",
+    "description": null,
+    "fetched": "2026-08-22"
    },
    "owasp": [
     "SC02-OracleManipulation"
@@ -758,6 +804,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -828,6 +875,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -870,6 +918,19 @@
     "twitter": "https://x.com/LazyGooooo",
     "discord": "https://discord.gg/JrC6Kcdm"
    },
+   "gh": {
+    "repo": "jinruozai/ClawKing",
+    "stars": 0,
+    "forks": 1,
+    "open_issues": 1,
+    "pushed_at": "2026-05-01T08:46:26Z",
+    "updated_at": "2026-05-01T08:46:30Z",
+    "created_at": "2026-03-29T19:11:46Z",
+    "archived": false,
+    "license": "MIT",
+    "description": "The world's first on-chain AI battle royale. 8-player lobster brawl, fully computed by smart contracts. Write your AI strategy, mint your lobster, claim the crown.",
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -902,6 +963,7 @@
    "addresses": [],
    "fork_base": "curve",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -933,6 +995,7 @@
    "addresses": [],
    "fork_base": "hyperlane",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -963,6 +1026,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -1012,6 +1076,7 @@
    ],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1050,6 +1115,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError",
     "SC05-Reentrancy",
@@ -1119,6 +1185,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation",
     "SC05-Reentrancy"
@@ -1184,6 +1251,7 @@
     "explorer": "https://bscscan.com/address/0x23EbC3770f98c01EDAB20eb1eF17Ee633c19b467",
     "twitter": "https://x.com/EA_Finance"
    },
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -1219,6 +1287,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -1251,6 +1320,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -1286,6 +1356,19 @@
    "links": {
     "github": "https://github.com/EquiVaults/equivaults-contracts"
    },
+   "gh": {
+    "repo": "EquiVaults/equivaults-contracts",
+    "stars": 1,
+    "forks": 0,
+    "open_issues": 0,
+    "pushed_at": "2026-08-11T06:22:53Z",
+    "updated_at": "2026-08-11T06:22:58Z",
+    "created_at": "2026-07-28T06:02:38Z",
+    "archived": false,
+    "license": "MIT",
+    "description": "Non-custodial protocol for customizable multi-asset crypto vaults with automated rebalancing, configurable timelocks, and secure yield strategies.",
+    "fetched": "2026-08-22"
+   },
    "owasp": [
     "SC02-OracleManipulation",
     "SC10-DoS"
@@ -1318,6 +1401,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation",
     "SC03-LogicError",
@@ -1389,6 +1473,7 @@
    "links": {
     "explorer": "https://etherscan.io/address/0x501eBf66d76A96D4FB26ccead42957653e16B8B8"
    },
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1440,6 +1525,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation",
     "SC05-Reentrancy"
@@ -1490,6 +1576,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1520,6 +1607,7 @@
    "addresses": [],
    "fork_base": "liquity",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -1557,6 +1645,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1590,6 +1679,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -1628,6 +1718,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1663,6 +1754,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "contest",
@@ -1696,6 +1788,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -1726,6 +1819,7 @@
    ],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "immunefi",
@@ -1756,6 +1850,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1784,6 +1879,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC09-BadRandomness"
    ],
@@ -1817,6 +1913,7 @@
     "explorer": "https://apescan.io/address/0x88C1f4EcDe714Fba062853dA1f686171f560ebAA",
     "twitter": "https://twitter.com/0xquit"
    },
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -1846,6 +1943,19 @@
    "links": {
     "app": "https://farcaster.xyz/miniapps/uky1-yNerDOD/heavy-helms",
     "github": "https://github.com/warlock-forge/heavy-helms-contracts"
+   },
+   "gh": {
+    "repo": "warlock-forge/heavy-helms-contracts",
+    "stars": 10,
+    "forks": 2,
+    "open_issues": 0,
+    "pushed_at": "2026-03-11T22:37:45Z",
+    "updated_at": "2026-03-11T22:37:49Z",
+    "created_at": "2024-11-20T01:45:43Z",
+    "archived": false,
+    "license": "GPL-3.0",
+    "description": "Onchain auto-battler RPG built entirely in Solidity. Combat engine, player progression, tournaments, and NFT equipment deployed on Base.",
+    "fetched": "2026-08-22"
    },
    "owasp": [],
    "sources": [
@@ -1888,6 +1998,7 @@
     "twitter": "https://x.com/hoodbet_fun",
     "telegram": "https://t.me/+8KdjgSVzZr5hZjc0"
    },
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -1917,6 +2028,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1953,6 +2065,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -1990,6 +2103,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -2021,6 +2135,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -2051,6 +2166,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -2081,6 +2197,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -2112,6 +2229,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -2144,6 +2262,7 @@
    "addresses": [],
    "fork_base": "aave",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation"
    ],
@@ -2195,6 +2314,19 @@
     "twitter": "https://twitter.com/KrystalDeFi",
     "discord": "https://discord.gg/VJZXyb9QfA"
    },
+   "gh": {
+    "repo": "KrystalDeFi/krystal-vault-contracts-v2",
+    "stars": 6,
+    "forks": 2,
+    "open_issues": 10,
+    "pushed_at": "2026-08-19T07:42:55Z",
+    "updated_at": "2026-08-19T07:44:12Z",
+    "created_at": "2025-03-05T10:30:26Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
+   },
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -2241,6 +2373,19 @@
     "twitter": "https://twitter.com/KrystalDeFi",
     "discord": "https://discord.gg/VJZXyb9QfA"
    },
+   "gh": {
+    "repo": "KrystalDeFi/krystal-vault-contracts-v2",
+    "stars": 6,
+    "forks": 2,
+    "open_issues": 10,
+    "pushed_at": "2026-08-19T07:42:55Z",
+    "updated_at": "2026-08-19T07:44:12Z",
+    "created_at": "2025-03-05T10:30:26Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -2278,6 +2423,19 @@
     "docs": "https://docs.krystal.app/",
     "twitter": "https://twitter.com/KrystalDeFi",
     "discord": "https://discord.gg/VJZXyb9QfA"
+   },
+   "gh": {
+    "repo": "KrystalDeFi/krystal-vault-contracts-v2",
+    "stars": 6,
+    "forks": 2,
+    "open_issues": 10,
+    "pushed_at": "2026-08-19T07:42:55Z",
+    "updated_at": "2026-08-19T07:44:12Z",
+    "created_at": "2025-03-05T10:30:26Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
    },
    "owasp": [],
    "sources": [
@@ -2317,6 +2475,19 @@
     "twitter": "https://twitter.com/KrystalDeFi",
     "discord": "https://discord.gg/VJZXyb9QfA"
    },
+   "gh": {
+    "repo": "KrystalDeFi/krystal-vault-contracts-v2",
+    "stars": 6,
+    "forks": 2,
+    "open_issues": 10,
+    "pushed_at": "2026-08-19T07:42:55Z",
+    "updated_at": "2026-08-19T07:44:12Z",
+    "created_at": "2025-03-05T10:30:26Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -2352,6 +2523,19 @@
     "twitter": "https://twitter.com/KrystalDeFi",
     "discord": "https://discord.gg/VJZXyb9QfA"
    },
+   "gh": {
+    "repo": "KrystalDeFi/krystal-vault-contracts-v2",
+    "stars": 6,
+    "forks": 2,
+    "open_issues": 10,
+    "pushed_at": "2026-08-19T07:42:55Z",
+    "updated_at": "2026-08-19T07:44:12Z",
+    "created_at": "2025-03-05T10:30:26Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -2385,6 +2569,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -2449,6 +2634,7 @@
    ],
    "fork_base": "compound",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC05-Reentrancy"
    ],
@@ -2486,6 +2672,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -2516,6 +2703,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -2551,6 +2739,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -2581,6 +2770,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -2611,6 +2801,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -2642,6 +2833,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -2671,6 +2863,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -2714,6 +2907,19 @@
     "github": "https://github.com/kingskuan/luxmarket-contracts",
     "explorer": "https://www.oklink.com/xlayer/address/0xFb7154E06B068031502051D285dE910b16A5aF0D"
    },
+   "gh": {
+    "repo": "kingskuan/luxmarket-contracts",
+    "stars": 0,
+    "forks": 0,
+    "open_issues": 0,
+    "pushed_at": "2026-08-10T10:29:50Z",
+    "updated_at": "2026-08-10T10:30:18Z",
+    "created_at": "2026-08-09T15:43:59Z",
+    "archived": false,
+    "license": null,
+    "description": "LuXMarket onchain contracts — LMSR binary prediction markets with shared pool, oracle + dispute window (X Layer, BuildX AI Season)",
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -2743,6 +2949,7 @@
    "addresses": [],
    "fork_base": "uniswap",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC05-Reentrancy"
@@ -2796,6 +3003,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -2830,6 +3038,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -2870,6 +3079,19 @@
     "explorer": "https://etherscan.io/address/0x57C3571f10767E49C9d7b60feb6c67804783B7aE",
     "twitter": "https://x.com/DefiMaseer"
    },
+   "gh": {
+    "repo": "maseer-finance/maseer-one",
+    "stars": 0,
+    "forks": 1,
+    "open_issues": 8,
+    "pushed_at": "2026-06-28T23:20:59Z",
+    "updated_at": "2026-06-28T23:21:04Z",
+    "created_at": "2025-06-09T15:58:39Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -2897,6 +3119,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -2928,6 +3151,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -2968,6 +3192,7 @@
    "addresses": [],
    "fork_base": "liquity",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3009,6 +3234,7 @@
    "addresses": [],
    "fork_base": "liquity",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -3079,6 +3305,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "contest",
@@ -3116,6 +3343,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -3155,6 +3383,7 @@
    "addresses": [],
    "fork_base": "morpho",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3187,6 +3416,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3219,6 +3449,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3250,6 +3481,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -3298,6 +3530,7 @@
    "addresses": [],
    "fork_base": "m^0",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -3338,6 +3571,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3369,6 +3603,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -3398,6 +3633,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -3428,6 +3664,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -3457,6 +3694,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -3494,6 +3732,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -3527,6 +3766,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -3555,6 +3795,19 @@
    "fork_base": null,
    "links": {
     "github": "https://github.com/Littania/pulso-market"
+   },
+   "gh": {
+    "repo": "Littania/pulso-market",
+    "stars": 0,
+    "forks": 0,
+    "open_issues": 0,
+    "pushed_at": "2026-04-16T12:38:02Z",
+    "updated_at": "2026-04-16T12:38:06Z",
+    "created_at": "2026-04-16T12:13:46Z",
+    "archived": false,
+    "license": "MIT",
+    "description": "Solidity smart contracts for a price-based prediction market AMM with pool-distributed payouts",
+    "fetched": "2026-08-22"
    },
    "owasp": [],
    "sources": [
@@ -3592,6 +3845,7 @@
    "links": {
     "explorer": "https://etherscan.io/address/0x00000000000060D035a8002956B5fb02e3968eec"
    },
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3632,6 +3886,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3663,6 +3918,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -3693,6 +3949,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -3721,6 +3978,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -3752,6 +4010,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -3783,6 +4042,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC05-Reentrancy"
    ],
@@ -3816,6 +4076,7 @@
    ],
    "fork_base": "lagoon",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -3851,6 +4112,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "contest",
@@ -3887,6 +4149,7 @@
    ],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC02-OracleManipulation"
@@ -3936,6 +4199,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "contest",
@@ -3965,6 +4229,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "immunefi",
@@ -3998,6 +4263,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4034,6 +4300,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4067,6 +4334,7 @@
    "addresses": [],
    "fork_base": "uniswap",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4100,6 +4368,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -4131,6 +4400,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4165,6 +4435,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4194,6 +4465,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -4230,6 +4502,7 @@
    ],
    "fork_base": "morpho",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC02-OracleManipulation"
@@ -4292,6 +4565,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation",
     "SC03-LogicError"
@@ -4354,6 +4628,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -4395,6 +4670,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4426,6 +4702,7 @@
    "addresses": [],
    "fork_base": "lagoon",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4457,6 +4734,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "ledger"
@@ -4488,6 +4766,7 @@
    "links": {
     "explorer": "https://etherscan.io/address/0x225f99aaaa914d0481ef3a0bedd8aabf1b9c4d1d"
    },
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -4522,6 +4801,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4558,6 +4838,7 @@
    ],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -4601,6 +4882,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -4636,6 +4918,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -4671,6 +4954,7 @@
    "addresses": [],
    "fork_base": "euler",
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation",
     "SC03-LogicError",
@@ -4741,6 +5025,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4771,6 +5056,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC03-LogicError"
    ],
@@ -4812,6 +5098,7 @@
    "addresses": [],
    "fork_base": "aave",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "contest",
@@ -4845,6 +5132,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "fanout",
@@ -4876,6 +5164,7 @@
    "addresses": [],
    "fork_base": "compound",
    "links": {},
+   "gh": null,
    "owasp": [],
    "sources": [
     "defillama",
@@ -4916,6 +5205,19 @@
    "fork_base": null,
    "links": {
     "github": "https://github.com/fenestbuc/wager-chess"
+   },
+   "gh": {
+    "repo": "fenestbuc/wager-chess",
+    "stars": 0,
+    "forks": 0,
+    "open_issues": 0,
+    "pushed_at": "2026-06-07T12:32:17Z",
+    "updated_at": "2026-06-07T12:32:20Z",
+    "created_at": "2026-06-07T09:49:28Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
    },
    "owasp": [
     "SC01-AccessControl",
@@ -4961,6 +5263,19 @@
     "explorer": "https://abscan.org/address/0x0b4429576e5eD44a1B8f676c8217eb45707AFa3D",
     "twitter": "https://x.com/play_witty"
    },
+   "gh": {
+    "repo": "maketh-labs/arcade",
+    "stars": 2,
+    "forks": 0,
+    "open_issues": 2,
+    "pushed_at": "2025-06-18T19:04:50Z",
+    "updated_at": "2025-10-20T18:06:10Z",
+    "created_at": "2024-09-08T17:53:33Z",
+    "archived": false,
+    "license": null,
+    "description": "Async gaming. Set up a game with a toll and reward. Play to win rewards.",
+    "fetched": "2026-08-22"
+   },
    "owasp": [],
    "sources": [
     "defillama",
@@ -4996,6 +5311,7 @@
    "addresses": [],
    "fork_base": null,
    "links": {},
+   "gh": null,
    "owasp": [
     "SC02-OracleManipulation",
     "SC05-Reentrancy",
@@ -5054,6 +5370,19 @@
     "github": "https://github.com/maseer-finance/maseer-one",
     "explorer": "https://etherscan.io/address/0x57C3571f10767E49C9d7b60feb6c67804783B7aE",
     "twitter": "https://x.com/DefiMaseer"
+   },
+   "gh": {
+    "repo": "maseer-finance/maseer-one",
+    "stars": 0,
+    "forks": 1,
+    "open_issues": 8,
+    "pushed_at": "2026-06-28T23:20:59Z",
+    "updated_at": "2026-06-28T23:21:04Z",
+    "created_at": "2025-06-09T15:58:39Z",
+    "archived": false,
+    "license": null,
+    "description": null,
+    "fetched": "2026-08-22"
    },
    "owasp": [
     "SC04-InputValidation"

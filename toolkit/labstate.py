@@ -65,6 +65,14 @@ CHAIN_EXPLORER = {
 }
 _ADDR = re.compile(r"0x[a-fA-F0-9]{40}")
 _LINK_ORDER = ["website", "app", "github", "docs", "explorer", "twitter", "discord", "telegram"]
+_GH_SLUG = re.compile(r"github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?$")
+
+
+def _gh_for(links, repo_meta):
+    """GitHub repo metadata (stars/last-push/archived) for a target, joined by its github link -> a
+    maintenance/liveness signal on the card. None if no github link or no cached meta (see gh_meta.py)."""
+    m = _GH_SLUG.search((links or {}).get("github", "") or "")
+    return (repo_meta or {}).get(m.group(1)) if m else None
 
 
 def _fnorm(x):
@@ -162,6 +170,7 @@ def build(root=ROOT, today=None):
     ffseen = load(os.path.join(root, "monitor/freshfeed-seen.json"), {"defillama": []})
     deployers = load(os.path.join(root, "monitor/deployers.json"), {"deployers": []})
     curated_links = load(os.path.join(root, "monitor/links.json"), {})
+    repo_meta = load(os.path.join(root, "monitor/repo-meta.json"), {})
 
     led_by = _ledger_by_target(ledger)
 
@@ -182,11 +191,12 @@ def build(root=ROOT, today=None):
         st = t.get("status")
         tid = t.get("key", k)
         chains, addresses = t.get("chains", []), t.get("addresses", [])
+        _links = _links_for(tid, t.get("name"), chains, addresses, curated_links)
         targets.append({
             "id": tid, "name": t.get("name"), "status": st,
             "disposition": _disposition(t.get("last_reason")),   # SKIP/PARK folded into CLEAN by registry; recover it
             "zones": t.get("zones", []), "chains": chains, "addresses": addresses, "fork_base": t.get("fork_base"),
-            "links": _links_for(tid, t.get("name"), chains, addresses, curated_links),   # card link chips
+            "links": _links, "gh": _gh_for(_links, repo_meta),   # card link chips + github liveness meta
             "owasp": t.get("owasp_classes", []), "sources": t.get("sources", []),
             "firstseen": t.get("firstseen"), "lastupdated": t.get("lastupdated"),
             "verdicts": led_by.get(R.norm_key(t.get("name") or k), []),

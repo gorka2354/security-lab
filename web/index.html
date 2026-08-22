@@ -134,6 +134,15 @@
   .linkchip .li{font-size:12.5px;line-height:1}
   .dhead-links{margin-top:12px}
 
+  /* ---- resources section (detail page) ---- */
+  .resgrid{display:flex;flex-direction:column;gap:10px}
+  .resrow{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:start}
+  .reslabel{color:var(--txt3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+    padding-top:6px}
+  .reschips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .ghmeta{font-size:11px;color:var(--txt3);font-family:var(--mono);white-space:nowrap}
+  .gh-arch{color:var(--drain);font-weight:600}
+
   /* ---- pipeline board ---- */
   .board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start}
   .col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);min-height:56px;
@@ -276,6 +285,9 @@ const I18N = {
    back:"назад", d_summary:"Сводка", d_liveness:"Актуальность / слежение", d_events:"События изменений",
    d_bugs:"Баги, исходники и фикс", d_verdicts:"Вердикты", d_known:"Известные баги (fingerprint)",
    d_fork:"Форк-семья", d_log:"Записать находку", no_verdicts:"вердиктов пока нет",
+   d_resources:"Ресурсы", res_hint:"официальные ссылки проекта", res_project:"Проект", res_code:"Код",
+   res_onchain:"Ончейн", res_social:"Связь", res_empty:"ссылок пока нет — добавьте в monitor/links.json",
+   gh_pushed:"обновлён {d} дн назад", gh_issues:"откр. issues", gh_archived:"ЗААРХИВИРОВАН",
    no_finding_md:"нет FINDING.md для этой цели", no_watch:"нет данных мониторинга",
    kv_zones:"зоны", kv_chains:"сети", kv_owasp:"owasp", kv_sources:"источники", kv_first:"впервые",
    kv_updated:"обновлено", kv_addr:"адрес", lk_site:"Сайт", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
@@ -307,6 +319,9 @@ const I18N = {
    back:"back", d_summary:"Summary", d_liveness:"Liveness / tracking", d_events:"Change events",
    d_bugs:"Bugs, source & fix", d_verdicts:"Verdicts", d_known:"Known-bug rechecks (fingerprint)",
    d_fork:"Fork family", d_log:"Log a finding", no_verdicts:"no verdicts yet",
+   d_resources:"Resources", res_hint:"official project links", res_project:"Project", res_code:"Code",
+   res_onchain:"On-chain", res_social:"Social", res_empty:"no links yet — add them in monitor/links.json",
+   gh_pushed:"pushed {d}d ago", gh_issues:"open issues", gh_archived:"ARCHIVED",
    no_finding_md:"no FINDING.md for this target", no_watch:"no watch data",
    kv_zones:"zones", kv_chains:"chains", kv_owasp:"owasp", kv_sources:"sources", kv_first:"first seen",
    kv_updated:"updated", kv_addr:"address", lk_site:"Site", jump_hint:"click a sibling to jump (batch-CVE)",
@@ -408,15 +423,49 @@ const LINK_META={
   twitter:{icon:"𝕏",label:""}, discord:{icon:"💬",label:"Discord"}, telegram:{icon:"✈",label:"Telegram"},
 };
 const LINK_ORDER=["website","app","github","docs","explorer","twitter","discord","telegram"];
+function linkLabel(k){ return k==="website"?tr("lk_site"):(LINK_META[k]?(LINK_META[k].label||""):k); }
+function linkChip(k,url){
+  const m=LINK_META[k]||{icon:"🔗"}, lab=linkLabel(k)||(m.icon?"":k);
+  return `<a class="linkchip" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(k)}: ${esc(url)}" onclick="event.stopPropagation()">${m.icon?`<span class="li">${m.icon}</span>`:""}${lab?esc(lab):""}</a>`;
+}
 function linkChips(t,cls){
   const L=t&&t.links; if(!L) return "";
   const keys=LINK_ORDER.filter(k=>L[k]).concat(Object.keys(L).filter(k=>!LINK_ORDER.includes(k)&&L[k]));
   if(!keys.length) return "";
-  const dyn={website:tr("lk_site")};                    // labels that depend on the current language (re-render)
-  return `<div class="linkchips ${cls||""}">`+keys.map(k=>{
-    const m=LINK_META[k]||{icon:"🔗",label:k}, lab=(dyn[k]!==undefined?dyn[k]:(m.label||(m.icon?"":k)));
-    return `<a class="linkchip" href="${esc(L[k])}" target="_blank" rel="noopener noreferrer" title="${esc(k)}: ${esc(L[k])}" onclick="event.stopPropagation()">${m.icon?`<span class="li">${m.icon}</span>`:""}${lab?esc(lab):""}</a>`;
-  }).join("")+`</div>`;
+  return `<div class="linkchips ${cls||""}">`+keys.map(k=>linkChip(k,L[k])).join("")+`</div>`;
+}
+
+// GitHub repo liveness meta (from gh_meta.py): "★6 · обновлён 3 дн назад (+ заархивирован)".
+function daysAgo(iso){ if(!iso) return null; const d=Math.floor((Date.now()-new Date(iso).getTime())/864e5); return d<0?0:d; }
+function ghMetaText(gh){
+  if(!gh) return "";
+  const parts=[];
+  if(gh.stars!=null) parts.push("★ "+gh.stars);
+  const d=daysAgo(gh.pushed_at);
+  if(d!=null) parts.push(tr("gh_pushed").replace("{d}", d));
+  if(gh.open_issues!=null && gh.open_issues>0) parts.push(gh.open_issues+" "+tr("gh_issues"));
+  if(gh.license) parts.push(gh.license);
+  if(gh.archived) parts.push('<span class="gh-arch">'+tr("gh_archived")+'</span>');
+  return parts.join(" · ");
+}
+
+// Resources = the project's off-target links, grouped and labelled (Project / Code / On-chain / Social) so the
+// page reads clearly. Rendered as its own section on the detail page (not cramped under the header).
+const RES_GROUPS=[["res_project",["website","app","docs"]],["res_code",["github"]],
+                  ["res_onchain",["explorer"]],["res_social",["twitter","discord","telegram"]]];
+function resourcesPanel(t){
+  const L=t&&t.links||{};
+  const rows=RES_GROUPS.map(([lab,keys])=>{
+    const chips=keys.filter(k=>L[k]).map(k=>{
+      let c=linkChip(k,L[k]);
+      if(k==="github" && t.gh){ const m=ghMetaText(t.gh); if(m) c+=`<span class="ghmeta">${m}</span>`; }
+      return c;
+    });
+    if(!chips.length) return "";
+    return `<div class="resrow"><span class="reslabel">${tr(lab)}</span><div class="reschips">${chips.join("")}</div></div>`;
+  }).filter(Boolean).join("");
+  const body = rows || `<div class="vt">${tr("res_empty")}</div>`;
+  return `<div class="sect"><h2>${tr("d_resources")} <span class="hint">${tr("res_hint")}</span></h2><div class="resgrid">${body}</div></div>`;
 }
 
 function findingCard(t){
@@ -576,7 +625,7 @@ function pageDetail(s,id){
       ${t.sensitivity==="high"?'<span class="badge lock">🔒 high</span>':''}
       <span id="d_livebadge"></span></div>
     ${(t.addresses&&t.addresses[0])?`<div class="addr mono">${esc(t.addresses[0])}</div>`:""}
-    ${linkChips(t,"dhead-links")}
+    ${resourcesPanel(t)}
     <div class="dgrid">${left}${right}</div>`;
 }
 function hydrateDetail(id){

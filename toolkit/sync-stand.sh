@@ -20,7 +20,7 @@ fi
 
 # workstation-owned data + the dashboard code + the finding write-ups (stand-owned watch-*/dispatch-log excluded)
 FILES=(toolkit web)
-for f in registry.json REGISTRY.md triage-ledger.json watch-targets.json programs.json calibration.json links.json lab-state.json; do
+for f in registry.json REGISTRY.md triage-ledger.json watch-targets.json programs.json calibration.json links.json repo-meta.json lab-state.json; do
     [ -f "monitor/$f" ] && FILES+=("monitor/$f")
 done
 while IFS= read -r p; do FILES+=("${p#./}"); done < <(find . -maxdepth 2 -name "FINDING.md" -path "*-poc*")
