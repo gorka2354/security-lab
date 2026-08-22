@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import time
 import urllib.request
 
@@ -133,28 +134,33 @@ def fetch_cantina():
     return out
 
 
+_IMM_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+           "Chrome/124.0 Safari/537.36")
+# each bounty is server-rendered into the Next.js RSC blob as an escaped JSON object -> pull slug/url/kyc/maxBounty
+_IMM_ROW = re.compile(r'\\"slug\\":\\"([^"\\]+?)\\",\\"url\\":\\"([^"\\]+?)\\".*?'
+                      r'\\"kyc\\":(true|false),\\"maxBounty\\":(\d+)', re.S)
+
+
 def fetch_immunefi():
-    """Best-effort: Immunefi is JS-walled -> scrape the reader (r.jina.ai) markdown table of the explore
-    page. Rough (name + maxBounty + slug; NO per-asset addresses -> match by name only). Every Immunefi
-    program is a STANDING bounty -> always open. This is the biggest-$ source; keep it a soft dependency."""
-    md = _get_text("https://r.jina.ai/https://immunefi.com/explore/")
+    """Immunefi is JS-walled (no public API), but its /bug-bounty/ page SERVER-renders the FULL bounty list into a
+    Next.js RSC blob. Fetch the raw HTML with a browser UA and parse the escaped {slug,url,kyc,maxBounty} objects
+    -> ~180+ standing bounties (always open), vs the ~9 the old r.jina.ai reader saw (page-1 only). No per-asset
+    addresses in the listing -> match by name/slug. Best-effort: any failure returns [] (soft dependency).
+    Fetched via curl (Python urllib hits a stale-CA SSL error on this host + Immunefi sits behind Cloudflare;
+    curl is present on both the workstation and the stand cron host)."""
+    try:
+        p = subprocess.run(["curl", "-s", "-m", "45", "-L", "-A", _IMM_UA, "https://immunefi.com/bug-bounty/"],
+                           capture_output=True, text=True, timeout=60)
+        html = p.stdout or ""
+    except Exception:
+        return []
     out, seen = [], set()
-    for line in md.splitlines():
-        if "/bug-bounty/" not in line or "$" not in line:
+    for slug, url, kyc, mb in _IMM_ROW.findall(html):
+        if slug in seen or slug == "immunefi":
             continue
-        m = re.search(r"/bug-bounty/([\w.-]+)/information", line)
-        if not m:
-            continue
-        slug = m.group(1)
-        if slug in seen or slug == "immunefi":  # dedupe + drop the platform's own row
-            continue
-        nm = re.search(r"Image \d+:\s*([^\]]+?)\]", line)
-        name = (nm.group(1).replace("Triaged by Immunefi", "").strip() if nm else slug)
-        amts = re.findall(r"\$([\d.,]+\s*[kKmM]?)", line)          # [vault, maxBounty, ...] -> maxBounty is #2
-        reward = amts[1] if len(amts) >= 2 else (amts[0] if amts else None)
         seen.add(slug)
-        out.append(_prog("immunefi", name, "bounty", True, None, None, reward, "USD",
-                         "https://immunefi.com/bug-bounty/%s/information/" % slug, kyc=False))
+        out.append(_prog("immunefi", slug.replace("-", " ").title(), "bounty", True, None, None,
+                         int(mb) or None, "USD", "https://immunefi.com" + url, repo=slug, kyc=(kyc == "true")))
     return out
 
 

@@ -711,13 +711,22 @@
    },
    "contacts": {
     "key": "capyfi",
-    "preferred_channel": "NONE",
-    "preferred_url": null,
+    "preferred_channel": "PROGRAM",
+    "preferred_url": "https://immunefi.com/bug-bounty/capyfi/information/",
     "email": null,
-    "reward_usd": null,
-    "confidence": "none",
-    "candidates": [],
-    "checked_at": "2026-08-22"
+    "reward_usd": 1000000,
+    "confidence": "high",
+    "candidates": [
+     {
+      "tier": "PROGRAM",
+      "channel": "immunefi",
+      "url": "https://immunefi.com/bug-bounty/capyfi/information/",
+      "open": true,
+      "reward_usd": 1000000,
+      "confidence": "high"
+     }
+    ],
+    "checked_at": "2026-08-23"
    },
    "owasp": [
     "SC01-AccessControl"
@@ -776,13 +785,22 @@
    },
    "contacts": {
     "key": "capyfi",
-    "preferred_channel": "NONE",
-    "preferred_url": null,
+    "preferred_channel": "PROGRAM",
+    "preferred_url": "https://immunefi.com/bug-bounty/capyfi/information/",
     "email": null,
-    "reward_usd": null,
-    "confidence": "none",
-    "candidates": [],
-    "checked_at": "2026-08-22"
+    "reward_usd": 1000000,
+    "confidence": "high",
+    "candidates": [
+     {
+      "tier": "PROGRAM",
+      "channel": "immunefi",
+      "url": "https://immunefi.com/bug-bounty/capyfi/information/",
+      "open": true,
+      "reward_usd": 1000000,
+      "confidence": "high"
+     }
+    ],
+    "checked_at": "2026-08-23"
    },
    "owasp": [
     "SC02-OracleManipulation"
@@ -1016,7 +1034,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -1414,7 +1432,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -1543,7 +1561,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [
     "SC02-OracleManipulation",
@@ -2173,7 +2191,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -2226,7 +2244,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -2278,7 +2296,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -2670,7 +2688,7 @@
       "confidence": "high"
      }
     ],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [
     "SC01-AccessControl"
@@ -2746,7 +2764,7 @@
       "confidence": "high"
      }
     ],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -2814,7 +2832,7 @@
       "confidence": "high"
      }
     ],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -2882,7 +2900,7 @@
       "confidence": "high"
      }
     ],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -2947,7 +2965,7 @@
       "confidence": "high"
      }
     ],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -3407,7 +3425,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -3592,7 +3610,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -4400,7 +4418,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -5957,7 +5975,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [
     "SC01-AccessControl",
@@ -6024,7 +6042,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -6091,7 +6109,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [],
    "sources": [
@@ -6203,7 +6221,7 @@
     "reward_usd": null,
     "confidence": "none",
     "candidates": [],
-    "checked_at": "2026-08-22"
+    "checked_at": "2026-08-23"
    },
    "owasp": [
     "SC04-InputValidation"

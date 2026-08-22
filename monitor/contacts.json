@@ -7,7 +7,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "luxmarket": {
   "key": "luxmarket",
@@ -17,7 +17,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "equivaults": {
   "key": "equivaults",
@@ -27,7 +27,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "krystal": {
   "key": "krystal",
@@ -44,7 +44,7 @@
     "confidence": "high"
    }
   ],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "hoodbet-fun": {
   "key": "hoodbet-fun",
@@ -54,17 +54,26 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "capyfi": {
   "key": "capyfi",
-  "preferred_channel": "NONE",
-  "preferred_url": null,
+  "preferred_channel": "PROGRAM",
+  "preferred_url": "https://immunefi.com/bug-bounty/capyfi/information/",
   "email": null,
-  "reward_usd": null,
-  "confidence": "none",
-  "candidates": [],
-  "checked_at": "2026-08-22"
+  "reward_usd": 1000000,
+  "confidence": "high",
+  "candidates": [
+   {
+    "tier": "PROGRAM",
+    "channel": "immunefi",
+    "url": "https://immunefi.com/bug-bounty/capyfi/information/",
+    "open": true,
+    "reward_usd": 1000000,
+    "confidence": "high"
+   }
+  ],
+  "checked_at": "2026-08-23"
  },
  "maseer-one-wstgbp": {
   "key": "maseer-one-wstgbp",
@@ -74,7 +83,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "head2head-monkebet": {
   "key": "head2head-monkebet",
@@ -84,7 +93,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "clawking": {
   "key": "clawking",
@@ -94,7 +103,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "heavy-helms": {
   "key": "heavy-helms",
@@ -104,7 +113,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "wager-chess-fenestbuc": {
   "key": "wager-chess-fenestbuc",
@@ -114,7 +123,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "witty": {
   "key": "witty",
@@ -124,7 +133,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "ea-finance-staking-wcc": {
   "key": "ea-finance-staking-wcc",
@@ -134,7 +143,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-22"
+  "checked_at": "2026-08-23"
  },
  "dealers-sh": {
   "key": "dealers-sh",
