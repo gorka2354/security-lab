@@ -1,18 +1,18 @@
-# Target registry  (137 triaged protocols)  -- generated 2026-08-22
+# Target registry  (150 triaged protocols)  -- generated 2026-08-23
 
 > Auto-derived by `toolkit/registry.py` from the ledger + fan-out tables (+ HUNT addresses).
 > Pure projection (re-derive every run; never hand-edit). `radar.py` watches the live + non-SKIP rows.
 
 ## By status
-- **REAL**: 13
-- **DIG**: 31
-- **CLEAN**: 93
+- **REAL**: 18
+- **DIG**: 34
+- **CLEAN**: 98
 
 ## Fork-base index  (one upstream CVE -> re-scan all of these)
 - **uniswap** (6): autorange-vaultfactory-0x93590F9a, krystal-community-vault-lpStrategy-0x851ee187bc85152708d38a421d48733f1490a8e3, krystal-shared-vault, krystal-sharedvault-v4, magicswap, sakuraswap
 - **compound** (4): capyfi, ledgity, venus-flux, wstgbp
-- **liquity** (3): Flex, mezo-borrow, mezo-musd
-- **curve** (2): curve-llamalend-v2, luxmarket
+- **liquity** (4): Flex, mezo-borrow, mezo-musd, stockfi
+- **curve** (3): curve-llamalend-v2, luxmarket, rdmbtc/puls-primitives
 - **aave** (2): Kona Lend, Vena Finance
 - **morpho** (2): morpho-midnight, stakelink
 - **lagoon** (2): rocksolid, syntropia
@@ -21,22 +21,27 @@
 - **hyperlane** (1): Dango Bridge
 - **m^0** (1): nerona
 
-## Radar shortlist  (DIG/PARK/REAL or has live addresses): 47
+## Radar shortlist  (DIG/PARK/REAL or has live addresses): 55
 
 | status | target | zones | chains | fork-base | owasp | addrs | sources |
 |---|---|---|---|---|---|---|---|
 | REAL | capyfi | oracle | eth | compound | SC02 | - | immunefi,ledger |
 | REAL | clawking | nft | polygon | - | - | 1 | ledger |
+| REAL | dealers-sh | nft | - | - | - | 4 | ledger |
 | REAL | ea-finance-staking-wcc | staking | bsc | - | - | - | ledger |
 | REAL | equivaults | oracle | eth,fantom,polygon | - | SC02,SC10 | - | ledger |
 | REAL | head2head-monkebet | - | - | - | - | - | ledger |
 | REAL | heavy-helms | - | - | - | - | - | ledger |
 | REAL | hoodbet-fun | yield | arb | - | - | 1 | ledger |
 | REAL | krystal-community-vault-0xff630c5d | vault | arb,bsc,eth | - | SC01 | - | ledger |
+| REAL | liquihood | - | - | - | - | 3 | ledger |
 | REAL | luxmarket | oracle | - | curve | - | 1 | ledger |
 | REAL | maseer-one-wstgbp | oracle,rwa | arb,eth | - | - | 1 | ledger |
+| REAL | meridian-perps | oracle,perp | - | - | - | - | ledger |
 | REAL | pulso-market | - | - | - | - | - | ledger |
+| REAL | the-arbiter-arena | - | monad | - | - | - | ledger |
 | REAL | wager-chess-fenestbuc | gamefi | eth | - | SC01,SC03 | - | ledger |
+| REAL | witty-arcade | - | abstract,eth | - | - | - | defillama,ledger |
 | REAL | wstgbp | lending,oracle | arb | compound | SC04 | - | defillama,ledger |
 | DIG | ape-church | - | - | - | - | - | ledger |
 | DIG | centrifuge | - | - | - | SC01,SC03 | - | ledger |
@@ -48,6 +53,7 @@
 | DIG | GigaJuiceSystem | gamefi | - | - | - | - | fanout,ledger |
 | DIG | gigaverse | - | - | - | - | 1 | immunefi,ledger |
 | DIG | ImportExportSystem | gamefi | - | - | - | - | fanout,ledger |
+| DIG | katana-perps | perp | katana | - | - | - | ledger |
 | DIG | Kona Lend | lending | abstract | aave | SC02 | - | defillama,fanout,ledger |
 | DIG | krystal-community-vault-lpStrategy | vault | eth | uniswap | - | - | ledger |
 | DIG | lazy | gamefi,vault,yield | eth | - | - | - | defillama,fanout,ledger |
@@ -55,6 +61,7 @@
 | DIG | mezo-borrow | cdp,gamefi,lending | - | liquity | - | - | defillama,fanout,ledger |
 | DIG | mezo-musd | - | - | liquity | SC01,SC03 | - | fanout,ledger |
 | DIG | Monolith Market | cdp,stablecoin,vault | eth | - | SC03 | - | fanout,ledger |
+| DIG | narbet-casino | - | monad | - | - | - | ledger |
 | DIG | narbet-monad | - | eth,monad | - | - | - | defillama,ledger |
 | DIG | native-credit | credit,vault | - | - | SC01,SC03 | - | ledger |
 | DIG | panoptic-v2 | dex | eth | - | - | - | defillama,ledger |
@@ -66,6 +73,7 @@
 | DIG | royco-v2 | credit,oracle | arb,eth | - | SC01,SC02 | 1 | defillama,ledger |
 | DIG | Rysk Premium | perp,yield | arb | - | - | - | defillama,fanout,immunefi |
 | DIG | rysk-premium-vault-registry | vault | arb,eth,hyperliquid | - | - | - | defillama,ledger |
+| DIG | stockfi | cdp | bsc | liquity | - | - | ledger |
 | DIG | Tizi | oracle,stablecoin,staking | - | - | - | 1 | fanout,ledger |
 | DIG | Twyne | credit,index,lending | - | euler | SC02,SC03,SC05 | - | defillama,fanout,immunefi |
 | DIG | witty | - | abstract | - | - | - | defillama,fanout,ledger |
@@ -79,16 +87,21 @@
 |---|---|---|---|---|---|---|---|
 | REAL | capyfi | oracle | eth | compound | 1 | 2026-06-30 | 2026-06-30 |
 | REAL | clawking | nft | polygon | - | 1 | 2026-08-21 | 2026-08-21 |
+| REAL | dealers-sh | nft | - | - | 1 | 2026-08-23 | 2026-08-23 |
 | REAL | ea-finance-staking-wcc | staking | bsc | - | 2 | 2026-08-15 | 2026-08-15 |
 | REAL | equivaults | oracle | eth,fantom | - | 1 | 2026-08-15 | 2026-08-15 |
 | REAL | head2head-monkebet | - | - | - | 1 | 2026-08-21 | 2026-08-21 |
 | REAL | heavy-helms | - | - | - | 1 | 2026-06-11 | 2026-06-11 |
 | REAL | hoodbet-fun | yield | arb | - | 1 | 2026-08-21 | 2026-08-21 |
 | REAL | krystal-community-vault-0xff630c5d | vault | arb,bsc | - | 2 | 2026-08-15 | 2026-08-15 |
+| REAL | liquihood | - | - | - | 1 | 2026-08-22 | 2026-08-23 |
 | REAL | luxmarket | oracle | - | curve | 1 | 2026-08-21 | 2026-08-21 |
 | REAL | maseer-one-wstgbp | oracle,rwa | arb,eth | - | 1 | 2026-08-21 | 2026-08-15 |
+| REAL | meridian-perps | oracle,perp | - | - | 1 | 2026-08-22 | 2026-08-22 |
 | REAL | pulso-market | - | - | - | 1 | 2026-08-22 | 2026-08-22 |
+| REAL | the-arbiter-arena | - | monad | - | 1 | 2026-08-22 | 2026-08-22 |
 | REAL | wager-chess-fenestbuc | gamefi | eth | - | 2 | 2026-07-10 | 2026-07-10 |
+| REAL | witty-arcade | - | abstract,eth | - | 1 | 2026-08-22 | 2026-08-22 |
 | REAL | wstgbp | lending,oracle | arb | compound | 3 | 2026-08-15 | 2026-08-15 |
 | DIG | ape-church | - | - | - | 1 | 2026-07-01 | 2026-07-01 |
 | DIG | centrifuge | - | - | - | 7 | 2026-06-09 | 2026-08-14 |
@@ -100,6 +113,7 @@
 | DIG | GigaJuiceSystem | gamefi | - | - | 1 | 2026-06-15 | 2026-06-15 |
 | DIG | gigaverse | - | - | - | 1 | 2026-06-15 | 2026-06-15 |
 | DIG | ImportExportSystem | gamefi | - | - | 1 | 2026-06-15 | 2026-06-15 |
+| DIG | katana-perps | perp | katana | - | 1 | 2026-08-22 | 2026-08-22 |
 | DIG | Kona Lend | lending | abstract | aave | 2 | 2026-06-14 | 2026-06-15 |
 | DIG | krystal-community-vault-lpStrategy | vault | eth | uniswap | 1 | 2026-08-15 | 2026-08-15 |
 | DIG | lazy | gamefi,vault,yield | eth | - | 2 | 2026-06-13 | 2026-07-01 |
@@ -107,6 +121,7 @@
 | DIG | mezo-borrow | cdp,gamefi,lending | - | liquity | 3 | 2026-06-13 | 2026-08-14 |
 | DIG | mezo-musd | - | - | liquity | 7 | 2026-06-10 | 2026-08-14 |
 | DIG | Monolith Market | cdp,stablecoin,vault | eth | - | 2 | 2026-06-14 | 2026-06-14 |
+| DIG | narbet-casino | - | monad | - | 1 | 2026-08-22 | 2026-08-22 |
 | DIG | narbet-monad | - | eth,monad | - | 1 | 2026-08-22 | 2026-08-22 |
 | DIG | native-credit | credit,vault | - | - | 4 | 2026-06-10 | 2026-08-14 |
 | DIG | panoptic-v2 | dex | eth | - | 1 | 2026-06-28 | 2026-06-28 |
@@ -118,6 +133,7 @@
 | DIG | royco-v2 | credit,oracle | arb,eth | - | 3 | 2026-06-09 | 2026-06-09 |
 | DIG | Rysk Premium | perp,yield | arb | - | 1 | 2026-06-27 | 2026-06-27 |
 | DIG | rysk-premium-vault-registry | vault | arb,eth | - | 1 | 2026-08-15 | 2026-08-15 |
+| DIG | stockfi | cdp | bsc | liquity | 1 | 2026-08-22 | 2026-08-22 |
 | DIG | Tizi | oracle,stablecoin,staking | - | - | 3 | 2026-06-14 | 2026-06-15 |
 | DIG | Twyne | credit,index,lending | - | euler | 7 | 2026-06-26 | 2026-06-26 |
 | DIG | witty | - | abstract | - | 2 | 2026-06-14 | 2026-06-15 |
@@ -141,6 +157,7 @@
 | CLEAN | Boar Finance | yield | - | - | 1 | 2026-06-27 | 2026-06-27 |
 | CLEAN | cambria-duelarena | - | abstract | - | 1 | 2026-06-15 | 2026-06-15 |
 | CLEAN | cap | - | - | - | 1 | 2026-06-08 | 2026-06-08 |
+| CLEAN | chisino-megaeth | lottery,stablecoin | eth | - | 1 | 2026-08-22 | 2026-08-22 |
 | CLEAN | Citrea Bridge | bridge | eth | - | 1 | 2026-06-26 | 2026-06-26 |
 | CLEAN | curve-llamalend-v2 | lending,vault | op | curve | 1 | 2026-08-17 | 2026-08-17 |
 | CLEAN | Dango Bridge | bridge | eth | hyperlane | 1 | 2026-06-26 | 2026-06-26 |
@@ -150,6 +167,8 @@
 | CLEAN | enhanced-finance | vault | eth | - | 1 | 2026-08-17 | 2026-08-17 |
 | CLEAN | etherorcs | - | polygon | - | 5 | 2026-06-09 | 2026-06-09 |
 | CLEAN | fake-wall-street | - | - | - | 1 | 2026-08-22 | 2026-08-22 |
+| CLEAN | fake-wall-street-fws | lottery | - | - | 1 | 2026-08-22 | 2026-08-22 |
+| CLEAN | FedeMolteni/forecast | oracle | - | - | 1 | 2026-08-22 | 2026-08-22 |
 | CLEAN | flip-battle | credit,gamefi | - | - | 1 | 2026-06-13 | 2026-06-13 |
 | CLEAN | fluid-dex-v2 | dex,lending,oracle | - | - | 2 | 2026-08-15 | 2026-08-15 |
 | CLEAN | gacha | nft,prediction | abstract | - | 1 | 2026-06-15 | 2026-06-15 |
@@ -187,6 +206,7 @@
 | CLEAN | PRED | prediction | - | - | 1 | 2026-06-14 | 2026-06-14 |
 | CLEAN | predmart | lending,vault | polygon | - | 1 | 2026-08-21 | 2026-08-21 |
 | CLEAN | RandomSystem | gamefi | - | - | 1 | 2026-06-15 | 2026-06-15 |
+| CLEAN | rdmbtc/puls-primitives | - | - | curve | 2 | 2026-08-22 | 2026-08-22 |
 | CLEAN | reserve | - | - | - | 1 | 2026-06-07 | 2026-06-07 |
 | CLEAN | revert-lend | lending | - | - | 1 | 2026-06-10 | 2026-06-10 |
 | CLEAN | rocksolid | vault | - | lagoon | 2 | 2026-06-09 | 2026-06-09 |
@@ -214,3 +234,4 @@
 | CLEAN | VendorSystem | gamefi | - | - | 1 | 2026-06-15 | 2026-06-15 |
 | CLEAN | venus-flux | gamefi,lending | - | compound | 2 | 2026-06-13 | 2026-06-26 |
 | CLEAN | wolfgame | - | - | - | 4 | 2026-06-09 | 2026-06-09 |
+| CLEAN | xax-xausd-vault | vault | eth | - | 1 | 2026-08-22 | 2026-08-22 |

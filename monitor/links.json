@@ -1,6 +1,5 @@
 {
   "_comment": "Curated per-target links for the dashboard cards (website/app/github/docs/explorer/twitter/discord/telegram). Keyed by target key; matched fuzzily (equal / substring / shared 6-char prefix) to registry keys. NOTE the 6-char-prefix rule makes one 'krystal' entry apply to every krystal* target -> put only SHARED project links (site/github/socials) under such a key and let the auto-explorer derive the per-contract explorer from each target's own chain+address. Curated explorer OVERRIDES auto (use it for single-target projects and to correct a wrong-chain auto link; explorer:false suppresses auto). Survives registry rebuilds. Only OFFICIAL links (verified site<->github<->deployed-contract); a wrong link is worse than none. Enriched 2026-08-22 by the official-only research workflow.",
-
   "pulso-market": {
     "github": "https://github.com/Littania/pulso-market"
   },
@@ -74,5 +73,14 @@
     "docs": "https://ea-finance.gitbook.io/ea-finance-docs",
     "twitter": "https://x.com/EA_Finance",
     "explorer": "https://bscscan.com/address/0x23EbC3770f98c01EDAB20eb1eF17Ee633c19b467"
+  },
+  "dealers-sh": {
+    "website": "https://dealers.sh",
+    "github": "https://github.com/Dealers-sh/dealers-contracts",
+    "explorer": "https://abscan.org/address/0x610CcEe1AE4aFF961d043faB379491C2997383F7"
+  },
+  "liquihood": {
+    "github": "https://github.com/Liquihood-dev/liquihood-contracts",
+    "explorer": "https://robinhoodchain.blockscout.com/address/0xD26F926CEBdd169D87c5a615C18A3A8AddbBdF6E"
   }
 }

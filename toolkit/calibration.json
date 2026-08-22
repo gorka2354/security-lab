@@ -84,6 +84,40 @@
       "found": "2026-08-22",
       "updated": "2026-08-22",
       "notes": "github.com/Littania/pulso-market @60aac48. Testnet-only (Amoy 80002); pre-mainnet disclosure. PoC: buy 3757 USDC -> sell all = +872.71 (23.2%), drains pool->0 & seed 1000->0.43 in one tx. Same class as LuXMarket but on BOTH legs. poc_sim.py + PulsoDrain.t.sol in pulso-market-poc/."
+    },
+    {
+      "id": "dealers-sh-1",
+      "target": "dealers-sh",
+      "title": "NFT trait reveal deterministic + caller-orderable (resolveMany over public mutable pool, seed excludes msg.sender) -> rarest one-of-one tier grindable at zero cost",
+      "sev_claimed": "high",
+      "channel": "direct",
+      "file": "src/nft/DealersNFT.sol",
+      "line": 302,
+      "status": "drafted",
+      "sev_awarded": "",
+      "kind": "live",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-08-23",
+      "updated": "2026-08-23",
+      "notes": "Abstract 2741, DealersNFT 0x610CcEe1AE4aFF961d043faB379491C2997383F7. Self-verified from source + PoC dealers-poc/poc_sim.py (real keccak, ordering attack). Live: 41/44 one-of-ones unclaimed, pool ~95% undrawn, mint ongoing. Pre-audit. Opus-verified HIGH."
+    },
+    {
+      "id": "liquihood-1",
+      "target": "liquihood",
+      "title": "supplier accounting split-brain: 100% of borrower-paid interest permanently unclaimable (withdraw gates on linear userCollateral; balanceOfUnderlying never consulted; InsuranceFund.depositReserves dead code)",
+      "sev_claimed": "high",
+      "channel": "direct",
+      "file": "src/LendingPool.sol",
+      "line": 193,
+      "status": "drafted",
+      "sev_awarded": "",
+      "kind": "live",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-08-23",
+      "updated": "2026-08-23",
+      "notes": "Robinhood Chain 4663, LendingPool 0xD26F926CEBdd169D87c5a615C18A3A8AddbBdF6E. Self-verified: source read + forge PoC 1/1 PASS (liquihood-poc, ~468 USDG stranded). Live totalDebt>totalLiquidity on a real market. Soft-launch/dormant ~39d. Opus-verified MEDIUM (no theft, value stranded not stolen; fires on ordinary use)."
     }
   ],
   "calibrations": [

@@ -144,6 +144,17 @@
       "date": "2026-06-27"
     },
     {
+      "sig": "FedeMolteni/forecast|blockchain/contracts/Market.sol|ungated_resolve|function resolveMarket(uint _id) public { require(m.useOracle...); require(m.currentState==Active...); /* NO deadline check, NO access control */",
+      "target": "FedeMolteni/forecast",
+      "file": "blockchain/contracts/Market.sol",
+      "line": 318,
+      "detector": "ungated_resolve",
+      "snippet": "function resolveMarket(uint _id) public { require(m.useOracle...); require(m.currentState==Active...); /* NO deadline check, NO access control */",
+      "verdict": "wontfix",
+      "reason": "Real logic bug: oracle-path resolution has no time gate (unlike the vote-path which requires block.timestamp>=deadline) and is callable by anyone -> can force-resolve against whatever Chainlink price holds at that instant, any time after market creation. But only deployed to local Hardhat chain-31337 (ignition/deployments) -- never public/live, no disclosure warranted.",
+      "date": "2026-08-22"
+    },
+    {
       "sig": "Flex|(fanout)|fanout|fanout triage: lending (fixed-rate money market, borrower-chosen rates; Liquity-V2-inspired, Vyper reimplementation)",
       "target": "Flex",
       "file": "(fanout)",
@@ -672,6 +683,28 @@
       "date": "2026-06-09"
     },
     {
+      "sig": "chisino-megaeth|Game.sol (decompiled, unverified, 0xe237cbd7a4A758250b0906EBf2BaBa8CDd88B7C6)|rng|require(msg.sender == fulfiller, \"only fulfiller\")",
+      "target": "chisino-megaeth",
+      "file": "Game.sol (decompiled, unverified, 0xe237cbd7a4A758250b0906EBf2BaBa8CDd88B7C6)",
+      "line": 375,
+      "detector": "rng",
+      "snippet": "require(msg.sender == fulfiller, \"only fulfiller\")",
+      "verdict": "fp",
+      "reason": "CLEAN (LIVE-ACTIVE-FUNDED, MegaETH mainnet chain 4326, no-loss scratch-card casino, Klarhaus/Chisino, DefiLlama Luck Games, listed ~2026-04-21, TVL ~18.8-19K USD stable through 2026-08-22, audits=0). RNG audit (task focus): NOT predictable/grindable -- no block.timestamp/blockhash/prevrandao anywhere in outcome path (only in unrelated request-expiry timeout, game_decompiled.sol:246/520); fulfillRandomness(uint256,uint256) callback double-checked: reentrancy-guarded (store_o flag, ReentrancyGuardReentrantCall) + gated to single admin-set fulfiller address (msg.sender==fulfiller, line 375) + request-slot consumption guard before overwrite (no double-fulfill); tier selection (keccak256(...)%PROB_SCALE=1e7) and prizePool.payPrize() settlement happen ATOMICALLY inside the same fulfillRandomness tx as the callback -- no separate delayed-claim step, so no reveal-after-commit manipulation window. Contrast with FWS/head2head (Pyth Entropy V2, provider-address double-gated): Chisino's 'onchain VRF' (per DefiLlama description) is actually a single trusted fulfiller EOA pushing a raw (requestId,randomValue) pair with zero on-chain cryptographic provenance proof -- centralization/marketing-accuracy note (compromised fulfiller key = drain prizePool at will), NOT an externally-exploitable contract bug, so not a disclosable finding; worth a private low-urgency note only. Reach: unverified on MegaETH (not Etherscan-v2's 64 chains); Pool 0x13Bdc6886e400E17787A620DE6aC3b6979a38189 (OLI-tagged 'ChisinoProtocol') + Game 0xe237cbd7a4A758250b0906EBf2BaBa8CDd88B7C6 found via megaeth.blockscout.com search/eth_getCode -> selector recovery (openchain.xyz, 75 selectors) -> heimdall 0.9.2 (WSL Ubuntu-24.04 lane) full decompile to Solidity pseudocode+ABI. Sourced via DefiLlama Luck Games category (not github sweep -- github casino/dice/lottery sweep this session hit only testnet/hackathon toys, e.g. ShinyLuck on Somnia testnet chain 50312, deliberately excluded as zero real value). fuzz_candidate=no (MegaETH chain 4326 not in our ityfuzz CHAIN/RPC map, same gap as Robinhood Chain today).",
+      "date": "2026-08-22"
+    },
+    {
+      "sig": "clash-jayteemoney|app/api/duel/score/route.ts|hunt-katana-fresh|",
+      "target": "clash-jayteemoney",
+      "file": "app/api/duel/score/route.ts",
+      "line": 0,
+      "detector": "hunt-katana-fresh",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Clash (Celo MiniPay 1v1 duel): settlement backend POST /api/duel/score trusts a client-supplied `address` with only shape validation, no signature/wallet-ownership proof -> anyone can claim a duel win. REAL but OFF-CHAIN (web2 API, not the contract) + PRE-LAUNCH (Celo Sepolia, $0). Opus: real/low, critical-when-live. Watch for mainnet.",
+      "date": "2026-08-23"
+    },
+    {
       "sig": "clawking|contracts/src/ClawArena.sol|manual|",
       "target": "clawking",
       "file": "contracts/src/ClawArena.sol",
@@ -725,6 +758,17 @@
       "verdict": "fp",
       "reason": "_initializePlanet has require(!isInitialized); SNARK-gated game action, not a contract initializer",
       "date": "2026-06-09"
+    },
+    {
+      "sig": "dealers-sh|src/nft/DealersNFT.sol|manual|",
+      "target": "dealers-sh",
+      "file": "src/nft/DealersNFT.sol",
+      "line": 302,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "NFT trait reveal deterministic + caller-orderable (resolveMany over public mutable pool, seed excludes msg.sender) -> rarest one-of-one tier grindable at zero cost",
+      "date": "2026-08-23"
     },
     {
       "sig": "death-fun|contracts/DeathFun.sol|signature|increaseBet betAmount += amount; no msg.value check + no nonce/replay guard in signed message",
@@ -1211,6 +1255,17 @@
       "date": "2026-08-22"
     },
     {
+      "sig": "katana-perps|libraries/BalanceTracking.sol|hunt-katana-fresh|",
+      "target": "katana-perps",
+      "file": "libraries/BalanceTracking.sol",
+      "line": 501,
+      "detector": "hunt-katana-fresh",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "Exchange_v2 (Katana 747474, ~$2.17M live) rigorously CLEARED: full normalized diff vs the audited Niseko/IDEX-Ikon base = 4 library files only (EIP-712 version bump, 2 unused Math helpers, a proven-no-op ManagedAccounts require simplification, and a net-POSITIVE fix adding MA-wallet isolation guards to transfer). ManagedAccounts subsystem is 0-provider dormant on-chain. Both 'REAL/DIG' sub-slices refuted by Opus (settlement=off-chain migration assumption not attacker-exploitable since V1 lost custody; custody='V2 unverified' is not a code vuln). CLEAN honest-negative on a $2.13M live target.",
+      "date": "2026-08-23"
+    },
+    {
       "sig": "kona-lend|oracle/AaveOracle.sol|oracle|AaveOracle.getAssetPrice() source.latestAnswer() (price>0 only) over Pyth getPriceUnsafe (no maxAge)",
       "target": "kona-lend",
       "file": "oracle/AaveOracle.sol",
@@ -1330,6 +1385,17 @@
       "verdict": "wontfix",
       "reason": "VERIFY 2026-06-13 (pre-disclosure): real code bug (daily-compound vs linear, PoC passes) but NOT LIVE. generic WrappedLToken undeployed (their deployments.json: absent); only WrappedLTokenSonic deployed (Sonic 0xeD758d19) which INHERITS the bug but is EMPTY on-chain (totalSupply=0, exchangeRate=0, totalAssets reverts). HUNT 'multi-chain/$3M TVL' was protocol-level (LToken) TVL, not wrapper. Latent fix-before-launch courtesy at most. Mirrors posi-vaults dead-target discipline.",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "liquihood|src/LendingPool.sol|manual|",
+      "target": "liquihood",
+      "file": "src/LendingPool.sol",
+      "line": 193,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "supplier accounting split-brain: 100% of borrower-paid interest permanently unclaimable (withdraw gates on linear userCollateral; balanceOfUnderlying never consulted; InsuranceFund.depositReserves dead code)",
+      "date": "2026-08-23"
     },
     {
       "sig": "lisAster|(fanout)|fanout|fanout triage: ERC20 governance token (NOT a yield aggregator)",
@@ -1847,6 +1913,28 @@
       "verdict": "known",
       "reason": "W3 fork-PoC confirm-or-kill 2026-08-14 (punks-terminal-poc/, 11/11 adversarial mainnet-fork tests, INDEPENDENTLY re-run): all 4 leads CLEAN. Lead1 filler-economics conserves to bidPrice exactly (minValue+fillerGain==stashOut, no surplus; minValue>bid reverts). Lead2 (highest-value) two-reservation double-spend: locked auction ETH survives a WETH-topped punk bid; reverts rather than dipping into locked ETH. Lead4 WETH over-pull: only shortfall pulled, allowance-bounded, WETH-order lock untouched. Lead3 nonce/replay: used-flag checked first (desync dead code). ClaimD payout reentrancy blocked by nonce burned pre-call. Threat model: immutable owner, only permissionless fund-mover is processPunkBid bounded to owner-signed bidPrice, balance>=locked always. $1M Yuga in-scope -> fork-proven safe on these vectors, no FINDING. Honest gap: wrapped-punk branch read-analyzed not fork-exercised (same conservation shape, lower risk).",
       "date": "2026-08-14"
+    },
+    {
+      "sig": "rdmbtc/puls-primitives|src/LMSRMarket.sol|lmsr_spot_batch|calcBuyYesShares/calcSellYesUsdc solve via getCostStable cost-integral, not spot*amount",
+      "target": "rdmbtc/puls-primitives",
+      "file": "src/LMSRMarket.sol",
+      "line": 152,
+      "detector": "lmsr_spot_batch",
+      "snippet": "calcBuyYesShares/calcSellYesUsdc solve via getCostStable cost-integral, not spot*amount",
+      "verdict": "fp",
+      "reason": "Headline LuXMarket/PulsoMarket-class check: buy/sell correctly integrate the LMSR cost curve (log-sum-exp closed form), not spot-price-times-whole-batch. Honest negative. Deployed only to Arc TESTNET (chain 5042002, factory 0x92c2fd35c0f1a501993be8e0fdae7caa34a8b80b) -- no real value.",
+      "date": "2026-08-22"
+    },
+    {
+      "sig": "rdmbtc/puls-primitives|src/PulsMarket.sol|missing_slippage|buyYes/buyNo/sellYes/sellNo take no minSharesOut/minUsdcOut param at all",
+      "target": "rdmbtc/puls-primitives",
+      "file": "src/PulsMarket.sol",
+      "line": 78,
+      "detector": "missing_slippage",
+      "snippet": "buyYes/buyNo/sellYes/sellNo take no minSharesOut/minUsdcOut param at all",
+      "verdict": "wontfix",
+      "reason": "Real gap (sibling LMSRMarket.sol v2 explicitly added minOut overloads for this exact class) -> unmitigated sandwich-attack surface. But PulsMarket.sol has no deploy script/address anywhere in repo, absent from README's primitive list, untouched since initial commit -- dead/never-deployed code, no live threat.",
+      "date": "2026-08-22"
     },
     {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",

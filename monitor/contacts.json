@@ -135,5 +135,25 @@
   "confidence": "none",
   "candidates": [],
   "checked_at": "2026-08-22"
+ },
+ "dealers-sh": {
+  "key": "dealers-sh",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-23"
+ },
+ "liquihood": {
+  "key": "liquihood",
+  "preferred_channel": "NONE",
+  "preferred_url": null,
+  "email": null,
+  "reward_usd": null,
+  "confidence": "none",
+  "candidates": [],
+  "checked_at": "2026-08-23"
  }
 }
