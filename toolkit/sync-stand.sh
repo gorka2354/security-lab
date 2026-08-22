@@ -12,9 +12,15 @@ set -euo pipefail
 STAND="${SECLAB_STAND:-egor@100.81.218.50}"
 cd "$(dirname "$0")/.."
 
+# Never sync stand->stand (the stand is the destination). Guards against SECLAB_AUTOSYNC firing on the mini-PC
+# itself (env.sh is pushed there too), which would ssh to localhost and loop.
+if [ "$(hostname 2>/dev/null)" = "egorka23" ]; then
+    echo "[sync-stand] on the stand itself -> nothing to push"; exit 0
+fi
+
 # workstation-owned data + the dashboard code + the finding write-ups (stand-owned watch-*/dispatch-log excluded)
 FILES=(toolkit web)
-for f in registry.json REGISTRY.md triage-ledger.json watch-targets.json programs.json calibration.json lab-state.json; do
+for f in registry.json REGISTRY.md triage-ledger.json watch-targets.json programs.json calibration.json links.json lab-state.json; do
     [ -f "monitor/$f" ] && FILES+=("monitor/$f")
 done
 while IFS= read -r p; do FILES+=("${p#./}"); done < <(find . -maxdepth 2 -name "FINDING.md" -path "*-poc*")

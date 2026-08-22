@@ -124,6 +124,16 @@
   .chip .dot{width:7px;height:7px;border-radius:50%}
   .lock{color:var(--dig)}
 
+  /* ---- link chips (project / github / explorer / socials, per target) ---- */
+  .linkchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .linkchip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;line-height:1;text-decoration:none;
+    color:var(--txt2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 9px;
+    transition:color .12s,border-color .12s,background .12s}
+  .linkchip:hover{color:var(--txt);border-color:color-mix(in srgb,var(--txt) 30%,var(--border));
+    background:color-mix(in srgb,var(--txt) 7%,var(--surface2))}
+  .linkchip .li{font-size:12.5px;line-height:1}
+  .dhead-links{margin-top:12px}
+
   /* ---- pipeline board ---- */
   .board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start}
   .col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);min-height:56px;
@@ -268,7 +278,7 @@ const I18N = {
    d_fork:"Форк-семья", d_log:"Записать находку", no_verdicts:"вердиктов пока нет",
    no_finding_md:"нет FINDING.md для этой цели", no_watch:"нет данных мониторинга",
    kv_zones:"зоны", kv_chains:"сети", kv_owasp:"owasp", kv_sources:"источники", kv_first:"впервые",
-   kv_updated:"обновлено", kv_addr:"адрес", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
+   kv_updated:"обновлено", kv_addr:"адрес", lk_site:"Сайт", jump_hint:"клик по сиблингу — прыжок (batch-CVE)",
    no_siblings:"нет сиблингов", finding_title:"название находки", log_btn:"записать →", title_req:"нужно название",
    logged:"записано", value:"баланс", checked:"проверено", active:"активен", quiet:"тихо", idle:"простой",
    funded:"LIVE · есть средства", dormant:"dormant / пусто", drained:"СЛИТО",
@@ -299,7 +309,7 @@ const I18N = {
    d_fork:"Fork family", d_log:"Log a finding", no_verdicts:"no verdicts yet",
    no_finding_md:"no FINDING.md for this target", no_watch:"no watch data",
    kv_zones:"zones", kv_chains:"chains", kv_owasp:"owasp", kv_sources:"sources", kv_first:"first seen",
-   kv_updated:"updated", kv_addr:"address", jump_hint:"click a sibling to jump (batch-CVE)",
+   kv_updated:"updated", kv_addr:"address", lk_site:"Site", jump_hint:"click a sibling to jump (batch-CVE)",
    no_siblings:"no siblings", finding_title:"finding title", log_btn:"log →", title_req:"title required",
    logged:"logged", value:"balance", checked:"checked", active:"active", quiet:"quiet", idle:"idle",
    funded:"LIVE · funded", dormant:"dormant / empty", drained:"DRAINED",
@@ -390,6 +400,25 @@ function pageOverview(s){
     <div class="eyebrow">${tr("recent")}</div>${ev}`;
 }
 
+// per-target link bundle -> a social-style row of chips (project site / github / docs / explorer / socials).
+// stopPropagation so a chip click opens the link instead of navigating into the card's detail view.
+const LINK_META={
+  website:{icon:"🌐",label:""}, app:{icon:"🚀",label:"App"},
+  github:{icon:"",label:"GitHub"}, docs:{icon:"📖",label:"Docs"}, explorer:{icon:"🔎",label:"Explorer"},
+  twitter:{icon:"𝕏",label:""}, discord:{icon:"💬",label:"Discord"}, telegram:{icon:"✈",label:"Telegram"},
+};
+const LINK_ORDER=["website","app","github","docs","explorer","twitter","discord","telegram"];
+function linkChips(t,cls){
+  const L=t&&t.links; if(!L) return "";
+  const keys=LINK_ORDER.filter(k=>L[k]).concat(Object.keys(L).filter(k=>!LINK_ORDER.includes(k)&&L[k]));
+  if(!keys.length) return "";
+  const dyn={website:tr("lk_site")};                    // labels that depend on the current language (re-render)
+  return `<div class="linkchips ${cls||""}">`+keys.map(k=>{
+    const m=LINK_META[k]||{icon:"🔗",label:k}, lab=(dyn[k]!==undefined?dyn[k]:(m.label||(m.icon?"":k)));
+    return `<a class="linkchip" href="${esc(L[k])}" target="_blank" rel="noopener noreferrer" title="${esc(k)}: ${esc(L[k])}" onclick="event.stopPropagation()">${m.icon?`<span class="li">${m.icon}</span>`:""}${lab?esc(lab):""}</a>`;
+  }).join("")+`</div>`;
+}
+
 function findingCard(t){
   const sev=sevText(t), sc=sevClass(sev);
   const l = (DETAIL_CACHE[t.id]||{}).liveness;
@@ -398,6 +427,7 @@ function findingCard(t){
     <div class="top">${sev?`<span class="sev sev-${sc}">${esc(sev)}</span>`:""}<span class="nm">${esc(t.name||t.id)}</span>${t.sensitivity==="high"?'<span class="lock" title="keep private">🔒</span>':''}</div>
     <div class="desc">${esc(reasonText(t)||"—")}</div>
     <div class="foot">${l?liveBadgeMini(l):""}${meta?`<span class="chip"><span class="dot d-${colOf(t)}"></span>${esc(meta)}</span>`:""}</div>
+    ${linkChips(t)}
   </div>`;
 }
 
@@ -546,6 +576,7 @@ function pageDetail(s,id){
       ${t.sensitivity==="high"?'<span class="badge lock">🔒 high</span>':''}
       <span id="d_livebadge"></span></div>
     ${(t.addresses&&t.addresses[0])?`<div class="addr mono">${esc(t.addresses[0])}</div>`:""}
+    ${linkChips(t,"dhead-links")}
     <div class="dgrid">${left}${right}</div>`;
 }
 function hydrateDetail(id){

@@ -11,6 +11,10 @@ if [ -z "$ETHERSCAN_API_KEY" ]; then
   export ETHERSCAN_API_KEY="$(grep -hoE 'ETHERSCAN_API_KEY=[A-Za-z0-9]+' "$HOME/.zshrc" 2>/dev/null | head -1 | cut -d= -f2)"
 fi
 
+# Auto-push findings/verdicts to the always-on mini-PC dashboard the moment they are logged (labcore._autosync).
+# Debounced + best-effort; the stand guards against syncing itself (sync-stand.sh hostname check). Unset to disable.
+export SECLAB_AUTOSYNC=1
+
 # one-line status so a sourced shell knows what it has
 printf 'env: forge=%s solc=%s python3=%s etherscan-key=%s\n' \
   "$(command -v forge >/dev/null 2>&1 && forge --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo MISSING)" \

@@ -1,0 +1,17 @@
+{
+  "_comment": "Curated per-target links for the dashboard cards (website / github / docs / explorer / twitter / discord). Keyed by target key; matched fuzzily (equal / substring / shared 6-char prefix) to registry keys, so 'krystal-community-vault' matches the long address-suffixed key. Survives registry rebuilds (registry.json is auto-generated; this file is hand-curated). Auto-explorer is derived from chain+address when no explorer is set here. Only add links you are confident are OFFICIAL (a wrong social link is worse than none).",
+  "pulso-market": {
+    "github": "https://github.com/Littania/pulso-market"
+  },
+  "luxmarket": {
+    "github": "https://github.com/kingskuan/luxmarket-contracts",
+    "explorer": "https://www.oklink.com/xlayer/address/0xFb7154E06B068031502051D285dE910b16A5aF0D"
+  },
+  "equivaults": {
+    "github": "https://github.com/EquiVaults/equivaults-contracts"
+  },
+  "krystal-community-vault": {
+    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
+    "website": "https://defi.krystal.app"
+  }
+}

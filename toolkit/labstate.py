@@ -46,6 +46,70 @@ def _disposition(reason):
     return m.group(1).lower() if m else None
 
 
+# block-explorer bases for auto-derived per-contract links (only well-known chains; exotic chains -> curate
+# an explicit "explorer" in monitor/links.json so we never emit a wrong URL)
+CHAIN_EXPLORER = {
+    "eth": "https://etherscan.io/address/", "ethereum": "https://etherscan.io/address/",
+    "arb": "https://arbiscan.io/address/", "arbitrum": "https://arbiscan.io/address/",
+    "bsc": "https://bscscan.com/address/", "opbnb": "https://opbnb.bscscan.com/address/",
+    "polygon": "https://polygonscan.com/address/", "matic": "https://polygonscan.com/address/",
+    "base": "https://basescan.org/address/",
+    "optimism": "https://optimistic.etherscan.io/address/", "op": "https://optimistic.etherscan.io/address/",
+    "avax": "https://snowtrace.io/address/", "avalanche": "https://snowtrace.io/address/",
+    "fantom": "https://ftmscan.com/address/", "ftm": "https://ftmscan.com/address/",
+    "xlayer": "https://www.oklink.com/xlayer/address/",
+    "apechain": "https://apescan.io/address/",
+    "abstract": "https://abscan.org/address/",
+    "hyperevm": "https://hyperevmscan.io/address/",
+    "blast": "https://blastscan.io/address/",
+}
+_ADDR = re.compile(r"0x[a-fA-F0-9]{40}")
+_LINK_ORDER = ["website", "app", "github", "docs", "explorer", "twitter", "discord", "telegram"]
+
+
+def _fnorm(x):
+    return re.sub(r"[^a-z0-9]", "", (x or "").lower())
+
+
+def _keymatch(a, b):
+    """Fuzzy links.json<->target key match (mirror of labcore._keymatch): equal / substring / shared 6-prefix."""
+    na, nb = _fnorm(a), _fnorm(b)
+    if not na or not nb:
+        return False
+    return na == nb or na in nb or nb in na or (len(na) >= 6 and len(nb) >= 6 and na[:6] == nb[:6])
+
+
+def _links_for(tid, name, chains, addresses, curated):
+    """Per-target link bundle for the dashboard card: curated entry (monitor/links.json, fuzzy-matched) merged
+    with an auto-derived block-explorer link (from chain x address, address mined from the key/name if needed).
+    Ordered, and only non-empty URLs. Curated wins over auto."""
+    links, suppressed = {}, set()
+    for ck, cv in (curated or {}).items():
+        if ck.startswith("_") or not isinstance(cv, dict):
+            continue
+        if _keymatch(ck, tid) or _keymatch(ck, name or ""):
+            for k, v in cv.items():
+                if k.startswith("_"):
+                    continue
+                if v:
+                    links[k] = v
+                else:
+                    suppressed.add(k)               # explicit false/null/"" -> suppress a wrong auto-derived link
+            break
+    if "explorer" not in links and "explorer" not in suppressed and len(chains or []) == 1:  # single chain only ->
+        addrs = [a for a in (addresses or []) if a]           # unambiguous; multi-chain is curated (avoid wrong URL)
+        for s in (tid or "", name or ""):
+            addrs += _ADDR.findall(s)
+        base = CHAIN_EXPLORER.get((chains[0] or "").lower())
+        if base and addrs:
+            links["explorer"] = base + addrs[0]
+    ordered = {k: links[k] for k in _LINK_ORDER if k in links}
+    for k, v in links.items():
+        if k not in ordered:
+            ordered[k] = v
+    return ordered
+
+
 def _md_items(path, prefix, root=ROOT):
     """Fresh-delta items from a radar .md (live only in the .md, transiently). [] when quiet/baseline."""
     p = os.path.join(root, path)
@@ -97,6 +161,7 @@ def build(root=ROOT, today=None):
     rseen = load(os.path.join(root, "monitor/radar-seen.json"), {"bounties": {}, "impls": {}})
     ffseen = load(os.path.join(root, "monitor/freshfeed-seen.json"), {"defillama": []})
     deployers = load(os.path.join(root, "monitor/deployers.json"), {"deployers": []})
+    curated_links = load(os.path.join(root, "monitor/links.json"), {})
 
     led_by = _ledger_by_target(ledger)
 
@@ -115,10 +180,13 @@ def build(root=ROOT, today=None):
     targets = []
     for k, t in (reg.get("targets") or {}).items():
         st = t.get("status")
+        tid = t.get("key", k)
+        chains, addresses = t.get("chains", []), t.get("addresses", [])
         targets.append({
-            "id": t.get("key", k), "name": t.get("name"), "status": st,
+            "id": tid, "name": t.get("name"), "status": st,
             "disposition": _disposition(t.get("last_reason")),   # SKIP/PARK folded into CLEAN by registry; recover it
-            "zones": t.get("zones", []), "chains": t.get("chains", []), "fork_base": t.get("fork_base"),
+            "zones": t.get("zones", []), "chains": chains, "addresses": addresses, "fork_base": t.get("fork_base"),
+            "links": _links_for(tid, t.get("name"), chains, addresses, curated_links),   # card link chips
             "owasp": t.get("owasp_classes", []), "sources": t.get("sources", []),
             "firstseen": t.get("firstseen"), "lastupdated": t.get("lastupdated"),
             "verdicts": led_by.get(R.norm_key(t.get("name") or k), []),

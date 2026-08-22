@@ -13,6 +13,7 @@ import datetime
 import glob
 import os
 import re
+import shutil
 import subprocess
 import sys
 import types
@@ -22,6 +23,35 @@ import labstate
 import ledger
 
 VERDICTS = {"fp", "known", "wontfix", "real", "todo"}   # ledger's verdict vocabulary
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _autosync():
+    """Push hunt outputs to the always-on mini-PC dashboard right after a finding/verdict is logged, so the
+    Tailscale dashboard reflects it with no manual step. OPT-IN via SECLAB_AUTOSYNC=1 (kept off in tests/CI and
+    on the stand itself, so those never shell out to SSH).
+
+    SYNCHRONOUS by design: a detached background child does not survive the short-lived shells we record from
+    (the runner kills the process tree on command exit), so we run sync-stand.sh inline with a timeout. It is
+    fast (~2-3s: tar ~12 small files + a remote lab-state rebuild) and best-effort -- an offline stand or any
+    error is swallowed (the finding is already saved locally; a later `sync-stand.sh` is the catch-all). No
+    debounce: each record re-tars the CURRENT file state, so a burst's LAST sync always carries the full set."""
+    if not os.environ.get("SECLAB_AUTOSYNC"):
+        return
+    try:
+        # resolve a real bash: a bare "bash" on Windows resolves to System32 WSL bash (can't run this script);
+        # shutil.which finds Git Bash, and on the stand it finds /usr/bin/bash. Relative script path + cwd avoids
+        # backslash-path issues in Git Bash.
+        bash = shutil.which("bash")
+        for c in (r"C:\Program Files\Git\usr\bin\bash.exe", r"C:\Program Files\Git\bin\bash.exe"):
+            if not bash and os.path.exists(c):
+                bash = c
+        if not bash:
+            return
+        subprocess.run([bash, "toolkit/sync-stand.sh"], cwd=_ROOT, stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=45, check=False)
+    except Exception:
+        pass
 
 
 def state():
@@ -161,6 +191,7 @@ def record_verdict(target, verdict, reason, detector="manual", file="(labcore)",
     date = date or datetime.date.today().isoformat()
     kw = {"path": path} if path else {}
     sig = ledger.add(target, file, line, detector, snippet, verdict, reason, date, **kw)
+    _autosync()
     return {"ok": True, "sig": sig, "target": target, "verdict": verdict, "date": date}
 
 
@@ -187,5 +218,6 @@ def record_finding(target, title, sev="?", file="", line=0, status="drafted", ch
                            capture_output=True, text=True, timeout=120)
         except Exception:
             pass
+    _autosync()
     return {"ok": True, "target": target, "title": title, "sev": sev, "kind": kind, "status": status,
             "date": date}
