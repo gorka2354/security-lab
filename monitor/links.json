@@ -1,5 +1,6 @@
 {
-  "_comment": "Curated per-target links for the dashboard cards (website / github / docs / explorer / twitter / discord). Keyed by target key; matched fuzzily (equal / substring / shared 6-char prefix) to registry keys, so 'krystal-community-vault' matches the long address-suffixed key. Survives registry rebuilds (registry.json is auto-generated; this file is hand-curated). Auto-explorer is derived from chain+address when no explorer is set here. Only add links you are confident are OFFICIAL (a wrong social link is worse than none).",
+  "_comment": "Curated per-target links for the dashboard cards (website/app/github/docs/explorer/twitter/discord/telegram). Keyed by target key; matched fuzzily (equal / substring / shared 6-char prefix) to registry keys. NOTE the 6-char-prefix rule makes one 'krystal' entry apply to every krystal* target -> put only SHARED project links (site/github/socials) under such a key and let the auto-explorer derive the per-contract explorer from each target's own chain+address. Curated explorer OVERRIDES auto (use it for single-target projects and to correct a wrong-chain auto link; explorer:false suppresses auto). Survives registry rebuilds. Only OFFICIAL links (verified site<->github<->deployed-contract); a wrong link is worse than none. Enriched 2026-08-22 by the official-only research workflow.",
+
   "pulso-market": {
     "github": "https://github.com/Littania/pulso-market"
   },
@@ -10,8 +11,68 @@
   "equivaults": {
     "github": "https://github.com/EquiVaults/equivaults-contracts"
   },
-  "krystal-community-vault": {
+  "krystal": {
+    "website": "https://defi.krystal.app",
     "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
-    "website": "https://defi.krystal.app"
+    "docs": "https://docs.krystal.app/",
+    "twitter": "https://twitter.com/KrystalDeFi",
+    "discord": "https://discord.gg/VJZXyb9QfA"
+  },
+  "hoodbet-fun": {
+    "website": "https://hoodbet.fun",
+    "app": "https://app.hoodbet.fun",
+    "docs": "https://hoodbet.gitbook.io/hoodbet-docs",
+    "github": "https://github.com/hoodbet-fun",
+    "twitter": "https://x.com/hoodbet_fun",
+    "telegram": "https://t.me/+8KdjgSVzZr5hZjc0",
+    "explorer": "https://robinhoodchain.blockscout.com/address/0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19"
+  },
+  "capyfi": {
+    "website": "https://capyfi.com/",
+    "app": "https://app.capyfi.com/",
+    "github": "https://github.com/Capyfi/capyfi-smart-contracts",
+    "docs": "https://docs.capyfi.com/",
+    "twitter": "https://x.com/CapyFi_Protocol",
+    "discord": "https://discord.com/invite/jwEhKaPY",
+    "explorer": "https://etherscan.io/address/0x00dc4965916e03A734190fA382633657c71f867E"
+  },
+  "maseer-one-wstgbp": {
+    "website": "https://maseer.finance",
+    "github": "https://github.com/maseer-finance/maseer-one",
+    "twitter": "https://x.com/DefiMaseer",
+    "explorer": "https://etherscan.io/address/0x57C3571f10767E49C9d7b60feb6c67804783B7aE"
+  },
+  "head2head-monkebet": {
+    "website": "https://monke.bet",
+    "twitter": "https://twitter.com/0xquit",
+    "explorer": "https://apescan.io/address/0x88C1f4EcDe714Fba062853dA1f686171f560ebAA"
+  },
+  "clawking": {
+    "website": "https://clawking.cc",
+    "github": "https://github.com/jinruozai/ClawKing",
+    "twitter": "https://x.com/LazyGooooo",
+    "discord": "https://discord.gg/JrC6Kcdm",
+    "explorer": "https://opbnbscan.com/address/0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10"
+  },
+  "heavy-helms": {
+    "github": "https://github.com/warlock-forge/heavy-helms-contracts",
+    "app": "https://farcaster.xyz/miniapps/uky1-yNerDOD/heavy-helms"
+  },
+  "wager-chess-fenestbuc": {
+    "github": "https://github.com/fenestbuc/wager-chess"
+  },
+  "witty": {
+    "website": "https://witty.game",
+    "docs": "https://docs.witty.game",
+    "twitter": "https://x.com/play_witty",
+    "github": "https://github.com/maketh-labs/arcade",
+    "explorer": "https://abscan.org/address/0x0b4429576e5eD44a1B8f676c8217eb45707AFa3D"
+  },
+  "ea-finance-staking-wcc": {
+    "website": "https://ea.finance/",
+    "app": "https://app.ea.finance/",
+    "docs": "https://ea-finance.gitbook.io/ea-finance-docs",
+    "twitter": "https://x.com/EA_Finance",
+    "explorer": "https://bscscan.com/address/0x23EbC3770f98c01EDAB20eb1eF17Ee633c19b467"
   }
 }

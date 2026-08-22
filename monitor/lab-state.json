@@ -647,7 +647,15 @@
    "chains": [],
    "addresses": [],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "website": "https://capyfi.com/",
+    "app": "https://app.capyfi.com/",
+    "github": "https://github.com/Capyfi/capyfi-smart-contracts",
+    "docs": "https://docs.capyfi.com/",
+    "explorer": "https://etherscan.io/address/0x00dc4965916e03A734190fA382633657c71f867E",
+    "twitter": "https://x.com/CapyFi_Protocol",
+    "discord": "https://discord.com/invite/jwEhKaPY"
+   },
    "owasp": [
     "SC01-AccessControl"
    ],
@@ -681,7 +689,15 @@
    ],
    "addresses": [],
    "fork_base": "compound",
-   "links": {},
+   "links": {
+    "website": "https://capyfi.com/",
+    "app": "https://app.capyfi.com/",
+    "github": "https://github.com/Capyfi/capyfi-smart-contracts",
+    "docs": "https://docs.capyfi.com/",
+    "explorer": "https://etherscan.io/address/0x00dc4965916e03A734190fA382633657c71f867E",
+    "twitter": "https://x.com/CapyFi_Protocol",
+    "discord": "https://discord.com/invite/jwEhKaPY"
+   },
    "owasp": [
     "SC02-OracleManipulation"
    ],
@@ -848,7 +864,11 @@
    ],
    "fork_base": null,
    "links": {
-    "explorer": "https://polygonscan.com/address/0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10"
+    "website": "https://clawking.cc",
+    "github": "https://github.com/jinruozai/ClawKing",
+    "explorer": "https://opbnbscan.com/address/0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10",
+    "twitter": "https://x.com/LazyGooooo",
+    "discord": "https://discord.gg/JrC6Kcdm"
    },
    "owasp": [],
    "sources": [
@@ -1157,7 +1177,13 @@
    ],
    "addresses": [],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "website": "https://ea.finance/",
+    "app": "https://app.ea.finance/",
+    "docs": "https://ea-finance.gitbook.io/ea-finance-docs",
+    "explorer": "https://bscscan.com/address/0x23EbC3770f98c01EDAB20eb1eF17Ee633c19b467",
+    "twitter": "https://x.com/EA_Finance"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -1786,7 +1812,11 @@
    "chains": [],
    "addresses": [],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "website": "https://monke.bet",
+    "explorer": "https://apescan.io/address/0x88C1f4EcDe714Fba062853dA1f686171f560ebAA",
+    "twitter": "https://twitter.com/0xquit"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -1813,7 +1843,10 @@
    "chains": [],
    "addresses": [],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "app": "https://farcaster.xyz/miniapps/uky1-yNerDOD/heavy-helms",
+    "github": "https://github.com/warlock-forge/heavy-helms-contracts"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -1847,7 +1880,13 @@
    ],
    "fork_base": null,
    "links": {
-    "explorer": "https://arbiscan.io/address/0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19"
+    "website": "https://hoodbet.fun",
+    "app": "https://app.hoodbet.fun",
+    "github": "https://github.com/hoodbet-fun",
+    "docs": "https://hoodbet.gitbook.io/hoodbet-docs",
+    "explorer": "https://robinhoodchain.blockscout.com/address/0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19",
+    "twitter": "https://x.com/hoodbet_fun",
+    "telegram": "https://t.me/+8KdjgSVzZr5hZjc0"
    },
    "owasp": [],
    "sources": [
@@ -2151,7 +2190,10 @@
    "fork_base": null,
    "links": {
     "website": "https://defi.krystal.app",
-    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2"
+    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
+    "docs": "https://docs.krystal.app/",
+    "twitter": "https://twitter.com/KrystalDeFi",
+    "discord": "https://discord.gg/VJZXyb9QfA"
    },
    "owasp": [
     "SC01-AccessControl"
@@ -2194,7 +2236,10 @@
    "links": {
     "website": "https://defi.krystal.app",
     "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
-    "explorer": "https://etherscan.io/address/0x851ee187bc85152708d38a421d48733f1490a8e3"
+    "docs": "https://docs.krystal.app/",
+    "explorer": "https://etherscan.io/address/0x851ee187bc85152708d38a421d48733f1490a8e3",
+    "twitter": "https://twitter.com/KrystalDeFi",
+    "discord": "https://discord.gg/VJZXyb9QfA"
    },
    "owasp": [],
    "sources": [
@@ -2229,7 +2274,10 @@
    "fork_base": "uniswap",
    "links": {
     "website": "https://defi.krystal.app",
-    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2"
+    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
+    "docs": "https://docs.krystal.app/",
+    "twitter": "https://twitter.com/KrystalDeFi",
+    "discord": "https://discord.gg/VJZXyb9QfA"
    },
    "owasp": [],
    "sources": [
@@ -2264,7 +2312,10 @@
    "fork_base": "uniswap",
    "links": {
     "website": "https://defi.krystal.app",
-    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2"
+    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
+    "docs": "https://docs.krystal.app/",
+    "twitter": "https://twitter.com/KrystalDeFi",
+    "discord": "https://discord.gg/VJZXyb9QfA"
    },
    "owasp": [],
    "sources": [
@@ -2296,7 +2347,10 @@
    "fork_base": null,
    "links": {
     "website": "https://defi.krystal.app",
-    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2"
+    "github": "https://github.com/KrystalDeFi/krystal-vault-contracts-v2",
+    "docs": "https://docs.krystal.app/",
+    "twitter": "https://twitter.com/KrystalDeFi",
+    "discord": "https://discord.gg/VJZXyb9QfA"
    },
    "owasp": [],
    "sources": [
@@ -2810,7 +2864,12 @@
     "0x57C3571f10767E49C9d7b60feb6c67804783B7aE"
    ],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "website": "https://maseer.finance",
+    "github": "https://github.com/maseer-finance/maseer-one",
+    "explorer": "https://etherscan.io/address/0x57C3571f10767E49C9d7b60feb6c67804783B7aE",
+    "twitter": "https://x.com/DefiMaseer"
+   },
    "owasp": [],
    "sources": [
     "ledger"
@@ -4855,7 +4914,9 @@
    ],
    "addresses": [],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "github": "https://github.com/fenestbuc/wager-chess"
+   },
    "owasp": [
     "SC01-AccessControl",
     "SC03-LogicError"
@@ -4893,7 +4954,13 @@
    ],
    "addresses": [],
    "fork_base": null,
-   "links": {},
+   "links": {
+    "website": "https://witty.game",
+    "github": "https://github.com/maketh-labs/arcade",
+    "docs": "https://docs.witty.game",
+    "explorer": "https://abscan.org/address/0x0b4429576e5eD44a1B8f676c8217eb45707AFa3D",
+    "twitter": "https://x.com/play_witty"
+   },
    "owasp": [],
    "sources": [
     "defillama",
@@ -4982,7 +5049,12 @@
    ],
    "addresses": [],
    "fork_base": "compound",
-   "links": {},
+   "links": {
+    "website": "https://maseer.finance",
+    "github": "https://github.com/maseer-finance/maseer-one",
+    "explorer": "https://etherscan.io/address/0x57C3571f10767E49C9d7b60feb6c67804783B7aE",
+    "twitter": "https://x.com/DefiMaseer"
+   },
    "owasp": [
     "SC04-InputValidation"
    ],
