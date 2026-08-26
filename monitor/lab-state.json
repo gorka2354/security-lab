@@ -1,6 +1,6 @@
 {
  "version": 1,
- "generated": "2026-08-23",
+ "generated": "2026-08-25",
  "targets": [
   {
    "id": "1sec",
@@ -506,6 +506,12 @@
      "verdict": "wontfix",
      "reason": "CLEAN honest-negative (LIVE+ACTIVE+FUNDED ~920k MON, Monad/143). aprMON ERC-4626 LST guarded by design: totalAssets() is internal-counter-based (totalPendingDep",
      "date": "2026-08-15"
+    },
+    {
+     "detector": "erc4626",
+     "verdict": "fp",
+     "reason": "MEV LST on Monad 143. Read CLEAN, 0 suspicion, dig_score 0. Withdrawal-queue rate + reward accumulator checked.",
+     "date": "2026-08-25"
     }
    ],
    "detect": null,
@@ -3951,6 +3957,12 @@
    "firstseen": "2026-08-15",
    "lastupdated": "2026-08-15",
    "verdicts": [
+    {
+     "detector": "reasoning",
+     "verdict": "known",
+     "reason": "Morpho fixed-rate/fixed-term layer, Base 8453 REACHED. Read CLEAN (0 suspicion); new-layer maturity/accrual handling inherits Blue invariants correctly. dig_sco",
+     "date": "2026-08-25"
+    },
     {
      "detector": "l4-manual-read",
      "verdict": "wontfix",

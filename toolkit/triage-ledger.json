@@ -485,6 +485,17 @@
       "date": "2026-08-15"
     },
     {
+      "sig": "ample-money|AmplePayoutLib-8453|rng|",
+      "target": "ample-money",
+      "file": "AmplePayoutLib-8453",
+      "line": 0,
+      "detector": "rng",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "prize-linked savings, Base 8453 REACHED live. VRF proof off-chain-only (no on-chain crypto binding) but setMerkleRoots is operator-gated = intended trust model, not unprivileged. CLEAN.",
+      "date": "2026-08-25"
+    },
+    {
       "sig": "ape-church (Ape Church casino, House bankroll, ApeChain 33139)|House.sol|danger|",
       "target": "ape-church (Ape Church casino, House bankroll, ApeChain 33139)",
       "file": "House.sol",
@@ -538,6 +549,39 @@
       "verdict": "wontfix",
       "reason": "CLEAN honest-negative (LIVE+ACTIVE+FUNDED ~920k MON, Monad/143). aprMON ERC-4626 LST guarded by design: totalAssets() is internal-counter-based (totalPendingDeposit+totalStaked-lockedRewards), NEVER reads address(this).balance -> classic donation/first-depositor share-inflation closed by construction; DUST_THRESHOLD floors deposits. MEV/reward-JIT guarded via linear reward-vesting over epochLength (_calculateLockedRewards). Reentrancy: no guard but per-request claimed=true before external .call (CEI intact). recon 0 [!]. Residual (withdrawal-queue/validator-rebalance accounting) is onlyOracleOperator-gated = trusted role, out of external threat model. impl 0x7d2f8dc5. Real vault resolved via defillama.py addrs apriori (DefiLlama addr was a decoy EOA). Reach-fix applied: Monad(143) added to fetch_source DEFAULT_RPC.",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "apriori-aprmon|aprMON-monad-143|erc4626|",
+      "target": "apriori-aprmon",
+      "file": "aprMON-monad-143",
+      "line": 0,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "MEV LST on Monad 143. Read CLEAN, 0 suspicion, dig_score 0. Withdrawal-queue rate + reward accumulator checked.",
+      "date": "2026-08-25"
+    },
+    {
+      "sig": "arcus-perps|ArcusSettlement-0x006102b1-robinhood-4663|reasoning|",
+      "target": "arcus-perps",
+      "file": "ArcusSettlement-0x006102b1-robinhood-4663",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "dYdX-built hybrid DEX, Robinhood 4663, ~19.2M TVL LIVE-GROWING. Perp math is OFF-CHAIN (not reachable). Rootchain (BridgeVault) ToB+OZ audited, all findings Resolved. Spot RFQ/Wrapped-Token layer (unaudited, live) READ CLEAN. UNREAD: rialtoRouter 0xC94135b6 + zeroexRouter 0xfbeCF057 (approved external executors) -> next-dig external-call surface.",
+      "date": "2026-08-25"
+    },
+    {
+      "sig": "astro-fun-crashgame|CrashGame-0xcC679b67-robinhood-4663|rng|",
+      "target": "astro-fun-crashgame",
+      "file": "CrashGame-0xcC679b67-robinhood-4663",
+      "line": 0,
+      "detector": "rng",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "on-chain crash game, Robinhood 4663. RIGOROUS CLEAN via heimdall decompile+eth_call: refund/payout mutually exclusive (status byte pre-set + nonReentrant); finalizeRound operator-only w/ vault-side len+exposure reconciliation (2.5%/25% caps); crash pt = provably-fair keccak chain+blockhash, unbiasable; vault = 4626 w/ 1e6 virtual offset + same-block guard.",
+      "date": "2026-08-25"
     },
     {
       "sig": "autorange-vaultfactory-0x93590F9a|unverified (Arbitrum+Celo)|det_delegatecall_target|",
@@ -1066,6 +1110,17 @@
       "verdict": "wontfix",
       "reason": "Deep manual read of oracle-less pricing (tick+virtual-reserve-decay MEV protection, borrow-cost-vs-swap check, tick-buffer, share/vault donation-attack immunity via storage-tracked reserves, correct interest/yield rounding direction, liquidation principal-writeoff accounting). No confirmed exploitable bug. Confirmed live+active+funded on >=2 ETH pairs (wstETH/WETH last-tx 5d, wNVDAx/USDT last-tx 15.8d). Zero source drift across ETH/ARB/BASE/BSC pair implementations (byte-identical). Protocol is SmarDex's rebrand (audited AMM DNA); the novel UniPool tick-lending layer itself has no public audit found. Only unconfirmed hypothesis: thin pools (~$200-500 reserve) + short default priceDecay (120s) + tickBuffer(4)/swapPriceToleranceBps(1000) may be more manipulation-susceptible than large pools -- inherent TWAP-window tradeoff, not a code bug, not simulated/PoC'd. CLEAN verdict, high engineering quality (explicit exploit-prevention rationale throughout).",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "everything-inc|oracle-less-lending-42161|reasoning|",
+      "target": "everything-inc",
+      "file": "oracle-less-lending-42161",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "AMM+oracle-less lending, Arb 42161 REACHED. Novel invariant surface (collateral valued w/o oracle via AMM state) but 0 concrete suspicion this pass; needs a dedicated manipulation-in-same-tx read. dig_score 22.",
+      "date": "2026-08-25"
     },
     {
       "sig": "fake-wall-street|src/FWSRandomness.sol|rng|request(bytes32 userRandomNumber) -> entropy.requestV2",
@@ -1695,6 +1750,17 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "mezo-vaults-smusd|MUSDSavingsRate-0xb33c3f97|erc4626|",
+      "target": "mezo-vaults-smusd",
+      "file": "MUSDSavingsRate-0xb33c3f97",
+      "line": 0,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Halborn-audited (sMUSD savings-rate 4626); flash-loan yield-index dilution HIGH already fixed @67b8d87 (force-distribute before deposit); setStrategy owner-strand is acknowledged-informational. CLEAN.",
+      "date": "2026-08-25"
+    },
+    {
       "sig": "monolith-market|src/Lender.sol|rounding-debt-share-asymmetry|",
       "target": "monolith-market",
       "file": "src/Lender.sol",
@@ -1704,6 +1770,17 @@
       "verdict": "todo",
       "reason": "Greenfield CDP stablecoin; mainnet Factory deployed (0x6d96, blk 24949282) but ZERO token transfers/no funded market => dormant value~0. Backlog flag: increaseDebt mulDivUp+maxBorrowDeltaBps(2%) vs decreaseDebt partial mulDivDown vs getDebtOf mulDivUp. Thin-pool share-rounding HYPOTHESES: partial-repay/redeem dust + setRedemptionStatus round-trip. Vault MIN_SHARES dead-shares present. DIG-CAREFUL (deployable, cold).",
       "date": "2026-06-14"
+    },
+    {
+      "sig": "morpho-midnight|fixed-term-lending-8453|reasoning|",
+      "target": "morpho-midnight",
+      "file": "fixed-term-lending-8453",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "known",
+      "reason": "Morpho fixed-rate/fixed-term layer, Base 8453 REACHED. Read CLEAN (0 suspicion); new-layer maturity/accrual handling inherits Blue invariants correctly. dig_score 28 but no defect.",
+      "date": "2026-08-25"
     },
     {
       "sig": "morpho-midnight (0xAdedD8ab6dE832766Fedf0FaC4992E5C4D3EA18A, base/8453)|lib/midnight/src/Midnight.sol|l4-manual-read|fixed-rate/fixed-term periphery: rate/tick pricing, maturity/accrual math, settlement+continuous fee, liquidation RCF, SSTORE2 market-id",
@@ -1838,6 +1915,17 @@
       "date": "2026-08-15"
     },
     {
+      "sig": "perpl-monad|DelegatedAccount-monad-143|reasoning|",
+      "target": "perpl-monad",
+      "file": "DelegatedAccount-monad-143",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "Monad 143 perps CLOB. DelegatedAccount+Factory read CLEAN (no fund-exfil); CORE Exchange/matching/liquidation UNREAD this pass. dig_score 30 -> re-approach core.",
+      "date": "2026-08-25"
+    },
+    {
       "sig": "pharaoh-dlmm|fetched/43114_0xEb480050b016f6c6d45203D2346B68bDDDa23D4D/contracts/DLMM/DLMMFactory.sol|forkdrift|",
       "target": "pharaoh-dlmm",
       "file": "fetched/43114_0xEb480050b016f6c6d45203D2346B68bDDDa23D4D/contracts/DLMM/DLMMFactory.sol",
@@ -1847,6 +1935,17 @@
       "verdict": "known",
       "reason": "verbatim Trader Joe Liquidity Book v2.2 fork (Avalanche, $9.9M, audits=0, listed 2026-06-16); recon clean, covered-by-lineage -> SKIP/PARK",
       "date": "2026-06-28"
+    },
+    {
+      "sig": "pmarket-ctfexchange|CTFExchange-0x2640Ca91-polygon-137|signature|",
+      "target": "pmarket-ctfexchange",
+      "file": "CTFExchange-0x2640Ca91-polygon-137",
+      "line": 0,
+      "detector": "signature",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "CTFExchange._assertOrderWithSig checks ECDSA.recover==order.signer but NEVER binds signer==order.maker (drift from Polymarket verifyEOASignature). Forged order signed by ATTACKER with maker=VICTIM -> self-cross drains any USDC/CTF approver. On-chain gates PASS. BUT: matchOrders onlyOperator (623/623 by operator key), off-chain matcher source unknown (death.fun caveat) may re-validate; threat=EMPTY/dormant ~135d ~0. Severity LOW today (defense-in-depth drift), disclosure-worthy. PoC: fork Polygon, prank operator, matchOrders forged crossing pair.",
+      "date": "2026-08-25"
     },
     {
       "sig": "posi-vaults|contracts/POSIAutoCompoundVault.sol|other|balanceOf(address user) returns userInfo[msg.sender].amount",
@@ -1880,6 +1979,17 @@
       "verdict": "wontfix",
       "reason": "CLEAN (LIVE-ACTIVE-FUNDED ~$6K, Polygon/137, UUPS ERC4626 vault proxy 0xD90D012990F0245cAD29823bDF0B4C9AF207d9ee -> impl PredmartLendingPool v2.10.0 reinitializer V31 0xabff3757). Polymarket-CTF-collateral margin lending. Deep-read the requested attack surface (resolved/near-resolved-market borrow-against-worthless-collateral) at EVERY mutating entry (depositCollateral, _executeBorrow, _withdrawCollateral, onERC1155Received push-path, pullUsdcForLeverage) -> CONFIRMED CLEAN: mature, heavily-hardened (31 versioned upgrade reinitializers), collateral valuation checks market resolution state. Verified (Sourcify). fuzz-backstop on the stand pending (Polygon = fuzzable). Not fresh-unaudited in practice = well-maintained.",
       "date": "2026-08-21"
+    },
+    {
+      "sig": "pulso-market|PulsoMarket.sol:238-343|reasoning|",
+      "target": "pulso-market",
+      "file": "PulsoMarket.sol:238-343",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "CRITICAL (2nd LuXMarket-class): buyShares/sellShares price whole batch at pre-trade spot (getPriceYes before mint/burn) instead of integrating cost curve -> atomic buy->sell round-trip drains pool+seed. Confirmed 2 ways identical: poc_sim.py + Foundry vs team's UNMODIFIED PulsoFactory/PulsoMarket (solc 0.8.22 viaIR OZ5.0.2) -> attacker +872.708247 USDC, pool->0, seed->0.43 (99.96% of 1000 seed), 1 tx first trade. PRE-MAINNET (Amoy 80002, $0 now) but team ships THIS snapshot post-Hacken. DisputeMarket.sol same mechanics likely identical. Solvency-invariant suite structurally blind (no-arb not accounting). Package pulso-market-poc/ (FINDING+DISCLOSURE+PoC+sim) ready. Contact veriza51@gmail.com / @Littania. No bounty -> goodwill pre-launch.",
+      "date": "2026-08-26"
     },
     {
       "sig": "pulso-market|contracts/PulsoMarket.sol|manual|",
@@ -1968,6 +2078,50 @@
       "verdict": "todo",
       "reason": "recon.py CEI-violation flag (external safeTransferFrom before totalAssets+=/\u200b_mint, no nonReentrant) is plausible but UNCONFIRMED this pass: this is a Hopper-framework white-label ERC7540 vault (storage slot literally named hopper.storage.vault) -- likely reused across multiple RWA-vault deployments beyond just Rho, so novelty/exploitability depends on (a) whether the deposit asset can carry a transfer callback (ERC777/hookable) and (b) whether any OTHER entry point is reachable mid-transferFrom given the whitelist+onlySyncDeposit gates. Needs a fork PoC against the ACTUAL deployed asset() before claiming real; parked as todo, not chased further this pass (time-boxed sweep).",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "risex|PerpsManager-0x53f10fAc-impl-0xb4784436|reasoning|",
+      "target": "risex",
+      "file": "PerpsManager-0x53f10fAc-impl-0xb4784436",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "LIVE+FUNDED (~16.4M USDC.e, RISE chain 4153) but impls UNVERIFIED + no source/decompiler avail; 3 triage suspicions falsified on-chain (executeVaultOtc/takeover STRICTER not broader). Bodies unreadable -> subtle internal-arith bug not excluded. Next: heimdall decompile on mini-PC.",
+      "date": "2026-08-25"
+    },
+    {
+      "sig": "risex|PerpsManager/CollateralManager impls (chain 4153, unverified)|L4-deepdive-authgates|",
+      "target": "risex",
+      "file": "PerpsManager/CollateralManager impls (chain 4153, unverified)",
+      "line": 0,
+      "detector": "L4-deepdive-authgates",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "3 triage suspicions killed/reach-blocked via read-only auth probes: takeover/OTC/ADL = OZ AccessManaged (AccessManagedUnauthorized 0x068ca9d8), gated even vs whitelisted liquidators (#1-direct/#3 fail gate-a). CollateralManager writers all caller-restricted (NotPerpsManager/NotFeeManager/AccessManaged); deposit+withdraw self-service, rate-limited, depeg-guarded. Bodies unreadable (unverified everywhere, no decompiler) -> cannot exclude subtle internal-math bug. CLEAN-on-suspicions, reach-limited. Live+active+16.4M USDC.e.",
+      "date": "2026-08-25"
+    },
+    {
+      "sig": "risex|RISEx-perps-core-RISE-4153|reasoning|",
+      "target": "risex",
+      "file": "RISEx-perps-core-RISE-4153",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "REACHED via heimdall decompile (7 impls) + READ (5 Opus agents+skeptic) + my live-trace grounding. CLEAN for unprivileged attacker: ALL value-moving fns (liquidate/crossTakeover/ADL/OTC) role-gated (eth_call-proven AccessManagedUnauthorized); order-margin math matches GTE ground truth; 278 live liquidations 15% revert = real on-chain health-check exists; liquidation event-accounting cross-reconciles (fees/PnL/insurance). 2 LOW goodwill-hardening (inert oracle deviation clamp deviationThresholdBps=0 + no staleness revert; permissionless funding keepers, bounded). RESIDUAL role-gated: zero-price takeover formula honesty NOT recoverable by static decompile (cross-call operands lost) \u2014 closeable only via event-grounding, sub-High by attacker model. See hunts/risex/HUNT.md.",
+      "date": "2026-08-25"
+    },
+    {
+      "sig": "risex-oracle-hardening|RISExOracle-0x02ed481a-4153|oracle|",
+      "target": "risex-oracle-hardening",
+      "file": "RISExOracle-0x02ed481a-4153",
+      "line": 0,
+      "detector": "oracle",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "LOW goodwill-hardening (defense-in-depth, NOT unprivileged-exploitable): RISExOracle wrapper circuit-breaker inert -- deviationThresholdBps()=0, no fallback source, no block.timestamp staleness revert in getMarkPrice/getIndexPrice (docs promise 1h max-age, code omits; staleness fully delegated to Stork pull feed). + permissionless funding-keeper surface (snapshotPremiumIndex/settleFundingRate isAllowed=all, bounded by 5s/1h/pm4pct). Disclose as hardening only, no urgency.",
+      "date": "2026-08-25"
     },
     {
       "sig": "rocksolid|src/v0.5.0/Vault.sol|drift|",

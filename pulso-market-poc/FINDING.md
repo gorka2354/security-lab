@@ -103,6 +103,11 @@ python3 pulso-market-poc/poc_sim.py
 A Foundry test that exercises the **team's own unmodified contracts** (`PulsoDrain.t.sol`, drop it into the
 repo's `test/` and `forge test`) is included for reproduction in-repo, where OZ + the sources already resolve.
 
+**Both proofs confirmed (2026-08-26), identical result:** the pure-integer sim and the Foundry test against the
+unmodified `PulsoFactory`/`PulsoMarket`/`MockUSDC` (solc 0.8.22, `viaIR`, OZ 5.0.2) both report the attacker
+netting **+872.708247 USDC** on a single `buyShares(YES, 3757e6) → sellShares(YES, all)` round trip, with
+`totalUsdcPool → 0` and `seedReserve → 0.433582 USDC` (≈99.96 % of the creator's 1000 USDC seed gone). PoC 1/1.
+
 ---
 
 ## Why the project's own verification missed it
