@@ -164,8 +164,32 @@ def fetch_immunefi():
     return out
 
 
+def fetch_cantina_bounties():
+    """Cantina's PUBLIC bug bounties (the /repositories/public route) - distinct from /competitions (contests).
+    Live-verified: ~51 open standing bounties (Uniswap $15.5M, Euler, Coinbase, Polymarket, ...), each with
+    gitRepoUrl + commitHash pre-resolved -> `match <repo>` picks them up and forkdrift gets a pinned target."""
+    d = _get("https://cantina.xyz/api/v0/repositories/public")
+    items = d if isinstance(d, list) else d.get("items", d.get("data", []))
+    out = []
+    for c in items:
+        if (c.get("kind") or "") != "public_bounty":
+            continue
+        is_open = (c.get("status") or "").lower() == "live"
+        tf = c.get("timeframe") or {}
+        start = _iso_ts(tf.get("startDate")) if isinstance(tf, dict) else None
+        end = _iso_ts(tf.get("endDate")) if isinstance(tf, dict) else None
+        repo = c.get("gitRepoUrl") or None
+        cid = c.get("id") or ""
+        out.append(_prog("cantina", c.get("name"), "bounty", is_open, start, end,
+                         c.get("totalRewardPot"), c.get("currencyCode") or "USD",
+                         c.get("url") or (f"https://cantina.xyz/bounties/{cid}" if cid else "https://cantina.xyz/bounties"),
+                         repo=repo, kyc=bool(c.get("kycRequired"))))
+    return out
+
+
 _SOURCES = [("sherlock", fetch_sherlock), ("code4rena", fetch_code4rena),
-            ("cantina", fetch_cantina), ("immunefi", fetch_immunefi)]
+            ("cantina", fetch_cantina), ("cantina-bounties", fetch_cantina_bounties),
+            ("immunefi", fetch_immunefi)]
 
 
 def refresh():

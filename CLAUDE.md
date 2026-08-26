@@ -22,7 +22,10 @@ Every real hack becomes a detector + a golden test; every false positive becomes
 ## Where things live
 
 - **`toolkit/`** — the engine, by lane:
-  - **SOURCE:** `scout.py` (contests + DefiLlama deployed-unaudited + Immunefi), `freshfeed.py`,
+  - **SOURCE:** `scout.py` (contests + DefiLlama deployed-unaudited + Immunefi), `githubsweep.py`
+    (day-1 net-new channel: fresh Solidity repos via GitHub repo/topic search -> substantiveness filter
+    [0x-address/chain/deploy-artifacts] -> WATCH-if-pre-mainnet; the automated form of the manual GameFi/
+    prediction-market sweep that found pmarket/pulso/Dealers), `freshfeed.py`,
     `freshdeploy.py`, `contest_monitor.py`, `legacy.py` (dormant-but-funded contracts), `programs.py`
     (AUTHORIZED-SCOPE layer: live bounty/contest programs from Sherlock/Code4rena/Cantina -> `list --open`
     = hunt PAYABLE + in-scope targets first; `match <name|repo>` = is a finding in an open program + reward?
