@@ -470,7 +470,10 @@ def main():
     ap.add_argument("--out", default="hunts/_volume/scout-queue.md")
     a = ap.parse_args()
 
-    today = a.today or os.environ.get("SCOUT_TODAY") or "2026-06-09"
+    # freshness IS the edge -> the reference date must be TODAY, not a pin. A hardcoded default
+    # silently slid the whole "last N days" window into the past (contests looked 30d fresh while
+    # really being ~2.5mo old). --today / SCOUT_TODAY stay available for reproducible runs.
+    today = a.today or os.environ.get("SCOUT_TODAY") or datetime.date.today().isoformat()
     led = ledger.load()
     done = {e["target"].lower() for e in led.values()}
 
