@@ -562,6 +562,17 @@
       "date": "2026-08-25"
     },
     {
+      "sig": "arcis-core|AgentCredit.liquidate-base-8453|reasoning|",
+      "target": "arcis-core",
+      "file": "AgentCredit.liquidate-base-8453",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "githubsweep wave-12. LIVE Base 8453, deployed==repo byte-identical. liquidate() permissionless but NO liquidation bonus -> liquidating = guaranteed loss -> nobody liquidates -> bad-debt accrual (economic-design weakness, not a drain). high-conf triage, NOT verified in deep (ranked #4, below top-3). Medium-ish design flaw worth a follow-up read + courtesy note.",
+      "date": "2026-08-26"
+    },
+    {
       "sig": "arcus-perps|ArcusSettlement-0x006102b1-robinhood-4663|reasoning|",
       "target": "arcus-perps",
       "file": "ArcusSettlement-0x006102b1-robinhood-4663",
@@ -604,6 +615,17 @@
       "verdict": "known",
       "reason": "[UNREACHABLE/defillama-gamefi-wave] Cannot reach any Solidity: the SuperEarn ETH vault proxy, its implementation (0xf613...5a3c), and its ProxyAdmin are all unverified on Etherscan and Sourcify (closed-source), and there is no public contracts repo. Even if so",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "avocado-fund|AvocadoLending.sol:297-311|reasoning|",
+      "target": "avocado-fund",
+      "file": "AvocadoLending.sol:297-311",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "githubsweep wave-12. LIVE+FUNDED ~$43.8K Arbitrum, deployed==repo verified. declareDefault() non-idempotent (Borrower.principal never zeroed -> replay diverges totalPrincipal vs deployedAssets). BUT onlyOwner (Ownable2Step), no callback -> operator-footgun not vuln. Low. PoC exists DoubleDefaultPoC.t.sol. Courtesy hardening advisory optional (add if(b.isDefaulted)return).",
+      "date": "2026-08-26"
     },
     {
       "sig": "azverse-perps-assetvault|src/AssetVault.sol|deep-dive-manual|",
@@ -1255,6 +1277,17 @@
       "date": "2026-06-11"
     },
     {
+      "sig": "helm-arc|Helm-Vault-arc-5042002|erc4626|",
+      "target": "helm-arc",
+      "file": "Helm-Vault-arc-5042002",
+      "line": 0,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "githubsweep wave-12. Arc TESTNET ~$6.50 faucet USDC. ERC-4626 decimalsOffset=3 dead-shares; agentInvest/Divest hard-gated to isAllowedAdapter (construction-set, no runtime add); forceApprove reset to 0 post-invest; no delegatecall. CLEAN.",
+      "date": "2026-08-26"
+    },
+    {
       "sig": "hoodbet-fun|HoodRngBlockhash.sol|manual|",
       "target": "hoodbet-fun",
       "file": "HoodRngBlockhash.sol",
@@ -1761,6 +1794,17 @@
       "date": "2026-08-25"
     },
     {
+      "sig": "mini-7575-vault|mini-7575-vault-undeployed|erc4626|",
+      "target": "mini-7575-vault",
+      "file": "mini-7575-vault-undeployed",
+      "line": 0,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "githubsweep wave-12. UNDEPLOYED teaching repo (ERC-7575 multi-asset). Cross-vault value non-conservation is a design gap requiring trusted owner to register non-value-pegged assets -> not a finding. CLEAN.",
+      "date": "2026-08-26"
+    },
+    {
       "sig": "monolith-market|src/Lender.sol|rounding-debt-share-asymmetry|",
       "target": "monolith-market",
       "file": "src/Lender.sol",
@@ -2078,6 +2122,17 @@
       "verdict": "todo",
       "reason": "recon.py CEI-violation flag (external safeTransferFrom before totalAssets+=/\u200b_mint, no nonReentrant) is plausible but UNCONFIRMED this pass: this is a Hopper-framework white-label ERC7540 vault (storage slot literally named hopper.storage.vault) -- likely reused across multiple RWA-vault deployments beyond just Rho, so novelty/exploitability depends on (a) whether the deposit asset can carry a transfer callback (ERC777/hookable) and (b) whether any OTHER entry point is reachable mid-transferFrom given the whitelist+onlySyncDeposit gates. Needs a fork PoC against the ACTUAL deployed asset() before claiming real; parked as todo, not chased further this pass (time-boxed sweep).",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "riccati-finance|RiccatiTermMarket-arc-5042002|reasoning|",
+      "target": "riccati-finance",
+      "file": "RiccatiTermMarket-arc-5042002",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "githubsweep wave-12. Arc TESTNET fresh-uninitialized ($0). Full hand-read PT/YT split-brain + isolated-lending liq: CLEAN. donation capped at RATE_SCALE via Math.min; virtual-shares 1e6 block first-depositor; borrow/withdraw re-check health post-mutation pre-transfer (CEI). recon rug-lever hits all FP (setters delegate to capped _set helpers).",
+      "date": "2026-08-26"
     },
     {
       "sig": "risex|PerpsManager-0x53f10fAc-impl-0xb4784436|reasoning|",
@@ -2454,6 +2509,28 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "tartswap|TartLPFarmV3.sol:277-285|reasoning|",
+      "target": "tartswap",
+      "file": "TartLPFarmV3.sol:277-285",
+      "line": 0,
+      "detector": "reasoning",
+      "snippet": "",
+      "verdict": "wontfix",
+      "reason": "githubsweep wave-12. BSC deployed==repo but INERT (0 CREPE reward funding, rewardPerSecond=0). No per-pool reward-budget isolation (rewardAvailable global) -> FCFS shortfall redistribution under operator underfunding. Medium->Low: no unprivileged profit (capped at own accrual), principal reserved. Not bounty-class.",
+      "date": "2026-08-26"
+    },
+    {
+      "sig": "tartswap-lpfarmv3|contracts/dex/TartLPFarmV3.sol|reasoning-tier|",
+      "target": "tartswap-lpfarmv3",
+      "file": "contracts/dex/TartLPFarmV3.sol",
+      "line": 277,
+      "detector": "reasoning-tier",
+      "snippet": "",
+      "verdict": "real",
+      "reason": "Cross-pool reward-token isolation defect: rewardAvailable(pid)=balanceOf(this)-totalStakedByToken[rewardToken] is GLOBAL per reward token (LPFarmV3:277-285); addPool de-dupes stakeToken only NOT rewardToken (:100 vs :119-120); fundRewards pid cosmetic (:159-165). N pools sharing one reward token draw one shared balance FCFS via _claim min(due,shared-avail) (:295-311). StakingVault isolates via rewardReserve ledger (:71/534/589) - dropped in multi-pool. RewardAutoAllocator (single immutable rewardToken fanned across lanes, :32/113) makes shared-reward-token INTENDED default. Impact: cross-pool reward mis-allocation, honest late-claimers -> unpaidRewards. Principal ALWAYS protected (no principal theft). No unprivileged-attacker profit (pay<=own accrual); active drain needs rogue operator. MEDIUM/loss-of-rewards. Deployed==repo byte-identical; EMPTY/PRE-LAUNCH 0 pools/0 value, threat LOW. Not audited. Advisory to info@tartswap.com.",
+      "date": "2026-08-26"
+    },
+    {
       "sig": "textile-fx|n/a|reach-triage|",
       "target": "textile-fx",
       "file": "n/a",
@@ -2815,6 +2892,17 @@
       "verdict": "fp",
       "reason": "app.xax.trading ERC4626-style vault, ETH, ~$79K USDT, unverified. Share-inflation/donation structurally impossible (totalAssets is a tracked ledger not balanceOf + OZ virtual-shares offset), no permissionless exploit. CLEAN (decompile-confirmed).",
       "date": "2026-08-22"
+    },
+    {
+      "sig": "xphere-stake|XPStakingVault-0xaE4435bB|erc4626|",
+      "target": "xphere-stake",
+      "file": "XPStakingVault-0xaE4435bB",
+      "line": 0,
+      "detector": "erc4626",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "githubsweep wave-12. LIVE staking vault (non-Etherscan chain, RPC-confirmed value). Staking share math + reward distribution CLEAN on read. no unprivileged extraction.",
+      "date": "2026-08-26"
     }
   ]
 }

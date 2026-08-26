@@ -54,6 +54,13 @@ CHAIN_KW = re.compile(
 PREAUDIT = re.compile(
     r"(pre-?audit|un-?audited|not\s+\w{0,12}\s*audit|pre-?mainnet|audit\s+pending|no\s+audit|"
     r"audit-?ready|prior\s+to\s+mainnet)", re.I)
+# wave-12 calibration: 4/7 top-scored candidates were testnet/faucet/hackathon (a deployed 0x != real value).
+# A README that self-declares testnet/faucet/hackathon-only is $0-at-risk -> penalize so mainnet-funded ranks first.
+TESTNET_ONLY = re.compile(
+    r"\b(testnet|sepolia|amoy|holesky|goerli|faucet|devnet|hackathon|encode\s*club|ethglobal|"
+    r"fresh-?uninitialized|not\s+\w{0,8}\s*activate|demo\s+only|mvp|proof[- ]of[- ]concept)\b", re.I)
+# a real mainnet-value signal that outweighs a stray "testnet" mention in docs
+MAINNET_VALUE = re.compile(r"\b(mainnet\s+deploy|deployed\s+to\s+mainnet|live\s+on\s+mainnet|production|TVL)\b", re.I)
 ARTIFACT_RE = re.compile(r"(broadcast/.+/run-latest\.json|deployments/.+\.json|deployments\.json|\.s\.sol$)")
 SOL_RE = re.compile(r"\.sol$")
 
@@ -95,6 +102,8 @@ def readme_signals(text):
         "has_chain": bool(ch),
         "chain": (ch.group(1).lower() if ch else ""),
         "preaudit": bool(PREAUDIT.search(text)),
+        # $0-at-risk unless a real mainnet-value signal overrides the testnet/faucet/hackathon self-label
+        "testnet_only": bool(TESTNET_ONLY.search(text)) and not MAINNET_VALUE.search(text),
     }
 
 
@@ -119,11 +128,18 @@ def score_candidate(created, today, kw, sig, tree, size, source, is_toy_hit, min
         s -= 200
     if size < min_size_kb:
         s -= 60
+    # wave-12 calibration: a testnet/faucet/hackathon-only repo is $0-at-risk even with a deployed 0x.
+    # Cancel the deployed-address bonus and push it below any real mainnet-funded candidate.
+    if sig.get("testnet_only"):
+        s -= 160
     return s
 
 
 def route(sig):
-    """pre-audit repo with no address yet -> WATCH (radar); a deployed/substantive repo -> DIG."""
+    """Route by real-world value: testnet/faucet/pre-mainnet -> WATCH (radar, catch the mainnet deploy);
+    a deployed+substantive repo on a value-bearing chain -> DIG."""
+    if sig.get("testnet_only"):
+        return "WATCH"
     if sig.get("preaudit") and not sig.get("has_address"):
         return "WATCH"
     return "DIG"
