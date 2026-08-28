@@ -67,6 +67,39 @@
       "date": "2026-06-26"
     },
     {
+      "sig": "Arc AgentForge Protocol (Aragoorn/Arc-agentforge-protocol)|(fanout)|fanout|fanout triage: other",
+      "target": "Arc AgentForge Protocol (Aragoorn/Arc-agentforge-protocol)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: other",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave13-github-defillama] score 2. Ran the full pipeline. Phase 0 (reach): resolved the real deployed code cleanly -- the given lead address is AgentRegistry's UUPS/EIP-1967 proxy; fetch_source.py's proxy-follow didn't auto-resolve since Arc testnet chain",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "Archiel Finance (Arc) -- ArchielLiquidityPool / futuresReserve module + wired Ar|(fanout)|fanout|fanout triage: -",
+      "target": "Archiel Finance (Arc) -- ArchielLiquidityPool / futuresReserve module + wired Ar",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave13-github-defillama] score 4. Ran the full pipeline. Phase 0: cloned yukimana-dev/Archiel-Finance-contracts (43 .sol, matches lead) into hunts/_volume/archiel-arc/repo; README pins the given address 0xcAdDE...B3f8 as ArchielLiquidityPool (ArchielPool",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "Artosphere (Base)|(fanout)|fanout|fanout triage: prediction-market (DiscoveryStaking) + A",
+      "target": "Artosphere (Base)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: prediction-market (DiscoveryStaking) + A",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave13-github-defillama] score 3. Ran the full pipeline. Phase 0: the sourced address 0x1C11133D... resolved (via fetch_source --proxy) to a PhiCoin/ARTS ERC20Votes governance-token proxy -- a decoy for the \"core,\" exactly per the CLAUDE.md warning. Clon",
+      "date": "2026-08-28"
+    },
+    {
       "sig": "Boar Finance|(fanout)|fanout|fanout triage: yield",
       "target": "Boar Finance",
       "file": "(fanout)",
@@ -76,6 +109,17 @@
       "verdict": "known",
       "reason": "[SKIP/fresh-defillama-wave-2] Reachability-first fail: the REAL core (BoarBTCRelay impl 0xc6447a...bc5c behind proxy) is unverified on Mezo and there is no public Solidity repo (boar-network GitHub ships only docs/infra). Cannot read the code to triage. Additi",
       "date": "2026-06-27"
+    },
+    {
+      "sig": "Caldera (Robinhood Chain) \u2014 calderagame/caldera|(fanout)|fanout|fanout triage: -",
+      "target": "Caldera (Robinhood Chain) \u2014 calderagame/caldera",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave13-github-defillama] score 2. Phase 0: cloned calderagame/caldera (single squashed commit, 2026-08-08\u219208-17, 329 files incl. deps, real actively-CI'd Foundry project \u2014 not a toy). No addresses committed anywhere (contracts/broadcast/ is gitignored, R",
+      "date": "2026-08-28"
     },
     {
       "sig": "Citrea Bridge (chainwayxyz/token-bridge) \u2014 LayerZero v2 OFT mint-and-burn bridge, BTC<->Ethereum|(fanout)|fanout|fanout triage: bridge",
@@ -353,6 +397,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "RealT RMM Marketplace V2|(fanout)|fanout|fanout triage: -",
+      "target": "RealT RMM Marketplace V2",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/wave13-github-defillama] score 5. Phase 0 (reach): defillama.py's slug lookup 404'd, so I cross-referenced the DefiLlama /lite/protocols2 feed directly and confirmed \"RealT RMM Marketplace V2\" (TVL $29.65M, forkedFrom Aave V3, on Gnosis) is a DIST",
+      "date": "2026-08-28"
+    },
+    {
       "sig": "RedeemSystem|(fanout)|fanout|fanout triage: gamefi",
       "target": "RedeemSystem",
       "file": "(fanout)",
@@ -362,6 +417,17 @@
       "verdict": "todo",
       "reason": "[DIG/gigaverse-systems] ",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "RushBase|(fanout)|fanout|fanout triage: prediction-market",
+      "target": "RushBase",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: prediction-market",
+      "verdict": "known",
+      "reason": "[SKIP/wave13-github-defillama] score 1.5. Phase 0 (reach): fetch_source.py --proxy on the given address on Base pulled 2 verified files (MarketFactory.sol 186 lines, PredictionMarket.sol 490 lines, both fully read) -- this IS the deployed factory (admin/oracle",
+      "date": "2026-08-28"
     },
     {
       "sig": "Rysk Premium (Arbitrum) \u2014 resolved to Rysk V12 \"Ciao\" CLOB derivatives core|(fanout)|fanout|fanout triage: yield, options/derivatives (perp+spot CLOB margin)",
@@ -386,6 +452,39 @@
       "date": "2026-06-26"
     },
     {
+      "sig": "SparkDEX stFLR (Flare liquid staking)|(fanout)|fanout|fanout triage: vault (liquid-staking token, share-accou",
+      "target": "SparkDEX stFLR (Flare liquid staking)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: vault (liquid-staking token, share-accou",
+      "verdict": "todo",
+      "reason": "[DIG-CAREFUL/wave13-github-defillama] score 5. Phase 0 (reach) was the real work here: DefiLlama's listed \"address\" (0x657097cc...) is the SPRK gov token, confirmed by fetching the DefiLlama-Adapters index.js for sparkdex-stflr, which names the real core: STFL",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "SuperEarn (superearn.io) \u2014 Kaia-primary crosschain yield aggregator, chain 8217|(fanout)|fanout|fanout triage: vault / crosschain yield aggregator (Yea",
+      "target": "SuperEarn (superearn.io) \u2014 Kaia-primary crosschain yield aggregator, chain 8217",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: vault / crosschain yield aggregator (Yea",
+      "verdict": "todo",
+      "reason": "[DIG/wave13-github-defillama] score 6. Phase 0 (reach): Site (superearn.io) shipped a Vite bundle with no addresses in the main chunk; cracked per-chain config via assets/app-config.constant-*.js (SUPER_EARN.ROUTER / Y_VAULT / COOLDOWN_VAULT). ROUTER+COOLDOWN_",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "The Pit (PvAI prediction market / commit-reveal portfolio duel)|(fanout)|fanout|fanout triage: -",
+      "target": "The Pit (PvAI prediction market / commit-reveal portfolio duel)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "known",
+      "reason": "[SKIP/wave13-github-defillama] score 2. Sourcing lead's address/chain pairing was wrong: 0xDe5302...832F7 has NO bytecode on Arbitrum (42161) \u2014 confirmed via reach_bytecode.py and activity.py (clean NO-CODE). Traced the real deployment through the GitHub repo'",
+      "date": "2026-08-28"
+    },
+    {
       "sig": "Tizi|(fanout)|fanout|fanout triage: yield-aggregator (cross-chain USDC-backed stablecoin TD + ERC4626 stTD staking, hub-and-spoke on Base)",
       "target": "Tizi",
       "file": "(fanout)",
@@ -408,6 +507,17 @@
       "date": "2026-06-26"
     },
     {
+      "sig": "Valos (Institutional Credit Vault, Monad)|(fanout)|fanout|fanout triage: rwa (institutional private-credit lendin",
+      "target": "Valos (Institutional Credit Vault, Monad)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: rwa (institutional private-credit lendin",
+      "verdict": "known",
+      "reason": "[SKIP/wave13-github-defillama] score 3. Phase 0: DefiLlama's Valos listing has no github/address -- resolved the real deployment myself: web search -> Monad blog post (Valos+Accountable institutional credit vault, launched Feb 2026) -> tradingstrategy.ai vault",
+      "date": "2026-08-28"
+    },
+    {
       "sig": "Vena Finance (native money market of Fluent L2)|(fanout)|fanout|fanout triage: lending,credit",
       "target": "Vena Finance (native money market of Fluent L2)",
       "file": "(fanout)",
@@ -428,6 +538,39 @@
       "verdict": "wontfix",
       "reason": "[PARK/gigaverse-systems] ",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "Wise Token (wisetoken.com / wisetoken.net, WISE, wise-foundation/wise-token-cont|(fanout)|fanout|fanout triage: yield (HEX-style staking/rebasing ERC20,",
+      "target": "Wise Token (wisetoken.com / wisetoken.net, WISE, wise-foundation/wise-token-cont",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: yield (HEX-style staking/rebasing ERC20,",
+      "verdict": "known",
+      "reason": "[SKIP/wave13-github-defillama] score 4. Phase 0: DefiLlama protocol id 8449 'Wise Token' resolved cleanly -- token addr 0x66a0...5bd6 is real (not a decoy), confirmed by fetch_source.py Etherscan-v2 verified-source pull that byte-for-byte matches (mod CRLF) th",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "Zentory Protocol (HyperEVM) \u2014 Zentory-Labs/zentory-protocol|(fanout)|fanout|fanout triage: vault",
+      "target": "Zentory Protocol (HyperEVM) \u2014 Zentory-Labs/zentory-protocol",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: vault",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave13-github-defillama] score 3. PHASE 0/0.5: Cloned Zentory-Labs/zentory-protocol into hunts/_volume/zentory-hyperevm/repo (public, active \u2014 pushed today 2026-08-28, latest commit a docs/security-policy PR). DEPLOYMENTS.md is unambiguous and self-discl",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "Zentra Finance (Citrea Bitcoin L2 money market)|(fanout)|fanout|fanout triage: lending (Aave V3 fork) + a bespoke custo",
+      "target": "Zentra Finance (Citrea Bitcoin L2 money market)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lending (Aave V3 fork) + a bespoke custo",
+      "verdict": "todo",
+      "reason": "[DIG/wave13-github-defillama] score 7.5. WHAT I RAN: WebSearch/WebFetch to locate the real deployed addresses (site + gitbook llms-full.txt, cross-checked against the actual GitHub org 0xZentra/Zentra_contract -- the repo itself only holds an unrelated legacy ",
+      "date": "2026-08-28"
     },
     {
       "sig": "acre|solidity/contracts/stBTC.sol|supply|function burnReceipt(uint256 amount) -> repayDebt()",
@@ -582,6 +725,17 @@
       "verdict": "todo",
       "reason": "dYdX-built hybrid DEX, Robinhood 4663, ~19.2M TVL LIVE-GROWING. Perp math is OFF-CHAIN (not reachable). Rootchain (BridgeVault) ToB+OZ audited, all findings Resolved. Spot RFQ/Wrapped-Token layer (unaudited, live) READ CLEAN. UNREAD: rialtoRouter 0xC94135b6 + zeroexRouter 0xfbeCF057 (approved external executors) -> next-dig external-call surface.",
       "date": "2026-08-25"
+    },
+    {
+      "sig": "artosphere-discoverystaking|src/DiscoveryStaking.sol|validation-gap|function emergencyWithdraw(uint256 discoveryId)",
+      "target": "artosphere-discoverystaking",
+      "file": "src/DiscoveryStaking.sol",
+      "line": 449,
+      "detector": "validation-gap",
+      "snippet": "function emergencyWithdraw(uint256 discoveryId)",
+      "verdict": "todo",
+      "reason": "wave13 REAL-but-LATENT: emergencyWithdraw()/withdrawExpired() gate only on !pool.resolved, never on pool.frozen, so after DiscoveryOracle.propose() reveals the outcome and freezes staking for 21d, a known-losing staker exits at 61.8% instead of 0. Freeze protects new stakes only, not informed exits; unfixed in the repo's own V2. Gate-0 FAIL: live impl 0xbf69a9.. on Base 8453 but pool holds 0 ARTS, last tx 2026-04-10 -> latent, not claimable today. watch.py artosphere-discoverystaking fires on FUNDED/REACTIVATED.",
+      "date": "2026-08-28"
     },
     {
       "sig": "astro-fun-crashgame|CrashGame-0xcC679b67-robinhood-4663|rng|",
@@ -1981,6 +2135,17 @@
       "date": "2026-06-28"
     },
     {
+      "sig": "plinth (Arc)|(fanout)|fanout|fanout triage: -",
+      "target": "plinth (Arc)",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: -",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave13-github-defillama] score 3. Ran the full pipeline. Phase 0: cloned github.com/Ccheh/plinth into hunts/_volume/plinth-arc/ (34 .sol files across contracts/src, script, test). Confirmed the deployed PlinthV06 bytecode exists on-chain via eth_getCode ",
+      "date": "2026-08-28"
+    },
+    {
       "sig": "pmarket-ctfexchange|CTFExchange-0x2640Ca91-polygon-137|signature|",
       "target": "pmarket-ctfexchange",
       "file": "CTFExchange-0x2640Ca91-polygon-137",
@@ -2089,6 +2254,28 @@
       "verdict": "wontfix",
       "reason": "Real gap (sibling LMSRMarket.sol v2 explicitly added minOut overloads for this exact class) -> unmitigated sandwich-attack surface. But PulsMarket.sol has no deploy script/address anywhere in repo, absent from README's primitive list, untouched since initial commit -- dead/never-deployed code, no live threat.",
       "date": "2026-08-22"
+    },
+    {
+      "sig": "realt-rmm-v2|pool_impl/contracts/protocol/libraries/logic/ValidationLogic.sol|forkdrift-version-lag|validateUseAsCollateral missing ltv==0 early-return",
+      "target": "realt-rmm-v2",
+      "file": "pool_impl/contracts/protocol/libraries/logic/ValidationLogic.sol",
+      "line": 700,
+      "detector": "forkdrift-version-lag",
+      "snippet": "validateUseAsCollateral missing ltv==0 early-return",
+      "verdict": "wontfix",
+      "reason": "wave13 LATENT (verified not reachable): fork is Aave v1.17.2 base, missing the v3.0.2 zero-LTV/isolated auto-collateral patch (ea48670). Inert on this deployment: debtCeiling==0 on all 4 reserves (isolation mode off) and REUSD ltv==lt==0 with aREUSD scaledTotalSupply 0 + reverting mint -> no trigger. Re-check if isolation mode is ever enabled or a zero-LTV collateral is added.",
+      "date": "2026-08-28"
+    },
+    {
+      "sig": "realt-rmm-v2|pool_manager_impl/contracts/wrapper/token/reusd/REUSDPoolManager.sol|dead-control-dos|_syncReusdBalance() -> IERC20Mintable(_reusd).burn(aToken, bal)",
+      "target": "realt-rmm-v2",
+      "file": "pool_manager_impl/contracts/wrapper/token/reusd/REUSDPoolManager.sol",
+      "line": 754,
+      "detector": "dead-control-dos",
+      "snippet": "_syncReusdBalance() -> IERC20Mintable(_reusd).burn(aToken, bal)",
+      "verdict": "real",
+      "reason": "wave13 Medium (PoC 3/3, realt-rmm-poc/): _syncReusdBalance() is the unconditional first stmt of withdrawReg/borrowReusd/repayReusdWithStable/syncReusdBalance and burns the aREUSD's REUSD balance, but the manager holds neither GOVERNANCE_ROLE nor BRIDGE_ROLE on REUSD -> reverts 0x03104826 (PERMISSION_ERROR) whenever aREUSD holds REUSD (0.5 held since block 46,016,118 / ~115d). withdrawReg is the ONLY self-serve REG-reclaim path -> the first user to clear REUSD debt is permanently locked out of ~1616.9 REG of collateral; also DoA for PHASE2/PHASE3. Live Gnosis 100. No open bounty (programs.py: RealT no match) -> responsible disclosure/goodwill. Recovery = grant manager the burn role / upgrade / admin-burn aREUSD REUSD by hand.",
+      "date": "2026-08-28"
     },
     {
       "sig": "reserve|contracts/p1/BasketHandler.sol|ac|function setPrimeBasket(...)",
@@ -2498,6 +2685,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "superearn|src/superearn/core/strategy/StrategyOriginVault.sol|revert-not-degrade|premintCooldownVault revert PremintFailed vs base graceful (0,0,0)",
+      "target": "superearn",
+      "file": "src/superearn/core/strategy/StrategyOriginVault.sol",
+      "line": 650,
+      "detector": "revert-not-degrade",
+      "snippet": "premintCooldownVault revert PremintFailed vs base graceful (0,0,0)",
+      "verdict": "todo",
+      "reason": "wave13: SuperEarn is 3x-Certik-audited + self-hosted bounty (00-0k). 11 candidates -> 8 hard FP (most are the bounty doc's own pre-filed known-issues/AI-FP table), 3 informational, 1 LT. The LT (#9): StrategyOriginVault.premintCooldownVault reverts PremintFailed instead of the base's graceful (0,0,0), destroying the base's explicit !emergencyExit exemption -> can brick liquidateAllPositions/emergency Yearn withdrawal. Precondition FALSE today (OriginVault.balanceOf(SOV)==totalSupply, redemption 0). Next: one Foundry fork PoC on the emergencyExit branch; if governance revoke/migrate recovers cleanly, drop. Only branch matching the program's SE-P26 'permanent harvest deadlock' carve-out.",
+      "date": "2026-08-28"
+    },
+    {
       "sig": "syntropia|src/v0.5.0/Vault.sol|drift|",
       "target": "syntropia",
       "file": "src/v0.5.0/Vault.sol",
@@ -2903,6 +3101,17 @@
       "verdict": "fp",
       "reason": "githubsweep wave-12. LIVE staking vault (non-Etherscan chain, RPC-confirmed value). Staking share math + reward distribution CLEAN on read. no unprivileged extraction.",
       "date": "2026-08-26"
+    },
+    {
+      "sig": "zentra-finance|src/SecurityIntegrationV2/contracts/security/SecurityIntegrationV2.sol|dead-control|afterLiquidation dust-check swallowed by Pool try/catch",
+      "target": "zentra-finance",
+      "file": "src/SecurityIntegrationV2/contracts/security/SecurityIntegrationV2.sol",
+      "line": 553,
+      "detector": "dead-control",
+      "snippet": "afterLiquidation dust-check swallowed by Pool try/catch",
+      "verdict": "known",
+      "reason": "wave13 HONEST-NEGATIVE on a live+funded (60K, Citrea 4114) genuinely-unaudited Aave-v3.0.x fork. 11 candidates from 3 lenses, 0 above informational after the skeptic. Confirmed live: hooks wired (getPoolHooks=0x9df4ba), AFTER_LIQUIDATION hook disabled + the Pool _callAfterLiquidation try/catch would swallow it anyway; priceOracleSentinel/ltvFreezeGuard = 0x0, isFullyConfigured()=false; DynamicCapsController holds no ACL role so its unit-mismatch cap check is unreachable (setSupplyCap from DCC reverts CALLER_NOT_RISK_OR_POOL_ADMIN); stable-rate borrowing OFF on all 4 reserves. All defects are dead-controls/latent config gaps with no attacker path. Upstream Aave dust guard also absent (pre-3.1) but no exploit follows. Advisory-only.",
+      "date": "2026-08-28"
     }
   ]
 }

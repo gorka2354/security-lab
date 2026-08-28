@@ -33,6 +33,10 @@ DEFAULT_RPC = {
     "146": "https://sonic.drpc.org",                 # Sonic (ledgity WrappedLTokenSonic)
     "2741": "https://api.mainnet.abs.xyz",            # Abstract (ZK Stack / Pudgy; gaming + native AA)
     "143": "https://rpc.monad.xyz",                   # Monad (EVM; aprMON LST + fresh Monad DeFi)
+    "100": "https://rpc.gnosischain.com",             # Gnosis (RealT RMM V2 Aave-fork, $29.6M)
+    "4114": "https://rpc.mainnet.citrea.xyz",         # Citrea (BTC L2; Zentra money market)
+    "14": "https://flare-api.flare.network/ext/C/rpc",  # Flare (SparkDEX stFLR liquid staking)
+    "8217": "https://public-en.node.kaia.io",         # Kaia (SuperEarn crosschain vaults)
 }
 
 

@@ -31,5 +31,12 @@
   "note": "CRITICAL sell() drain, exploitable now",
   "token": "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
   "prio": "critical"
+ },
+ {
+  "key": "artosphere-discoverystaking",
+  "chain": "8453",
+  "addr": "0x3Fc4d3466743e0c068797D64A91EF7A8826a19e2",
+  "note": "wave13: emergencyWithdraw bypasses the DiscoveryOracle 21d freeze (informed exit at 61.8% instead of 0) -- REAL bug, unfixed in V2, but pool holds 0 ARTS and last tx 2026-04-10. FIRE on FUNDED/REACTIVATED = the bug goes live.",
+  "token": "0x1C11133D4dDa9D85a6696B020b0c48e2c24Ed0bf"
  }
 ]

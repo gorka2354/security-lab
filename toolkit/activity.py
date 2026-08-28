@@ -178,6 +178,10 @@ def probe(addr, chain, blocks, rpc=None, token=None, counter=None):
     events<0 on log-range failure. supply = the contract's own totalSupply() (None if absent/reverts);
     decimals = its decimals() (default 18) so we render supply in token units, not hardcoded 1e18."""
     rpc = rpc or fs.DEFAULT_RPC.get(str(chain))
+    if not rpc:
+        # urllib would raise ValueError("unknown url type: None") three frames deep; say what to do instead
+        raise SystemExit("[activity] no RPC configured for chain %s -- pass --rpc <url> "
+                         "(or add it to fetch_source.DEFAULT_RPC)" % chain)
     # None = RPC returned null (error/unsupported) -> UNKNOWN; "0x" = a real EOA -> 0. Don't conflate them.
     code = fs._rpc(rpc, "eth_getCode", [addr, "latest"])
     code_len = -1 if code is None else max(0, len(code) // 2 - 1)
