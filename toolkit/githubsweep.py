@@ -298,7 +298,7 @@ def run(days, top, topics, hack_topics, max_fetch, min_size_kb, today, out, do_c
     md = _render(out_rows[:top], today, len(done), days)
     with open(out, "w", encoding="utf-8") as f:
         f.write(md)
-    print(md)
+    print(_ascii(md))
 
     # advance the seen-set (novelty memory; the ledger stays the verdict memory)
     seen["full_names"] = sorted(seen_set | {x["full"].lower() for x in out_rows})
@@ -369,6 +369,17 @@ def _save(path, obj):
             json.dump(obj, f, indent=2)
     except Exception as e:
         print(f"  [warn] could not write {path}: {e}", file=sys.stderr)
+
+
+def _ascii(s):
+    """Console-safe rendering. The queue FILE stays UTF-8; stdout must be ASCII --
+    GitHub descriptions carry em-dashes/emoji and a cp1251/cp866 console raises
+    UnicodeEncodeError on print (repo convention: printed output is ASCII)."""
+    return (s.replace("—", "--").replace("–", "-")
+             .replace("‘", "'").replace("’", "'")
+             .replace("“", '"').replace("”", '"')
+             .replace("…", "...").replace(" ", " ")
+             .encode("ascii", "replace").decode("ascii"))
 
 
 def main():

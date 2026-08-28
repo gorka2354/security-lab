@@ -1365,5 +1365,12 @@ check(bool(recon._TESTRE.search("certora/harness/CacheHarness.sol")), "fix#36: c
 check(bool(recon._TESTRE.search("config/deploy/Mainnet.sol")), "fix#38: deploy/ path downgraded (Level deploy-script initialize())")
 check(not recon._TESTRE.search("src/Vault.sol"), "production src/ path NOT downgraded")
 
+print("== githubsweep console safety (ASCII output convention) ==")
+import githubsweep  # noqa: E402
+check(githubsweep._ascii("Artosphere \u2014 20 contracts") == "Artosphere -- 20 contracts",
+      "githubsweep._ascii: em-dash -> '--' (a GitHub description crashed print() on a cp1251 console)")
+check(githubsweep._ascii("\U0001f6e1\ufe0f hook \u2018v4\u2019").isascii(),
+      "githubsweep._ascii: emoji/smart-quotes degrade to ASCII (never raise UnicodeEncodeError)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
