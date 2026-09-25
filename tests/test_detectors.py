@@ -1372,5 +1372,36 @@ check(githubsweep._ascii("Artosphere \u2014 20 contracts") == "Artosphere -- 20 
 check(githubsweep._ascii("\U0001f6e1\ufe0f hook \u2018v4\u2019").isascii(),
       "githubsweep._ascii: emoji/smart-quotes degrade to ASCII (never raise UnicodeEncodeError)")
 
+print("== fix#46 det_multicall_value: msg.value read LEXICALLY inside a loop body (FWAV2 acquire FP) ==")
+# FWAV2.sol:1504 -- msg.value is read before (1496) and after (1507) the loop, never inside it; the old 400-char
+# window after `for(..){` fired anyway. Now the loop body is brace-balanced on masked code.
+_mv_fp = ("contract C{ function acquire(uint count) external payable returns (uint[] memory ids) { uint cost = count * fee; "
+          "if (msg.value < cost) revert InsufficientPayment(); ids = new uint[](count); "
+          "for (uint i = 0; i < count; i++) { ids[i] = _open(i); } _refund(msg.value - cost); } }")
+check(not flagged(recon.det_multicall_value, _mv_fp),
+      "fix#46: msg.value read before AND after the loop (FWAV2 acquire) -> NOT flagged")
+check(not flagged(recon.det_multicall_value,
+                  "contract C{ function f(uint n) external payable { for (uint i; i < n; i++) { // msg.value is used once\n x += i; } } }"),
+      "fix#46: msg.value only in a COMMENT inside the loop body -> NOT flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(address[] calldata to) external payable { for (uint i = 0; i < to.length; i++) { credit[to[i]] += msg.value; } } }", "for("),
+      "fix#46 TP: msg.value credited inside a for body -> still flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(uint n) external payable { uint i; while (i < n) { bal[msg.sender] += msg.value; i++; } } }", "while("),
+      "fix#46 TP: msg.value inside a while body -> flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(uint n) external payable { uint i; do { bal[msg.sender] += msg.value; i++; } while (i < n); } }", "do {"),
+      "fix#46 TP: msg.value inside a do-while body -> flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(address[] calldata to) external payable { for (uint i; i < to.length; i++) credit[to[i]] += msg.value; } }", "for("),
+      "fix#46 TP: brace-less single-statement loop body reading msg.value -> flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(address[] calldata to) external payable { for (uint i; i < _len(to); i++) { credit[to[i]] += msg.value; } } }", "for("),
+      "fix#46 TP: loop header with nested parens `i < _len(to)` still scoped -> flagged")
+_mv_nest = recon.det_multicall_value("contract C{ function f(uint n) external payable {\n for (uint i; i < n; i++) {\n"
+                                     " for (uint j; j < n; j++) {\n bal[i][j] += msg.value; } } } }", "src/C.sol")
+check(len(_mv_nest) == 1 and _mv_nest[0][1] == 3 and _mv_nest[0][4] == 0,
+      "fix#46: a read inside nested loops -> ONE [!] lead, on the innermost loop head (line 3)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

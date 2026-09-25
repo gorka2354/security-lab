@@ -16,6 +16,7 @@ Output is ASCII for Windows consoles. Findings carry a priority (0=high).
 """
 
 import argparse
+import functools
 import os
 import re
 import sys
@@ -124,6 +125,28 @@ def iter_sol(root):
 
 def lineno(text, idx):
     return text.count("\n", 0, idx) + 1
+
+
+# ── masked code ── comments + string literals blanked to spaces, newlines kept: offsets and line
+# numbers are unchanged, but a brace in a comment can't unbalance a body and a word in a comment/string can't fake
+# a gate or a msg.value read (a comment must never change a verdict; cf. _strip_comments).
+_CODE_MASK = re.compile(r"//[^\n]*|/\*.*?\*/|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'", re.S)
+_BRACE = re.compile(r"[{}]")
+
+
+@functools.lru_cache(maxsize=32)
+def _code_only(text):
+    return _CODE_MASK.sub(lambda mm: re.sub(r"[^\n]", " ", mm.group(0)), text)
+
+
+def _brace_end(code, open_idx):
+    """code[open_idx] == '{' -> index just past its matching '}' (masked code), or -1 if unbalanced."""
+    depth = 0
+    for bm in _BRACE.finditer(code, open_idx):
+        depth += 1 if bm.group() == "{" else -1
+        if depth == 0:
+            return bm.end()
+    return -1
 
 
 # ── Detector 1: disabled signals (our strongest real lead, twice) ──
@@ -401,15 +424,56 @@ def det_multicall_value(text, rel):
                     "delegatecall-multicall + payable fn(s) reading msg.value (" + ",".join(payable_value[:3])
                     + ") -> msg.value REUSED across batched sub-calls (N payments for 1); forbid value in "
                     "multicall or track consumed value", 0))
-    # (b) msg.value inside a loop body (bounded window, cut at the next function so it can't leak across fns)
-    for fm in re.finditer(r"\bfor\s*\([^)]*\)\s*\{", text):
-        win = text[fm.end():fm.end() + 400]
-        cut = win.find("function ")
-        if cut >= 0:
-            win = win[:cut]
-        if "msg.value" in win:
-            out.append((rel, lineno(text, fm.start()), "for(...) { ... msg.value ... }",
-                        "msg.value read INSIDE a loop -> same tx value credited each iteration (value-reuse)", 0))
+    # (b) msg.value read LEXICALLY inside a for/while/do body. fix#46 (FWAV2.acquire:1504): the old fixed 400-char
+    # window after `for(..){` ran past the loop's `}` and caught `_refund(msg.value - cost)` AFTER the loop. Now the
+    # body is brace-balanced on masked code (a comment can't fire it), and each read is charged to its INNERMOST loop.
+    code = _code_only(text)
+    loops = _loop_bodies(code)
+    hit = {}
+    for vm in re.finditer(r"\bmsg\.value\b", code):
+        inner = None
+        for lp in loops:
+            if lp[2] <= vm.start() < lp[3] and (inner is None or lp[2] > inner[2]):
+                inner = lp
+        if inner:
+            hit[inner[1]] = inner[0]
+    for head, kind in sorted(hit.items()):
+        out.append((rel, lineno(text, head), _LOOP_SNIP[kind],
+                    "msg.value read INSIDE a loop -> same tx value credited each iteration (value-reuse)", 0))
+    return out
+
+
+_LOOP_HEAD = re.compile(r"\b(for|while)\s*\(|\bdo\s*\{")
+_LOOP_SNIP = {"for": "for(...) { ... msg.value ... }", "while": "while(...) { ... msg.value ... }",
+              "do": "do { ... msg.value ... } while(...)"}
+
+
+def _loop_bodies(code):
+    """[(kind, head_idx, body_start, body_end)] for every for/while/do loop in MASKED code. The header is paren-
+    balanced (a `(` inside it no longer breaks the match); the body is the brace block, or the single statement up to
+    its `;`. `while (c);` (the tail of do{}while, or an empty body) has no body."""
+    out = []
+    for lm in _LOOP_HEAD.finditer(code):
+        kind = lm.group(1) or "do"
+        ob = lm.end() - 1
+        if kind != "do":
+            j = _match_paren(code, ob)
+            if j < 0:
+                continue
+            while j < len(code) and code[j].isspace():
+                j += 1
+            if j >= len(code) or code[j] == ";":
+                continue
+            ob = j
+            if code[j] != "{":
+                semi, brace = code.find(";", j), code.find("{", j)
+                if brace < 0 or 0 <= semi < brace:
+                    out.append((kind, lm.start(), j, semi + 1 if semi >= 0 else len(code)))
+                    continue
+                ob = brace              # `for (..) if (c) { .. }` -> the block the single statement opens
+        end = _brace_end(code, ob)
+        if end > 0:
+            out.append((kind, lm.start(), ob, end))
     return out
 
 
