@@ -20,6 +20,8 @@ and (Windows) pops a balloon for HIGH events. Exit 10 if any NEW event (cron-fri
     python toolkit/watch.py list | events [--n 20]
 
 Stdlib only. White-hat: read-only on-chain reads over public data.
+NOT the parked-lead go-live watcher (bounty-open / code-appears over monitor/watchlist.json) -- that is
+toolkit/parkwatch.py, run daily by .github/workflows/watch.yml.
 """
 from __future__ import annotations
 

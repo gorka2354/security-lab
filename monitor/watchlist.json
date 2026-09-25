@@ -1,5 +1,5 @@
 {
-  "_comment": "Parked leads: real bug hypotheses in DEPLOYED+funded code with NO in-scope bounty yet (white-hat blocks digging). watch.py FIREs (exit 2) when a bounty/contest for the protocol opens on Immunefi/Cantina/Code4rena/Sherlock -> then we dig the preserved lead FIRST. Detail: hunts/_parked/parked-leads.md. Run via toolkit/watch_all.sh (cron, every 4h).",
+  "_comment": "Parked leads: real bug hypotheses in DEPLOYED+funded code with NO in-scope bounty yet (white-hat blocks digging). parkwatch.py FIREs (exit 10) when a bounty/contest for the protocol opens on Immunefi/Cantina/Code4rena/Sherlock -> then we dig the preserved lead FIRST. Detail: hunts/_parked/parked-leads.md. Run via toolkit/watch_all.sh (cron, every 4h).",
   "findings": [
     {
       "id": "panoptic-v2-launch-watch",

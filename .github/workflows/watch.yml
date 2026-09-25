@@ -1,9 +1,11 @@
 name: watch-findings
 
 # Passively watch our PARKED findings (non-deployed / out-of-scope bugs we shelved) for go-live.
-# Runs daily on GitHub's infra (no local machine needed). If toolkit/watch.py exits 2 (a finding
-# FIRED -> e.g. Malda's LZ bridge appeared in their deploy registry), this job FAILS, and GitHub
-# emails the repo owner. That failure email IS the alert -> then verify + disclose.
+# Runs daily on GitHub's infra (no local machine needed). toolkit/parkwatch.py exits 10 when a lead
+# FIRED (e.g. a bounty opened for a parked protocol) -> a warning annotation, job stays green.
+# Any OTHER non-zero exit is a real error (crash / wrong script) -> the job FAILS loudly, so the
+# watcher can never again go blind behind a green check (2026-08-21..09-25 it ran the wrong script
+# and exit 2 was misread as "FIRED" every day).
 
 on:
   schedule:
@@ -21,5 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Poll parked findings (job FAILS + emails owner if any FIRED)
-        run: python toolkit/watch.py monitor/watchlist.json || echo "::warning::A parked finding FIRED -- verify + disclose (see the job log)"
+      - name: Poll parked findings (annotation if any FIRED; job FAILS only on a real error)
+        run: |
+          rc=0; python toolkit/parkwatch.py monitor/watchlist.json || rc=$?
+          if [ "$rc" -eq 10 ]; then echo "::warning::A parked finding FIRED -- verify + disclose (see the job log)"
+          elif [ "$rc" -ne 0 ]; then echo "::error::parkwatch exited $rc (error, not a fire)"; exit "$rc"; fi

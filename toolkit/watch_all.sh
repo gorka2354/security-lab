@@ -60,12 +60,15 @@ if [ $ssrc -eq 10 ]; then
   { echo ""; echo "## [SECRETS] $STAMP -- NEW committed key(s), see hunts/_radar/SECRETS.md"; echo '```'; echo "$SSOUT"; echo '```'; } >> "$ALERTS"
 fi
 
-# 1) parked findings (exit 2 if any FIRED)
-WOUT="$("$PY" toolkit/watch.py 2>&1)"; wrc=$?
+# 1) parked findings (parkwatch exits 10 if any FIRED; any other non-zero = the watcher itself broke)
+WOUT="$("$PY" toolkit/parkwatch.py 2>&1)"; wrc=$?
 echo "$WOUT"
-if [ $wrc -eq 2 ]; then
+if [ $wrc -eq 10 ]; then
   fired=1
   { echo ""; echo "## [WATCH FIRED] $STAMP"; echo '```'; echo "$WOUT" | grep -A3 FIRED; echo '```'; } >> "$ALERTS"
+elif [ $wrc -ne 0 ]; then
+  fired=1
+  { echo ""; echo "## [PARKWATCH ERROR] $STAMP -- exit $wrc, parked leads are NOT being watched"; echo '```'; echo "$WOUT" | tail -5; echo '```'; } >> "$ALERTS"
 fi
 
 # 2) audit-contest monitor (exit 10 if a NEW+FRESH+our-zone contest -> it writes ALERTS.md itself)

@@ -42,6 +42,9 @@ Every real hack becomes a detector + a golden test; every false positive becomes
     (change/bounty radar: IMPL-UPGRADE + BOUNTY-OPEN over triaged targets), `watch.py` (VALUE/LIVENESS
     change-events over our real findings: FUNDED/GREW/DRAINED/CODE-CHANGE/REACTIVATED -> QUEUE.md + Windows
     balloon; covers exotic chains X Layer/Robinhood/ApeChain/opBNB where fresh GameFi finds live),
+    `parkwatch.py` (PARKED-lead go-live triggers over `monitor/watchlist.json`: bounty-open/code-appears/
+    proxy-upgraded; daily via `.github/workflows/watch.yml`; FIRED = exit 10 -- a separate module from
+    watch.py on purpose, the name clash once blinded it for 5 weeks),
     `calibrate.py` (precision/recall feedback), `shadow.py` (honest recall).
   - **PLATFORM:** `labstate.py` → `labcore.py` → `lab_mcp.py` (MCP) + `web/` (dashboard) via `lab_http.py`.
 - **`*-poc/`** — self-contained Foundry proofs-of-concept.

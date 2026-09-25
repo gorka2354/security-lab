@@ -258,9 +258,9 @@ with tempfile.TemporaryDirectory() as d:
     check("Twyne" in _q(owasp="SC02") and "Flex" not in _q(owasp="SC02"), "--owasp filters by vuln class")
     check("Aborean" in _q(chain="abstract") and "Twyne" not in _q(chain="abstract"), "--chain filters by chain")
 
-print("== watch.check_url_appears active-status gate (no FP on completed Cantina comps) ==")
+print("== parkwatch.check_url_appears active-status gate (no FP on completed Cantina comps) ==")
 import re as _re
-import watch as W   # noqa: E402
+import parkwatch as W   # noqa: E402
 
 _rx = _re.compile(r'(?i)"panoptic')
 # Cantina-shape: completed comp must NOT fire (the bug we just fixed)
@@ -293,6 +293,42 @@ def _stub_get(url):
 W._get = _stub_get
 ok, why = W.check_url_appears({"needle": r'(?i)"panoptic', "urls": ["http://x"]})
 check(not ok and "non-active" in why, "check_url_appears: completed comp -> quiet + honest reason")
+
+print("== parkwatch: unread feeds are named, never reported as quiet ==")
+def _stub_get_partial(url):
+    if "down" in url:
+        raise OSError("certificate has expired")
+    return _complete
+W._get = _stub_get_partial
+ok, why = W.check_url_appears({"needle": r'(?i)"panoptic', "urls": ["http://down.example/a", "http://x"]})
+check(not ok and "UNREACHABLE" in why and "down.example" in why, "one feed down -> quiet reason names the unreachable host")
+ok, why = W.check_url_appears({"needle": r'(?i)"panoptic', "urls": ["http://down.example/a", "http://down.example/b"]})
+check(not ok and why.startswith("BLIND"), "every feed down -> BLIND, not 'needle absent'")
+
+print("== parkwatch.main exit contract (FIRED -> 10; argparse's 2 can never read as a fire) ==")
+W._get = lambda url: _active
+with tempfile.TemporaryDirectory() as d:
+    _wl = os.path.join(d, "watchlist.json")
+    __import__("json").dump({"findings": [{"id": "p1", "title": "t", "fire_means": "m",
+                                           "check": {"type": "url_appears", "needle": r'(?i)"panoptic',
+                                                     "urls": ["http://x"]}}]}, open(_wl, "w"))
+    _argv, sys.argv = sys.argv, ["parkwatch.py", _wl]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            W.main()
+        _rc = 0
+    except SystemExit as e:
+        _rc = e.code
+    finally:
+        sys.argv = _argv
+eq(_rc, W.FIRED_EXIT, "an ACTIVE program match exits FIRED_EXIT")
+eq(W.FIRED_EXIT, 10, "FIRED_EXIT = 10 (the monitors' shared convention)")
+
+print("== monitor/watchlist.json: every parked lead uses a check type parkwatch knows ==")
+_wl_real = __import__("json").load(open(os.path.join(os.path.dirname(__file__), "..", "monitor", "watchlist.json"),
+                                        encoding="utf-8"))
+for _lead in _wl_real.get("findings", []):
+    check((_lead.get("check") or {}).get("type") in W.CHECKS, "watchlist %s: check type is dispatchable" % _lead.get("id"))
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
