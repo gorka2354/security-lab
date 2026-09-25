@@ -32,6 +32,7 @@ import os
 import subprocess
 import sys
 import urllib.parse
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

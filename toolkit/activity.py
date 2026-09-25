@@ -22,6 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_source as fs  # reuse _rpc / DEFAULT_RPC  # noqa: E402
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 CHAIN_ALIAS = {"eth": "1", "ethereum": "1", "mainnet": "1", "base": "8453", "arb": "42161",
                "arbitrum": "42161", "op": "10", "optimism": "10", "linea": "59144",

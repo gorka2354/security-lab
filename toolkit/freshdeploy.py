@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import legacy   # deployer_contracts / factory_spawned (Etherscan-v2 enumeration)

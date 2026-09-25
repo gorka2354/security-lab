@@ -22,6 +22,7 @@ import os
 import re
 import time
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 CANTINA = "https://cantina.xyz/api/v0/competitions?status=active&limit=50"
 SHERLOCK = "https://mainnet-contest.sherlock.xyz/contests"

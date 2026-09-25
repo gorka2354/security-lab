@@ -27,6 +27,7 @@ import re
 import sys
 import time
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ledger  # same folder: skip already-hunted targets

@@ -72,3 +72,5 @@ Every real hack becomes a detector + a golden test; every false positive becomes
 - Foundry/solc may not be on PATH → `source toolkit/env.sh` (sets PATH + reads `ETHERSCAN_API_KEY` from env).
 - API keys are read from the environment only — never commit secrets.
 - Printed output is ASCII (some consoles choke on unicode).
+- Every toolkit module that does HTTP does `import tlsfix` (golden-enforced): the workstation's stale Windows CA
+  store made Python TLS to Etherscan fail, which surfaced as false "unverified"/"activity unknown", not an error.

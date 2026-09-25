@@ -18,6 +18,7 @@ import re
 import sys
 import json
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 ETHERSCAN = "https://api.etherscan.io/v2/api"
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) reach_bytecode/1.0"

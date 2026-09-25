@@ -1455,5 +1455,32 @@ finally:
     os.environ.clear()
     os.environ.update(_env)
 
+print("== tlsfix: a stale OS CA store must not turn every Etherscan call into a silent false negative ==")
+import glob  # noqa: E402
+import ssl  # noqa: E402
+import tlsfix  # noqa: E402
+
+_real_ctx = ssl._create_default_https_context
+try:
+    check(tlsfix.apply(platform="linux", env={}) is None, "tlsfix is a no-op off Windows (stand/CI stores are current)")
+    check(tlsfix.apply(platform="win32", env={"SSL_CERT_FILE": "x.pem"}) is None,
+          "an explicit SSL_CERT_FILE wins (tlsfix leaves the default context alone)")
+    _b = tlsfix.bundle()
+    if _b:
+        check(tlsfix.apply(platform="win32", env={}) == _b and os.path.exists(_b), "win32 -> a real CA bundle file")
+        _ctx = ssl._create_default_https_context()
+        check(_ctx.verify_mode == ssl.CERT_REQUIRED and _ctx.check_hostname,
+              "tlsfix swaps trust roots only -- verification stays ON (CERT_REQUIRED + hostname check)")
+    else:
+        print("  (no certifi / Git bundle on this host -- win32 branch not exercised)")
+finally:
+    ssl._create_default_https_context = _real_ctx
+
+_net = [f for f in glob.glob(os.path.join(os.path.dirname(__file__), "..", "toolkit", "*.py"))
+        if not f.endswith("tlsfix.py") and "urlopen" in open(f, encoding="utf-8").read()]
+_missing = [os.path.basename(f) for f in _net if "import tlsfix" not in open(f, encoding="utf-8").read()]
+check(len(_net) >= 17 and not _missing,
+      f"every toolkit module that calls urlopen imports tlsfix ({len(_net)} modules; missing: {_missing})")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
