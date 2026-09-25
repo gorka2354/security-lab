@@ -1,10 +1,10 @@
 [
  {
-  "key": "hoodbet-prizevault",
+  "key": "hoodbet-prizevault-shares",
   "chain": "4663",
   "addr": "0x11da9bE66d20328c6eA16d52079890322fA90f24",
-  "note": "",
-  "token": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"
+  "note": "value = the PrizeVault's shares of its yield vault (the USDG itself sits in the yield vault's strategy; the PrizeVault's own USDG balance is always 0, so the old token never moved). Send the HOLD letter on GREW / REACTIVATED (TVL 226.68 USDG, 0 RNG requests as of 2026-09-26).",
+  "token": "0xDF06045aBAE69d6e73a7F0197FED917032d22194"
  },
  {
   "key": "clawking-opbnb",
