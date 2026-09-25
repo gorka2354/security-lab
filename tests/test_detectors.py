@@ -1450,6 +1450,25 @@ try:
     check("PARTIAL SWEEP: 1 search" in md and "topic:amm" in md, "the queue header flags a PARTIAL sweep + the lost query")
     check("PARTIAL" not in githubsweep._render([], "2026-09-25", 0, 28), "a complete sweep carries no PARTIAL banner")
     githubsweep.SEARCH_FAILED.clear()
+
+    githubsweep.TREE_FAILED.clear()
+    scout.gh = lambda url: None
+    try:
+        _tree = githubsweep.git_tree("acme/dice", "main")
+    finally:
+        scout.gh = _orig_gh
+    _ts = githubsweep.tree_signals(_tree)
+    check(_tree is None and githubsweep.TREE_FAILED == ["acme/dice"] and _ts.get("unread") and _ts["sol_files"] == 0,
+          "a failed git-tree read is UNREAD (recorded), not an empty repo with 0 contracts")
+    check(not githubsweep.tree_signals([]).get("unread") and githubsweep.tree_signals(["src/A.sol"])["sol_files"] == 1,
+          "a tree that WAS read keeps its real counts")
+    _row = {"full": "acme/dice", "created": "2026-09-20", "size": 120, "stars": 0, "source": "topic", "score": 300,
+            "kw": ["dice"], "desc": "dice game", "route": "DIG", "key": "dice", "sig": {}, "tree": _ts}
+    md = githubsweep._render([_row], "2026-09-25", 0, 28, tree_failed=githubsweep.TREE_FAILED)
+    check("TREES UNREAD for 1 repo" in md and "tree unread" in md and "sol_files=?" in md,
+          "the queue says which scores are lower bounds (header banner + the row's own tree column)")
+    check("TREES UNREAD" not in githubsweep._render([], "2026-09-25", 0, 28), "no banner when every tree was read")
+    githubsweep.TREE_FAILED.clear()
 finally:
     scout.urllib.request.urlopen, scout.time.sleep = _real_urlopen, _real_sleep
     os.environ.clear()
