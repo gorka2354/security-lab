@@ -1372,5 +1372,88 @@ check(githubsweep._ascii("Artosphere \u2014 20 contracts") == "Artosphere -- 20 
 check(githubsweep._ascii("\U0001f6e1\ufe0f hook \u2018v4\u2019").isascii(),
       "githubsweep._ascii: emoji/smart-quotes degrade to ASCII (never raise UnicodeEncodeError)")
 
+print("== GitHub rate-limit: wait out the search bucket, never pass a lost query off as 'no results' ==")
+import email.message  # noqa: E402
+import io  # noqa: E402
+import time  # noqa: E402
+import urllib.error  # noqa: E402
+
+
+def _http_err(code, **hdrs):
+    h = email.message.Message()
+    for k, v in hdrs.items():
+        h[k.replace("_", "-")] = v
+    return urllib.error.HTTPError("https://api.github.com/search/repositories?q=x", code, "rate", h, None)
+
+
+check(scout._ratelimit_wait(_http_err(403, X_RateLimit_Remaining="0", X_RateLimit_Reset="1030"), now=1000) == 31,
+      "rate-limit wait = X-RateLimit-Reset - now + 1 when Remaining=0")
+check(scout._ratelimit_wait(_http_err(429, Retry_After="7"), now=1000) == 7, "Retry-After honoured")
+check(scout._ratelimit_wait(_http_err(403), now=1000) is None, "a plain 403 (no rate headers) is not a rate limit")
+check(scout._ratelimit_wait(_http_err(404, X_RateLimit_Remaining="0", X_RateLimit_Reset="1030"), now=1000) is None,
+      "404 is never a rate limit")
+check(scout._ratelimit_wait(ValueError("boom")) is None, "non-HTTP errors are not rate limits")
+
+_real_urlopen, _real_sleep, _env = scout.urllib.request.urlopen, scout.time.sleep, dict(os.environ)
+try:
+    _slept, _calls, _reqs = [], [], []
+
+    class _Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def _urlopen_once_limited(req, timeout=None):
+        _calls.append(1)
+        _reqs.append(req)
+        if len(_calls) == 1:
+            raise _http_err(403, X_RateLimit_Remaining="0", X_RateLimit_Reset=str(int(time.time()) + 20))
+        return _Resp(b'{"items": [{"full_name": "a/b"}], "total_count": 1}')
+
+    scout.urllib.request.urlopen, scout.time.sleep = _urlopen_once_limited, _slept.append
+    d = scout.gh("https://api.github.com/search/repositories?q=x")
+    check(isinstance(d, dict) and d.get("total_count") == 1 and len(_calls) == 2,
+          "a per-minute search rate-limit is waited out and retried once (the query is NOT lost)")
+    check(len(_slept) == 1 and 1 <= _slept[0] <= 22, f"waited ~until the bucket reset (slept {_slept})")
+
+    _calls.clear(), _slept.clear()
+
+    def _urlopen_hourly_limited(req, timeout=None):
+        _calls.append(1)
+        raise _http_err(403, X_RateLimit_Remaining="0", X_RateLimit_Reset=str(int(time.time()) + 3000))
+
+    scout.urllib.request.urlopen = _urlopen_hourly_limited
+    check(scout.gh("https://api.github.com/repos/a/b") is None and not _slept and len(_calls) == 1,
+          "an hourly (core) bucket is NOT waited on: warn + None, no block")
+
+    os.environ.pop("GITHUB_TOKEN", None)
+    os.environ["GH_TOKEN"] = "test-token-not-real"
+    _reqs.clear(), _calls.clear()
+    scout.urllib.request.urlopen = _urlopen_once_limited
+    _calls.append(1)  # skip the limited first call -> plain success
+    scout.gh("https://api.github.com/search/repositories?q=x")
+    check(_reqs and _reqs[-1].get_header("Authorization") == "Bearer test-token-not-real",
+          "GH_TOKEN alone authenticates (githubsweep paces as authenticated when EITHER var is set)")
+
+    githubsweep.SEARCH_FAILED.clear()
+    _orig_gh = scout.gh
+    scout.gh = lambda url: None
+    try:
+        items, tot = githubsweep.search_repos("topic:amm language:Solidity")
+    finally:
+        scout.gh = _orig_gh
+    check(items == [] and tot is None and githubsweep.SEARCH_FAILED == ["topic:amm language:Solidity"],
+          "a failed search is recorded as a coverage gap")
+    md = githubsweep._render([], "2026-09-25", 0, 28, failed=githubsweep.SEARCH_FAILED)
+    check("PARTIAL SWEEP: 1 search" in md and "topic:amm" in md, "the queue header flags a PARTIAL sweep + the lost query")
+    check("PARTIAL" not in githubsweep._render([], "2026-09-25", 0, 28), "a complete sweep carries no PARTIAL banner")
+    githubsweep.SEARCH_FAILED.clear()
+finally:
+    scout.urllib.request.urlopen, scout.time.sleep = _real_urlopen, _real_sleep
+    os.environ.clear()
+    os.environ.update(_env)
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

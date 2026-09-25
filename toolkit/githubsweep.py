@@ -152,12 +152,17 @@ def _throttle():
     time.sleep(2.5 if os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") else 7.0)
 
 
+SEARCH_FAILED = []  # queries lost even after scout's rate-limit retry -> the queue is marked PARTIAL
+
+
 def search_repos(q, per_page=50, sort="updated"):
-    """One /search/repositories call. Returns items[] (or [] on rate-limit/error, graceful)."""
+    """One /search/repositories call -> (items, total). A failed call returns ([], None) AND is recorded in
+    SEARCH_FAILED, so a lost query is reported as a coverage gap instead of passing for 'no results'."""
     url = ("https://api.github.com/search/repositories?q="
            + urllib.parse.quote(q) + f"&sort={sort}&order=desc&per_page={per_page}")
-    d = scout.gh(url)  # scout.gh already attaches GITHUB_TOKEN if present
+    d = scout.gh(url)  # attaches GITHUB_TOKEN/GH_TOKEN; waits out a per-minute search rate-limit once
     if not isinstance(d, dict):
+        SEARCH_FAILED.append(q)
         return [], None
     return d.get("items", []) or [], d.get("total_count")
 
@@ -295,7 +300,10 @@ def run(days, top, topics, hack_topics, max_fetch, min_size_kb, today, out, do_c
     if do_code_search:
         _code_search_note(out_rows[:top])
 
-    md = _render(out_rows[:top], today, len(done), days)
+    if SEARCH_FAILED:
+        print(f"  [PARTIAL] {len(SEARCH_FAILED)} search quer(ies) failed -> NOT covered this run: "
+              + "; ".join(SEARCH_FAILED), file=sys.stderr)
+    md = _render(out_rows[:top], today, len(done), days, failed=SEARCH_FAILED)
     with open(out, "w", encoding="utf-8") as f:
         f.write(md)
     print(_ascii(md))
@@ -310,13 +318,16 @@ def run(days, top, topics, hack_topics, max_fetch, min_size_kb, today, out, do_c
     return 10 if (n_new and not first_run) else 0
 
 
-def _render(rows, today, n_done, days):
+def _render(rows, today, n_done, days, failed=()):
     lines = ["# GitHub sweep queue",
              "",
              f"> Ref {today} (last {days}d). {len(rows)} candidates after ledger-suppression ({n_done} hunted).",
              "> Ranked by freshness x our-zone fit x deployed-signal (a 0x in the README/artifacts is the strongest).",
              "> Pick top -> clone -> recon+hypothesize (+ fetch_source <addr> if deployed). WATCH = pre-mainnet -> radar.",
              ""]
+    if failed:
+        lines[3:3] = [f"> **PARTIAL SWEEP: {len(failed)} search quer(ies) failed and were NOT covered** "
+                      f"({'; '.join(failed)}) -- re-run; a GITHUB_TOKEN lifts search 10->30/min."]
     for x in rows:
         sig, tree = x.get("sig") or {}, x.get("tree") or {}
         large = "  [LARGE: verify fit]" if x["size"] > scout.LARGE_KB else ""
