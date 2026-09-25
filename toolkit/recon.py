@@ -166,6 +166,169 @@ def _split_top(args):
     return parts
 
 
+_FN_DEF = re.compile(r"function\s+(\w+)\s*(\([^{};]*?)\{", re.S)
+
+
+@functools.lru_cache(maxsize=32)
+def _fn_index(text):
+    """{name: [(modifiers, body)]} for every function DEFINED in this file, read from masked code. `modifiers` is
+    the signature AFTER the parameter list (visibility / modifiers / returns); `body` is the brace-balanced block."""
+    code = _code_only(text)
+    idx = {}
+    for m in _FN_DEF.finditer(code):
+        blob = m.group(2)
+        pe = _match_paren(blob, 0)
+        end = _brace_end(code, m.end() - 1)
+        idx.setdefault(m.group(1), []).append(
+            (blob[pe:] if pe > 0 else blob, code[m.end() - 1:end] if end > 0 else code[m.end() - 1:m.end() + 1500]))
+    return idx
+
+
+# ── fix#48: gates the flat INLINE_AUTH / [msg.sender]-key tiers miss (det_access + det_sibling) ──
+# Real-deploy FPs: predix-plinko PlinkoVault.sweepToCold/collectProfit (`_checkOperatorOrOwner();` helper),
+# FWAV2.updateBacking (`_activeOwned(id)` helper), FWAV2.recoverStuckNFT (`if (stuck[id] != msg.sender) revert`),
+# PlinkoGame.revokeSessionKey (`sessionRegistry.revoke(msg.sender, key)` -- revokes the CALLER's own key).
+_SENDER = r"(?:msg\.sender\b|_msgSender\s*\(\s*\))"
+# (b) a caller compare with msg.sender on the RIGHT, in a REJECTING if: INLINE_AUTH only knew `msg.sender ==`
+# (left) and require(...msg.sender...). `!=` + revert only: `if (x == msg.sender) revert` bans ONE caller (not a gate).
+SENDER_CMP_IF = re.compile(r"\bif\s*\([^;{]*!=\s*" + _SENDER + r"[^;{]*\)\s*\{?\s*revert\b")
+# a caller-keyed ALLOW-list read that rejects (helper bodies): `if (!isOperator[msg.sender]) revert` /
+# `if (wards[msg.sender] == 0) revert`. Negated form only -- `if (blocked[msg.sender]) revert` is a blocklist.
+_SENDER_KEY_COND = re.compile(r"\bif\s*\(\s*(?:!\s*[\w.$]+\s*(?:\[[^\[\]]*\]\s*)*\[\s*" + _SENDER + r"\s*\]\s*|"
+                              r"[\w.$]+\s*(?:\[[^\[\]]*\]\s*)*\[\s*" + _SENDER + r"\s*\]\s*==\s*(?:false|0)\s*)"
+                              r"\)\s*\{?\s*revert\b")
+_REJECT = re.compile(r"\brevert\b|\brequire\s*\(|\bassert\s*\(")
+_BARE_CALL = re.compile(r"(?<![\w.$])([A-Za-z_]\w*)\s*\(")
+# an INLINE_AUTH hit that is a DELEGATED reverting auth call (_checkOwner() / _onlyX() / LibX.enforceIsOwner()) --
+# NOT a bare compare, a bool predicate (hasRole / _isX) or signature plumbing (a digest helper verifies nothing).
+_NOT_DELEGATED = re.compile(r"[!=]=|require|hasRole|_is[A-Z]|ecrecover|ECDSA|SignatureChecker|isValidSignature|"
+                            r"_hashTypedData|verifySignature|_verifySignatures|_authorizeUpgrade")
+# a top-level statement prefix that makes a helper call CONDITIONAL (not an unconditional gate)
+_CTRL_PREFIX = re.compile(r"^\s*(?:if|else|for|while|do|try|catch)\b|\?|&&|\|\|")
+# (c) RELINQUISH verbs only: a GRANT to the caller (`_setOwner(msg.sender)`, `_grantRole(R, msg.sender)`) is the
+# worst ungated bug and must keep firing.
+_RELINQUISH = re.compile(r"(?<![\w$])_?(?:revoke|renounce|remove|disable|cancel|unregister|deregister|leave|exit|"
+                         r"resign|invalidate|burn)\w*\s*\(")
+_LOCAL_DECL = re.compile(r"[A-Za-z_]\w*(?:\s*\[\s*\w*\s*\])*\s+(?:(?:memory|storage|calldata)\s+)?[A-Za-z_$][\w$]*\s*=(?!=)")
+# a bool predicate over the caller: `isOperator(msg.sender)` / `_isApprovedOrOwner(msg.sender, id)` / `hasAccess(..)` /
+# `ops.contains(msg.sender)` -- but never an ACTION verb (`approve(msg.sender, x)`, `_grantRole(R, msg.sender)`)
+_PRED_CALL = re.compile(r"_?(?:is|has|can)[A-Z_]\w*$|(?:contains|includes)$|\w*(?:[Aa]uthori[sz]|[Aa]llowed|[Aa]llow[Ll]ist|"
+                        r"[Ww]hite[Ll]ist|[Aa]pproved|[Rr]ole|[Oo]wner|[Aa]dmin|[Oo]perator|[Mm]ember|[Gg]uardian|[Kk]eeper)\w*$")
+_ACTION_CALL = re.compile(r"_?(?:grant|revoke|renounce|set|add|remove|transfer|approve|mint|burn|update|register|enable|"
+                          r"disable|increase|decrease|change|accept|claim|execute)(?:[A-Z_]|$)")
+
+
+def _sender_checked(expr):
+    """Is the caller CHECKED in condition `expr`: compared, used as a mapping key, or passed to a bool predicate --
+    not merely handed to an action (`require(mkt.repayBorrowBehalf(msg.sender, x) == 0)` checks a return code)."""
+    for sm in re.finditer(_SENDER, expr):
+        before, after = expr[:sm.start()], expr[sm.end():]
+        if re.search(r"[!=]=\s*$", before) or re.match(r"\s*[!=]=", after):
+            return True                 # msg.sender == x / x != msg.sender
+        if re.search(r"\[\s*$", before) and re.match(r"\s*\]", after):
+            return True                 # map[msg.sender] (allow-list / self-scoped balance)
+        depth, k = 0, len(before) - 1
+        while k >= 0:                   # innermost call whose argument list holds the caller
+            if before[k] == ")":
+                depth += 1
+            elif before[k] == "(":
+                if depth == 0:
+                    break
+                depth -= 1
+            k -= 1
+        cm = re.search(r"([A-Za-z_]\w*)\s*$", before[:k]) if k >= 0 else None
+        if cm and _PRED_CALL.match(cm.group(1)) and not _ACTION_CALL.match(cm.group(1)):
+            return True
+    return False
+
+
+def _req_checks_sender(body):
+    """Some require(...)/assert(...) in `body` checks the caller (see _sender_checked)."""
+    for rm in re.finditer(r"\b(?:require|assert)\s*\(", body):
+        args = _balanced_arg(body, rm.end())
+        if args is not None and _sender_checked(args):
+            return True
+    return False
+
+
+def _helper_gates(idx, name, depth=0, seen=frozenset()):
+    """True only if EVERY in-file definition of helper `name` rejects an unauthorized caller in its OWN code: an
+    auth modifier on it, a caller check next to a revert/require, a delegated reverting auth call, or a nested
+    helper that does. Resolved from the body, never trusted by name: a `_checkX()` that checks nothing is no gate."""
+    defs = idx.get(name)
+    if not defs or depth > 3 or name in seen:
+        return False
+    seen = seen | {name}
+    for mods, body in defs:
+        if re.search(r"\bonly[A-Z_]\w*", mods) or WARD_MOD.search(mods) or INLINE_AUTH.search(mods):
+            continue                    # the helper itself carries an auth modifier
+        if SENDER_CMP_IF.search(body) or _SENDER_KEY_COND.search(body):
+            continue                    # right-hand caller compare / caller-keyed allow-list, with a revert
+        # INLINE_AUTH's loose `require(..msg.sender..)` tier also matches a caller merely PASSED to an action; in a
+        # helper it counts only when the require really checks the caller (_req_checks_sender).
+        hits = [h.group(0) for h in INLINE_AUTH.finditer(body) if not re.match(r"require\s*\(", h.group(0))]
+        if (hits or _req_checks_sender(body)) and _REJECT.search(body):
+            continue                    # a caller check + a way to reject, in the helper's own code
+        if any(not _NOT_DELEGATED.search(h) for h in hits):
+            continue                    # delegates to a reverting auth call
+        if any(c != name and _helper_gates(idx, c, depth + 1, seen) for c in _BARE_CALL.findall(body)):
+            continue
+        return False
+    return True
+
+
+def _self_relinquish(body):
+    """(c) a thin self-service wrapper: every top-level statement is an emit / require / revert / local decl or a
+    RELINQUISH call taking the CALLER as a bare arg (>=1 of them); no nested block, no other write or call."""
+    inner = body[1:-1]
+    if "{" in inner:
+        return False
+    found = False
+    for st in inner.split(";"):
+        st = st.strip()
+        if not st or re.match(r"(?:emit|revert)\b|(?:require|assert)\s*\(|if\s*\([^;{]*\)\s*revert\b", st):
+            continue
+        rm = _RELINQUISH.search(st)
+        if not rm:
+            if _LOCAL_DECL.match(st):
+                continue                # `Storage storage $ = _s();` -- a local, not a state write
+            return False
+        args = _balanced_arg(st, rm.end())
+        if args is None or not any(re.fullmatch(r"\s*(?:(?:address|payable)\s*\(\s*)?" + _SENDER + r"\s*\)?\s*", a)
+                                   for a in _split_top(args)):
+            return False                # relinquishes SOMEONE ELSE's entry (or unparseable) -> keep firing
+        found = True
+    return found
+
+
+def _resolved_gate(text, m):
+    """fix#48: is the external fn matched by `m` (function\\s+(\\w+)\\s*(\\(..)\\{ on raw text) gated in a way the flat
+    tiers miss? (a) an unconditional top-level call to an in-file helper whose OWN body rejects an unauthorized
+    caller; (b) a right-hand caller compare in a rejecting if; (c) a thin self-service relinquish on the caller.
+    Read from masked code, so a comment/string can't fake any of them."""
+    code = _code_only(text)
+    ob = m.end() - 1
+    if code[ob:ob + 1] != "{":
+        return False                    # the match sits inside a comment/string
+    end = _brace_end(code, ob)
+    if end < 0:
+        return False
+    body = code[ob:end]
+    if SENDER_CMP_IF.search(body):
+        return True                     # (b)
+    idx, name = _fn_index(text), m.group(1)
+    for cm in _BARE_CALL.finditer(body):   # (a)
+        callee, p = cm.group(1), cm.start()
+        if callee == name or callee not in idx:
+            continue
+        if body.count("{", 0, p) - body.count("}", 0, p) != 1:
+            continue                    # nested in an if/else/loop/unchecked block -> conditional, not a gate
+        b = max(body.rfind(";", 0, p), body.rfind("{", 0, p), body.rfind("}", 0, p))
+        if not _CTRL_PREFIX.search(body[b + 1:p]) and _helper_gates(idx, callee):
+            return True
+    return _self_relinquish(body)       # (c)
+
+
 # ── Detector 1: disabled signals (our strongest real lead, twice) ──
 def det_disabled(text, rel):
     out = []
@@ -214,6 +377,8 @@ def det_access(text, rel):
                 or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", text[m.end():end])):
             continue
         if PRIV.search(name):
+            if _resolved_gate(text, m):   # fix#48: helper-resolved gate / right-hand compare / self-relinquish
+                continue
             delegates = bool(LIB_DELEGATE.search(text[m.end():end]))   # fix#19: thin facet delegator
             empty_body = text[m.end():].lstrip().startswith("}")       # fix#37: dispatcher/override stub
             note = "external/public + privileged name, NO only* / inline auth"
@@ -252,6 +417,8 @@ def det_sibling(text, rel):
                     or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]",
                                  text[m.end():min(m.end() + 280, end)])):
                 gname = "inline-auth"
+        if not gname and PRIV.search(name) and _resolved_gate(text, m):
+            gname = "inline-auth"   # fix#48: helper-resolved gate / right-hand compare / self-relinquish
         if not gname and text[m.end():].lstrip().startswith("}"):
             gname = "empty-stub"   # fix#37b: empty body -> no local mutation, not a real ungated lead (EtherFi LiquidityPool deprecated setStakingTargetWeights(){})
         funcs.append((name, lineno(text, m.start()), gname))

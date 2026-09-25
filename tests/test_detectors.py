@@ -1443,5 +1443,74 @@ check(flagged(recon.det_feeontransfer,
               "IERC20(t).transferFrom(msg.sender, address(this), amt); ERC721(c).transferFrom(msg.sender, address(this), tokenId); } }"),
       "fix#47 TP: an ERC20 pull next to an NFT pull on ONE line -> the ERC20 pull still fires")
 
+print("== fix#48 det_access / det_sibling: resolved helper gate / right-hand compare / self-relinquish ==")
+# (a) predix-plinko PlinkoVault:310/:323 -- `_checkOperatorOrOwner();` resolved from its in-file body
+_op = ("contract V{ function setFloat(uint f) external onlyOwner { floatTarget = f; } "
+       "function sweepToCold(uint256 amt) external nonReentrant { _checkOperatorOrOwner(); if (amt == 0) revert ZeroAmount(); "
+       "usdc.safeTransfer(cold, amt); } "
+       "function _checkOperatorOrOwner() internal view { if (msg.sender != operator && msg.sender != owner()) revert NotOperator(); } }")
+check(not flagged(recon.det_access, _op, "sweepToCold") and not flagged(recon.det_sibling, _op, "sweepToCold"),
+      "fix#48a: helper _checkOperatorOrOwner() whose body rejects a non-operator caller is a gate (predix sweepToCold)")
+_opfake = _op.replace("if (msg.sender != operator && msg.sender != owner()) revert NotOperator();", "lastCheck = block.timestamp;")
+check(flagged(recon.det_access, _opfake, "sweepToCold") and flagged(recon.det_sibling, _opfake, "sweepToCold"),
+      "fix#48a TP: a gate-NAMED helper that checks nothing -> still flagged (resolved by body, never by name)")
+_opcmt = _op.replace("if (msg.sender != operator && msg.sender != owner()) revert NotOperator();",
+                     "// if (msg.sender != operator) revert NotOperator();\n")
+check(flagged(recon.det_access, _opcmt, "sweepToCold"),
+      "fix#48a TP: the helper's check exists only in a COMMENT -> still flagged")
+check(flagged(recon.det_access, _op.replace("_checkOperatorOrOwner(); if (amt == 0)", "if (amt > 100) _checkOperatorOrOwner(); if (amt == 0)"),
+              "sweepToCold"),
+      "fix#48a TP: a CONDITIONAL helper call (if (amt > 100) _check..();) is no gate -> still flagged")
+check(flagged(recon.det_access, _op[:-1] + "function _checkOperatorOrOwner(uint x) internal { last = x; } }", "sweepToCold"),
+      "fix#48a TP: an overload of the helper that checks nothing -> ambiguous -> still flagged")
+# (a) FWAV2.sol:1308 updateBacking -- `_activeOwned(id)` gates (depositor != msg.sender -> revert); `_requireExitUnlocked`
+# is a state lock, not a caller check
+_ex = ("contract F{ function setMin(uint x) external onlyOwner { minBacking = x; } "
+       "function updateBacking(uint256 id, uint256 v) external payable { _requireExitUnlocked(); listings[id].value = v; } "
+       "function _requireExitUnlocked() internal view { if (unsettled != 0) revert WithdrawLocked(); } }")
+check(flagged(recon.det_access, _ex, "updateBacking") and flagged(recon.det_sibling, _ex, "updateBacking"),
+      "fix#48a TP: a revert-only helper with NO caller check (_requireExitUnlocked) is no gate -> still flagged")
+_ao = (_ex.replace("{ _requireExitUnlocked(); listings[id].value = v; }",
+                   "{ Listing storage l = _activeOwned(id); _requireExitUnlocked(); l.value = v; }")[:-1]
+       + "function _activeOwned(uint256 id) internal view returns (Listing storage l) { l = listings[id]; "
+         "if (l.status != 1) revert NotActive(); if (l.depositor != msg.sender) revert NotDepositor(); } }")
+check(not flagged(recon.det_access, _ao, "updateBacking") and not flagged(recon.det_sibling, _ao, "updateBacking"),
+      "fix#48a: `Listing storage l = _activeOwned(id);` (depositor != msg.sender -> revert) is a gate (FWAV2 updateBacking)")
+# the helper must CHECK the caller, not merely pass it to an action inside a require (malda _repayAll shape)
+_rq = ("contract M{ function setA(uint x) external onlyOwner { a = x; } function migrateAll(uint amt) external { _repay(amt); } "
+       "function _repay(uint amt) internal { require(market.repayBorrowBehalf(msg.sender, amt) == 0, 'repay'); } }")
+check(flagged(recon.det_access, _rq, "migrateAll"),
+      "fix#48a TP: helper require(mkt.repayBorrowBehalf(msg.sender, amt) == 0) checks a return code, not the caller -> flagged")
+check(not flagged(recon.det_access, _rq.replace("require(market.repayBorrowBehalf(msg.sender, amt) == 0, 'repay');",
+                                                "require(isOperator(msg.sender), 'op'); market.repay(amt);"), "migrateAll"),
+      "fix#48a: helper require(isOperator(msg.sender)) is a caller predicate -> gate -> NOT flagged")
+check(flagged(recon.det_access, _rq.replace("require(market.repayBorrowBehalf(msg.sender, amt) == 0, 'repay');",
+                                            "require(token.approve(msg.sender, amt), 'approve');"), "migrateAll"),
+      "fix#48a TP: helper require(token.approve(msg.sender, amt)) is an ACTION's return, not a caller predicate -> flagged")
+# (b) FWAV2.sol:2017 recoverStuckNFT -- caller compared on the RIGHT in a rejecting if
+_st = ("contract F{ function setMin(uint x) external onlyOwner { minBacking = x; } "
+       "function recoverStuckNFT(uint256 id) external nonReentrant { if (stuckNFTRecipient[id] != msg.sender) revert NotStuckRecipient(); "
+       "delete stuckNFTRecipient[id]; _send(id, msg.sender); } }")
+check(not flagged(recon.det_access, _st, "recoverStuckNFT") and not flagged(recon.det_sibling, _st, "recoverStuckNFT"),
+      "fix#48b: `if (stuckNFTRecipient[id] != msg.sender) revert` is a caller gate (FWAV2 recoverStuckNFT)")
+check(flagged(recon.det_access, _st.replace("!= msg.sender", "== address(0)"), "recoverStuckNFT"),
+      "fix#48b TP: `if (stuckNFTRecipient[id] == address(0)) revert` checks no caller -> still flagged")
+check(flagged(recon.det_access, _st.replace("if (stuckNFTRecipient[id] != msg.sender)", "if (banned == msg.sender)"), "recoverStuckNFT"),
+      "fix#48b TP: `if (banned == msg.sender) revert` bans ONE caller (wrong polarity) -> still flagged")
+# (c) predix PlinkoGame:596 revokeSessionKey -- a thin wrapper relinquishing the CALLER's own entry
+_sk = ("contract G{ function setCap(uint x) external onlyOwner { cap = x; } "
+       "function revokeSessionKey(address key) external { _s().sessionRegistry.revoke(msg.sender, key); } }")
+check(not flagged(recon.det_access, _sk, "revokeSessionKey") and not flagged(recon.det_sibling, _sk, "revokeSessionKey"),
+      "fix#48c: self-service revoke(msg.sender, key) is not an ungated admin op (predix revokeSessionKey)")
+check(flagged(recon.det_access, _sk.replace("(address key) external { _s().sessionRegistry.revoke(msg.sender, key);",
+                                            "(address account, address key) external { _s().sessionRegistry.revoke(account, key);"), "revokeSessionKey"),
+      "fix#48c TP: revoke(account, key) on a caller-chosen account -> still flagged")
+check(flagged(recon.det_access, "contract G{ function revokeRole(bytes32 r, address a) external { _revokeRole(r, a); } }", "revokeRole"),
+      "fix#48c TP: ungated revokeRole(r, a) -> still flagged")
+check(flagged(recon.det_access, "contract G{ function setOwner() external { _setOwner(msg.sender); } }", "setOwner"),
+      "fix#48c TP: a GRANT to the caller (_setOwner(msg.sender)) is not a relinquish -> still flagged")
+check(flagged(recon.det_access, _sk.replace("revoke(msg.sender, key);", "revoke(msg.sender, key); paused = true;"), "revokeSessionKey"),
+      "fix#48c TP: a self-revoke plus another state write -> no longer a thin wrapper -> still flagged")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
