@@ -113,8 +113,12 @@ def check_url_appears(c):
         if decided:
             last = reason  # status-bearing feed said not-active here -> remember why, don't raw-match
             continue
-        if rx.search(body):                            # presence-based / non-JSON feed
-            return True, f"/{c['needle']}/ now present in {u}"
+        m = rx.search(body)                            # presence-based / non-JSON feed
+        if m:
+            # show WHAT matched: a bare "present in <url>" hid that '"vena' was a researcher handle
+            # ("Venator" in an Immunefi leaderboard) and let that FP fire daily for weeks unnoticed
+            ctx = " ".join(body[max(0, m.start() - 50):m.end() + 50].split())
+            return True, f"/{c['needle']}/ now present in {u} -- ...{ctx}..."
     if urls and len(blind) == len(urls):
         return False, "BLIND: no feed reachable -- " + "; ".join(blind)
     if blind:

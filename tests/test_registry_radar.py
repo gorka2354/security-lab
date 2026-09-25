@@ -329,6 +329,20 @@ _wl_real = __import__("json").load(open(os.path.join(os.path.dirname(__file__), 
                                         encoding="utf-8"))
 for _lead in _wl_real.get("findings", []):
     check((_lead.get("check") or {}).get("type") in W.CHECKS, "watchlist %s: check type is dispatchable" % _lead.get("id"))
+    _n = (_lead.get("check") or {}).get("needle")
+    if _n is not None:
+        # a JSON "\b" decodes to a BACKSPACE, not a regex word boundary -> the needle silently never matches
+        check(not _re.search(r"[\x00-\x1f]", _n), "watchlist %s: needle has no control chars (write \\\\b in JSON)" % _lead.get("id"))
+
+print("== FP regression: the Vena needle vs an Immunefi leaderboard handle 'Venator' ==")
+_vena = next((x["check"] for x in _wl_real.get("findings", []) if x.get("id") == "vena-finance-pyth-oracle"), None)
+if _vena:
+    W._get = lambda url: '[{"project":"Audit Comp | Base Azul","boostedLeaderboard":[{"name":"Venator","points":1}]}]'
+    ok, why = W.check_url_appears({"needle": _vena["needle"], "urls": ["http://x"]})
+    check(not ok, "a researcher handle 'Venator' does NOT fire the Vena lead (fired daily until 2026-09-25)")
+    W._get = lambda url: '[{"project":"Vena Finance","maxBounty":50000}]'
+    ok, why = W.check_url_appears({"needle": _vena["needle"], "urls": ["http://x"]})
+    check(ok and "Vena Finance" in why, "a real 'Vena Finance' program fires and the signal shows what matched")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
