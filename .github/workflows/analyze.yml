@@ -26,6 +26,17 @@ jobs:
       - name: Registry+radar regression tests (MEMORY+RADAR lane)
         run: python tests/test_registry_radar.py
 
+      # The platform/radar/secrets suites (fakes injected, no network, no API key). Every suite runs even if
+      # one fails, so a red build names all the broken ones at once.
+      - name: Toolkit unit tests (labcore, labstate, watch, dispatch, secrets, fingerprint, ityfuzz, testmine)
+        run: |
+          fail=0
+          for t in labcore labstate watch dispatch secrets fingerprint ityfuzz testmine; do
+            echo "== tests/test_$t.py"
+            python tests/test_$t.py || fail=1
+          done
+          exit $fail
+
       - name: Stand-sync ownership contract (fake stand, no network)
         run: python tests/test_sync_stand.py
 
