@@ -1403,5 +1403,45 @@ _mv_nest = recon.det_multicall_value("contract C{ function f(uint n) external pa
 check(len(_mv_nest) == 1 and _mv_nest[0][1] == 3 and _mv_nest[0][4] == 0,
       "fix#46: a read inside nested loops -> ONE [!] lead, on the innermost loop head (line 3)")
 
+print("== fix#47 det_unchecked / det_feeontransfer: ERC721/1155 moves are not ERC20 transfers (FWAV2 FPs) ==")
+# FWAV2.sol:2177 `ERC721(collection).transferFrom(from, to, tokenId)` (unchecked-ERC20 [!]) and :1249/:2044
+# `ERC721(c).safeTransferFrom(address(this), ..)` (fee-on-transfer [.]): an NFT move returns no bool and has no fee.
+check(not flagged(recon.det_unchecked,
+                  "contract C{ function _t(address c,address f,address t,uint256 tokenId) internal { ERC721(c).transferFrom(f, t, tokenId); } }"),
+      "fix#47: ERC721(c).transferFrom (receiver CAST to ERC721, FWAV2 _transferNFT) -> NOT an unchecked ERC20 return")
+check(not flagged(recon.det_unchecked,
+                  "contract C{ IERC721 public nft; function f(uint256 id) external { nft.transferFrom(msg.sender, address(this), id); } }"),
+      "fix#47: receiver var declared ONLY as IERC721 -> NOT flagged")
+_nftfile = ("contract C{ Hero hero;\n function onERC721Received(address,address,uint256,bytes calldata) external returns (bytes4) "
+            "{ return this.onERC721Received.selector; }\n function stake(uint256 tokenId) external {\n"
+            " hero.transferFrom(msg.sender, address(this), tokenId);\n } }")
+check(not flagged(recon.det_unchecked, _nftfile),
+      "fix#47: NFT-context file + tokenId-named 3rd arg on an untyped-as-ERC20 receiver -> NOT flagged")
+check(flagged(recon.det_unchecked, "contract C{ function f(address t,address a,address b,uint256 amount) external { IERC20(t).transferFrom(a, b, amount); } }"),
+      "fix#47 TP: IERC20(t).transferFrom with the bool dropped -> still flagged")
+check(flagged(recon.det_unchecked, _nftfile.replace("hero.transferFrom(msg.sender, address(this), tokenId);",
+                                                    "IERC20(t).transferFrom(msg.sender, address(this), tokenId);")),
+      "fix#47 TP: an explicit IERC20 cast wins over NFT file context + an id-named arg -> flagged")
+check(flagged(recon.det_unchecked, _nftfile.replace("hero.transferFrom(msg.sender, address(this), tokenId);",
+                                                    "token.transferFrom(msg.sender, address(this), amount);")),
+      "fix#47 TP: untyped receiver + amount arg in an NFT file stays ambiguous -> flagged")
+check(flagged(recon.det_unchecked,
+              "contract A{ IERC721 token; } contract B{ IERC20 token; function f(address a,uint256 amt) external { token.transferFrom(a, address(this), amt); } }"),
+      "fix#47 TP: a receiver name declared as BOTH IERC721 and IERC20 in the file -> ambiguous -> flagged")
+check(not flagged(recon.det_feeontransfer,
+                  "contract C{ function w(address c,uint256 tokenId) external { ERC721(c).safeTransferFrom(address(this), msg.sender, tokenId); } }"),
+      "fix#47: ERC721(c).safeTransferFrom(address(this), ..) (FWAV2 :1249) -> NOT a fee-on-transfer lead")
+check(not flagged(recon.det_feeontransfer,
+                  "contract C{ function d(address nft,uint256 tokenId) external { IERC721(nft).transferFrom(msg.sender, address(this), tokenId); } }"),
+      "fix#47: IERC721(nft).transferFrom pulling an NFT into address(this) -> NOT a fee-on-transfer lead")
+check(flagged(recon.det_feeontransfer,
+              "contract C{ function onERC721Received(address,address,uint256,bytes calldata) external returns (bytes4) { return 0x150b7a02; } "
+              "function d(address t,uint256 amt) external { IERC20(t).transferFrom(msg.sender, address(this), amt); bal[msg.sender] += amt; } }"),
+      "fix#47 TP: an ERC20 pull into address(this) in an NFT-context file -> still flagged")
+check(flagged(recon.det_feeontransfer,
+              "contract C{ function d(address t,address c,uint256 amt,uint256 tokenId) external { "
+              "IERC20(t).transferFrom(msg.sender, address(this), amt); ERC721(c).transferFrom(msg.sender, address(this), tokenId); } }"),
+      "fix#47 TP: an ERC20 pull next to an NFT pull on ONE line -> the ERC20 pull still fires")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

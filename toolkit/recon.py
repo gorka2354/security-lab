@@ -149,6 +149,23 @@ def _brace_end(code, open_idx):
     return -1
 
 
+def _split_top(args):
+    """Split an argument list on its top-level commas (nested ()/[]/{} kept whole)."""
+    parts, depth, cur = [], 0, []
+    for ch in args:
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    parts.append("".join(cur))
+    return parts
+
+
 # ── Detector 1: disabled signals (our strongest real lead, twice) ──
 def det_disabled(text, rel):
     out = []
@@ -729,6 +746,91 @@ def det_upgrade(text, rel):
     return out
 
 
+# ── fix#47: ERC721/1155 vs ERC20 transfer (det_unchecked + det_feeontransfer precision) ──
+# FWAV2 (Fake World Assets V2): `ERC721(collection).transferFrom(from, to, tokenId)` was flagged as an unchecked ERC20
+# return and `ERC721(c).safeTransferFrom(address(this), ..)` as fee-on-transfer. An ERC721/1155 move returns NO bool
+# (EIP-721 reverts on failure) and has no fee semantics -> neither lead applies. Suppress ONLY on clear NFT evidence:
+# (1) the receiver is CAST to an ERC721/1155 type, (2) the receiver var is declared ONLY with such types in this file,
+# or (3) an NFT-context file + a tokenId-named 3rd arg on a receiver not typed ERC20. Anything else stays an ERC20 lead.
+_NFT_T = r"I?ERC(?:721|1155)(?!\w*Receiver)\w*"
+_NFT_TYPE = re.compile(_NFT_T + r"$")
+_ERC20_TYPE = re.compile(r"(?:I?ERC20|IWETH|WETH)\w*$")
+_NFT_FILE = re.compile(r"\b" + _NFT_T + r"\b|onERC(?:721|1155)Received")
+_TOKENID_ARG = re.compile(r"_?(?:token_?ids?|nft_?ids?|ids?)$", re.I)
+_DECL_MODS = (r"(?:(?:public|private|internal|external|immutable|constant|memory|calldata|storage|indexed|payable|"
+              r"override)\s+)*")
+_TYPED_DECL = re.compile(r"\b([A-Za-z_]\w*)(?:\s*\[\s*\w*\s*\])*\s+" + _DECL_MODS + r"([A-Za-z_$][\w$]*)\s*(?=[;=,)])"
+                         r"|=>\s*([A-Za-z_]\w*)\s*\)\s*" + _DECL_MODS + r"([A-Za-z_$][\w$]*)\s*(?=[;=])")
+_NOT_TYPE = {"return", "returns", "emit", "delete", "new", "else", "is", "for", "using", "import", "revert",
+             "require", "assert", "if", "while", "do", "case", "let", "memory", "storage", "calldata"}
+
+
+@functools.lru_cache(maxsize=32)
+def _typed_vars(text):
+    """{name: {types}} for every `Type [mods] name` declaration (state var / param / local / struct field /
+    mapping value) in the file, from masked code."""
+    out = {}
+    for mm in _TYPED_DECL.finditer(_code_only(text)):
+        t, n = (mm.group(1), mm.group(2)) if mm.group(1) else (mm.group(3), mm.group(4))
+        if t not in _NOT_TYPE:
+            out.setdefault(n, set()).add(t)
+    return out
+
+
+def _call_receiver(s, dot):
+    """Receiver of the call whose '.' is at s[dot]: ('cast', Callee) for `T(x).f(`, ('var', lastIdent) for
+    `a.b[i].f(`, else (None, None)."""
+    j = dot
+    while j > 0 and s[j - 1].isspace():
+        j -= 1
+    if j > 0 and s[j - 1] == ")":
+        depth, k = 0, j - 1
+        while k >= 0:
+            if s[k] == ")":
+                depth += 1
+            elif s[k] == "(":
+                depth -= 1
+                if depth == 0:
+                    break
+            k -= 1
+        cm = re.search(r"([A-Za-z_]\w*)\s*$", s[:k]) if k >= 0 else None
+        return ("cast", cm.group(1)) if cm else (None, None)
+    t, prev = s[:j], None
+    while t != prev:                    # drop index brackets, innermost first: a[b[i]] -> a
+        prev, t = t, re.sub(r"\[[^\[\]]*\]", "", t)
+    vm = re.search(r"([A-Za-z_$][\w$]*)\s*$", t)
+    return ("var", vm.group(1)) if vm else (None, None)
+
+
+def _nft_transfer(text, s, dot, open_paren):
+    """fix#47: True only on CLEAR evidence that the transfer call in line `s` (receiver ends at s[dot], None if no
+    receiver; args open at s[open_paren]) moves an ERC721/1155 token rather than an ERC20."""
+    kind, rname = _call_receiver(s, dot) if dot is not None else (None, None)
+    types = {rname} if kind == "cast" else (_typed_vars(text).get(rname, set()) if kind == "var" else set())
+    if types and all(_NFT_TYPE.match(t) for t in types):
+        return True                     # (1) cast to / (2) declared only as an ERC721/1155 type
+    if any(_ERC20_TYPE.match(t) for t in types):
+        return False                    # explicitly an ERC20 -> a real lead
+    args = _balanced_arg(s, open_paren + 1)
+    parts = _split_top(args) if args is not None else []
+    if len(parts) >= 3 and _NFT_FILE.search(_code_only(text)):
+        t = parts[2]
+        prev = None
+        while t != prev:
+            prev, t = t, re.sub(r"\[[^\[\]]*\]", "", t)
+        ids = re.findall(r"[A-Za-z_$][\w$]*", t)
+        return bool(ids) and bool(_TOKENID_ARG.match(ids[-1]))   # (3) NFT file + tokenId-named 3rd arg
+    return False
+
+
+def _dot_before(s, i):
+    """Index of the '.' just before s[i] (spaces skipped), or None for a bare call."""
+    j = i
+    while j > 0 and s[j - 1].isspace():
+        j -= 1
+    return j - 1 if j > 0 and s[j - 1] == "." else None
+
+
 # ── Detector 9: unchecked ERC20 return (silent transfer failure) ──
 def det_unchecked(text, rel):
     """A bare ERC20 transfer/transferFrom whose bool return is dropped. Non-
@@ -752,6 +854,8 @@ def det_unchecked(text, rel):
             continue
         if "," not in s[m.end():]:
             continue                       # 1 arg => ETH x.transfer(amt) (reverts), skip
+        if _nft_transfer(text, s, m.start(), m.end() - 1):
+            continue                       # fix#47: ERC721/1155 move returns no bool -> not an unchecked ERC20 return
         out.append((rel, i, s[:90],
                     "ERC20 transfer/transferFrom return ignored -> use SafeERC20 "
                     "(USDT/ZRX return false, not revert)", 0))
@@ -1441,7 +1545,11 @@ def det_feeontransfer(text, rel):
         s = line.strip()
         if not s or s.startswith(("//", "*", "/*")):
             continue
-        if PULL_IN.search(s) and "address(this)" in s.replace(" ", ""):
+        if not ("address(this)" in s.replace(" ", "") and PULL_IN.search(s)):
+            continue
+        # fix#47: an ERC721/1155 transferFrom/safeTransferFrom (FWAV2 `ERC721(c).safeTransferFrom(..)`) has no fee
+        # semantics -> fire only if some pull on the line is NOT clearly an NFT move.
+        if any(not _nft_transfer(text, s, _dot_before(s, pm.start()), pm.end() - 1) for pm in PULL_IN.finditer(s)):
             out.append((rel, i, s[:90],
                         "transferFrom pulls to address(this) but the file never measures a balanceOf(this) "
                         "delta -> a fee-on-transfer token over-credits; credit the MEASURED received amount", 1))
