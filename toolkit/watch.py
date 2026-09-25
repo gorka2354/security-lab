@@ -37,7 +37,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_source as fs  # noqa: E402  (RPC map + _rpc)
-import threat as T  # noqa: E402  (last_activity_days + _erc20_balance)
+import threat as T  # noqa: E402  (last_activity_days + _erc20_balance + token_meta + fmt_units)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WATCHLIST = os.path.join(_ROOT, "monitor", "watch-targets.json")  # NB: watchlist.json is the parked-leads store
@@ -45,15 +45,7 @@ STATE = os.path.join(_ROOT, "monitor", "watch-state.json")
 EVENTS = os.path.join(_ROOT, "monitor", "watch-events.json")
 QUEUE = os.path.join(_ROOT, "hunts", "_radar", "QUEUE.md")
 
-# RPCs incl. the exotic chains our fresh GameFi findings live on (X Layer / Robinhood / ApeChain / opBNB) so
-# the monitor covers exactly the targets that matter, not only the mainstream chains fetch_source maps.
-WATCH_RPC = dict(fs.DEFAULT_RPC)
-WATCH_RPC.update({
-    "196": "https://xlayerrpc.okx.com",                  # X Layer (LuXMarket)
-    "4663": "https://rpc.mainnet.chain.robinhood.com",   # Robinhood Chain (HoodBet)
-    "33139": "https://rpc.apechain.com",                 # ApeChain (HEAD2HEAD / monke.bet)
-    "204": "https://opbnb-mainnet-rpc.bnbchain.org",     # opBNB (ClawKing)
-})
+WATCH_RPC = fs.DEFAULT_RPC  # one RPC map for the whole toolkit (the exotic GameFi chains live there too)
 _DRAIN = 0.5   # value drop >= this fraction -> DRAINED
 _GROW = 2.0    # value rise >= this multiple -> GREW
 _HIGH = {"FUNDED", "DRAINED", "CODE-CHANGE"}
@@ -75,29 +67,6 @@ def _save(path, obj):
         json.dump(obj, f, indent=1)
 
 
-def _token_meta(token, chain, rpc, call):
-    """(decimals, symbol) of an ERC20 via eth_call -> human-readable value formatting. Best-effort -> (None,None)."""
-    dec = sym = None
-    try:
-        r = call(rpc, "eth_call", [{"to": token, "data": "0x313ce567"}, "latest"])  # decimals()
-        if r and r != "0x":
-            dec = int(r, 16)
-    except Exception:
-        pass
-    try:
-        r = call(rpc, "eth_call", [{"to": token, "data": "0x95d89b41"}, "latest"])  # symbol()
-        if r and len(r) > 2:
-            h = r[2:]
-            if len(h) >= 128:  # dynamic string: offset(32) + length(32) + data
-                ln = int(h[64:128], 16)
-                sym = bytes.fromhex(h[128:128 + ln * 2]).decode("utf-8", "ignore").strip("\x00�").strip()
-            if not sym:  # bytes32 fallback (older tokens)
-                sym = bytes.fromhex(h[:64]).decode("utf-8", "ignore").strip("\x00�").strip()
-    except Exception:
-        pass
-    return dec, (sym or None)
-
-
 def snapshot(entry, now_iso, _rpc=None):
     """On-chain state of one watchlist target -> a comparable snapshot dict. Network; _rpc injectable for tests.
     entry = {key, chain, addr, token?}. value = tracked-token balance if `token` given, else native balance."""
@@ -106,7 +75,8 @@ def snapshot(entry, now_iso, _rpc=None):
     call = _rpc or fs._rpc
     code = call(rpc, "eth_getCode", [addr, "latest"]) or "0x"
     code_hash = hashlib.sha256(code.encode()).hexdigest()[:16]
-    native = int(call(rpc, "eth_getBalance", [addr, "latest"]) or "0x0", 16)
+    braw = call(rpc, "eth_getBalance", [addr, "latest"])
+    native = int(braw, 16) if braw else None  # None = the RPC gave no answer -> unknown, NOT a 0 (false DRAINED)
     token = entry.get("token")
     tval = tdec = tsym = None
     if token:
@@ -114,7 +84,7 @@ def snapshot(entry, now_iso, _rpc=None):
             tval = T._erc20_balance(addr, token, chain, rpc)
         except Exception:
             tval = None
-        tdec, tsym = _token_meta(token, chain, rpc, call)
+        tdec, tsym = T.token_meta(token, rpc, call)
     value = tval if token else native
     try:
         last_days = T.last_activity_days(addr, chain) if chain.isdigit() else None
@@ -122,7 +92,7 @@ def snapshot(entry, now_iso, _rpc=None):
         last_days = None
     return {"ts": now_iso, "code_hash": code_hash, "native": native, "token_val": tval,
             "token_dec": tdec, "token_sym": tsym,
-            "value": int(value or 0), "has_code": len(code) > 4, "last_days": last_days}
+            "value": None if value is None else int(value), "has_code": len(code) > 4, "last_days": last_days}
 
 
 def _fmtv(v, snap):
@@ -130,9 +100,7 @@ def _fmtv(v, snap):
     v = int(v or 0)
     dec, sym = snap.get("token_dec"), snap.get("token_sym")
     if dec is not None:
-        n = v / (10 ** dec)
-        s = ("%.2f" % n) if (n >= 1000 or dec <= 2) else ("%.4f" % n).rstrip("0").rstrip(".")
-        return "%s %s" % (s, sym or "tokens")
+        return "%s %s" % (T.fmt_units(v, dec), sym or "tokens")
     if sym or snap.get("token_val") is not None:
         return "%d %s" % (v, sym or "units")
     return "%s ETH" % (("%.4f" % (v / 1e18)).rstrip("0").rstrip("."))
@@ -148,8 +116,10 @@ def classify(prev, cur):
         ev.append({"type": "CODE-CHANGE", "sev": "HIGH",
                    "detail": "eth_getCode hash %s -> %s (redeploy / proxy-impl swap -> re-review)"
                              % (prev["code_hash"], cur["code_hash"])})
-    pv, cv = int(prev.get("value") or 0), int(cur.get("value") or 0)
-    if pv == 0 and cv > 0:
+    pv, cv = prev.get("value"), cur.get("value")
+    if pv is None or cv is None:  # a value this cycle (or the baseline) was unread -> no value event, no guess
+        pass
+    elif pv == 0 and cv > 0:
         ev.append({"type": "FUNDED", "sev": "HIGH",
                    "detail": "value 0 -> %s (a dormant finding may have gone LIVE -> reassess + disclose)" % _fmtv(cv, cur)})
     elif pv > 0 and cv <= pv * _DRAIN:
@@ -212,9 +182,14 @@ def run(notify=False, now_iso="", prio_only=False, _snap=snapshot):
         except Exception as ex:
             print("  [%s] snapshot failed: %s" % (key, str(ex)[:80]))
             continue
-        for ev in classify(state.get(key), cur):
+        prev = state.get(key)
+        for ev in classify(prev, cur):
             ev.update({"key": key, "chain": str(e["chain"]), "addr": e["addr"], "ts": now_iso})
             all_events.append(ev)
+        if prev:  # an unread field keeps the last good baseline, else the next good read diffs against nothing
+            for f in ("value", "last_days"):
+                if cur.get(f) is None and prev.get(f) is not None:
+                    cur = dict(cur, **{f: prev[f], f + "_unread": True})
         new_state[key] = cur
     _save(STATE, new_state)
     if all_events:

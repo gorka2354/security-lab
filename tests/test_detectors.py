@@ -1479,8 +1479,188 @@ finally:
 _net = [f for f in glob.glob(os.path.join(os.path.dirname(__file__), "..", "toolkit", "*.py"))
         if not f.endswith("tlsfix.py") and "urlopen" in open(f, encoding="utf-8").read()]
 _missing = [os.path.basename(f) for f in _net if "import tlsfix" not in open(f, encoding="utf-8").read()]
-check(len(_net) >= 17 and not _missing,
+check(len(_net) >= 15 and not _missing,
       f"every toolkit module that calls urlopen imports tlsfix ({len(_net)} modules; missing: {_missing})")
+
+print("== explorer + threat: an explorer that can't answer is UNKNOWN (why) -- never a silent EMPTY / 0 / ABANDONED ==")
+import explorer  # noqa: E402
+import fetch_source  # noqa: E402
+import threat  # noqa: E402
+
+_FREE = {"status": "0", "message": "NOTOK", "result": "Free API access is not supported for this chain. Please "
+         "upgrade your api plan for full chain coverage. https://etherscan.io/apis"}
+check(explorer.parse(_FREE) == (None, "Free API access is not supported for this chain"),
+      "explorer.parse: a free-tier refusal is an ERROR in Etherscan's own words")
+check(explorer.parse({"status": "0", "message": "No transactions found", "result": []}) == ([], None),
+      "explorer.parse: an empty history is an ANSWER (rows=[]), not an error")
+check(explorer.parse({"status": "1", "message": "OK", "result": [{"a": 1}]}) == ([{"a": 1}], None),
+      "explorer.parse: rows pass through")
+check(explorer.parse({"status": "0", "message": "Invalid address format", "result": None})[1] == "Invalid address format"
+      and explorer.parse("<html>")[0] is None, "explorer.parse: Blockscout message / non-object reply -> error")
+check(explorer.row_ts({"timeStamp": "1790000000"}) == 1790000000 and explorer.row_ts({"timeStamp": "junk"}) == 0
+      and explorer.row_ts(None) == 0, "explorer.row_ts: malformed rows read as 0, never raise")
+check(set(explorer.BLOCKSCOUT) <= set(fetch_source.DEFAULT_RPC),
+      "every Blockscout fallback chain has our own RPC (its freshness check reads block timestamps from it)")
+
+_OKROWS = {"status": "1", "message": "OK", "result": [{"timeStamp": "1790000000"}]}
+_calls, _slept = [], []
+
+
+def _get_op(url):
+    _calls.append(url)
+    if "api.etherscan.io" in url:
+        return _FREE
+    if "eth_block_number" in url:
+        return {"jsonrpc": "2.0", "result": "0x64", "id": 1}
+    return _OKROWS
+
+
+def _rpc_current(rpc, method, params):
+    if params[0] == "latest":
+        return {"number": "0x65", "timestamp": hex(1790000100)}
+    return {"number": params[0], "timestamp": hex(1790000090)}
+
+
+def _rpc_stale(rpc, method, params):
+    if params[0] == "latest":
+        return {"number": "0x10000", "timestamp": hex(1790000000)}
+    return {"number": params[0], "timestamp": hex(1790000000 - 6 * 3600)}
+
+
+_Q = {"module": "account", "action": "txlist", "address": "0xabc"}
+explorer.reset()
+_r = explorer.query("10", _Q, key="test-key-not-real", get=_get_op, rpc_call=_rpc_current, sleep=_slept.append)
+check(_r == (_OKROWS["result"], "blockscout", None),
+      "OP: Etherscan free-tier refusal -> falls back to a CURRENT Blockscout index")
+check(not any("apikey" in u or "test-key-not-real" in u for u in _calls if "blockscout" in u),
+      "the Etherscan key never travels to the fallback explorer")
+_n = len(_calls)
+check(explorer.query("10", _Q, key="test-key-not-real", get=_get_op, rpc_call=_rpc_current)[0] == _OKROWS["result"]
+      and len(_calls) == _n, "an answered query is memoised per process (threat + activity share one call)")
+
+explorer.reset()
+_r = explorer.query("10", _Q, key="test-key-not-real", get=_get_op, rpc_call=_rpc_stale, sleep=_slept.append)
+check(_r[0] is None and "6.0h behind" in _r[2] and "Free API access" in _r[2],
+      "a LAGGING Blockscout index is refused (it would fake DORMANT) and the reason names both backends")
+
+explorer.reset()
+_r = explorer.query("56", _Q, key="test-key-not-real", get=_get_op)
+check(_r[0] is None and "Free API access is not supported" in _r[2] and "no keyless explorer fallback for chain 56" in _r[2],
+      "BSC: refused + no fallback -> UNKNOWN with the reason (was a silent None -> 'no Etherscan key?')")
+
+
+def _get_boom(url):
+    raise ValueError("bad reply from " + url)
+
+
+explorer.reset()
+_r = explorer.query("56", _Q, key="test-key-not-real", get=_get_boom)
+check(_r[0] is None and "test-key" not in _r[2],
+      "an exception quoting the request URL never leaks the API key (not even a truncated prefix) into the reason")
+_w = explorer._why(ValueError("GET v2/api?chainid=1&apikey=test-key-not-real&page=1"))
+check("apikey=***" in _w and "test-key" not in _w, "explorer._why redacts apikey= BEFORE truncating")
+
+_seq = []
+
+
+def _get_429_once(url):
+    _seq.append(url)
+    if len(_seq) == 1:
+        raise _http_err(429)
+    return _OKROWS
+
+
+explorer.reset()
+_slept.clear()
+_r = explorer.query("1", _Q, key="test-key-not-real", get=_get_429_once, sleep=_slept.append)
+check(_r[0] == _OKROWS["result"] and len(_seq) == 2 and len(_slept) == 1,
+      "a rate-limited call (HTTP 429) is retried after a short backoff, not reported as 'unknown'")
+
+def _get_throttled(url):
+    raise _http_err(429)
+
+
+explorer.reset()
+explorer.blockscout_fresh("10", get=_get_throttled, rpc_call=_rpc_current, sleep=_slept.append)
+check("10" not in explorer._fresh, "a failed freshness CHECK (throttled) is not cached -- it can't blind the whole run")
+check(explorer.blockscout_fresh("10", get=_get_op, rpc_call=_rpc_current) == (True, None) and "10" in explorer._fresh,
+      "a successful freshness verdict is cached")
+explorer.reset()
+
+_me = "0x" + "aa" * 20
+_ROWS = [
+    {"contractAddress": "0xT1", "tokenSymbol": "wCC", "tokenDecimal": "18", "from": "0xu1", "to": _me, "timeStamp": "1790000000"},
+    {"contractAddress": "0xT1", "tokenSymbol": "wCC", "tokenDecimal": "18", "from": _me, "to": "0xu2", "timeStamp": "1789990000"},
+    {"contractAddress": "0xSPAM", "tokenSymbol": "optibase.website", "tokenDecimal": "", "from": _me, "to": "0xv",
+     "timeStamp": "1790080000"},
+    {"contractAddress": "0xT2", "tokenSymbol": "USDC", "tokenDecimal": "6", "from": "0xu1", "to": _me, "timeStamp": "1789000000"},
+    {"contractAddress": "0xT2", "tokenSymbol": "USDC", "tokenDecimal": "6", "from": "0xu3", "to": _me, "timeStamp": "1788000000"},
+    {"contractAddress": "0xT3", "tokenSymbol": "LONE", "tokenDecimal": "18", "from": "0xu9", "to": _me, "timeStamp": "1790090000"},
+]
+check(explorer.tokens_moved(_ROWS, _me) == [("0xt1", "wCC", 18, True, 1), ("0xspam", "optibase.website", None, True, 0),
+                                           ("0xt2", "USDC", 6, False, 2), ("0xt3", "LONE", 18, False, 1)],
+      "explorer.tokens_moved: distinct tokens newest-first with sent / distinct-sender flags; unknown decimals -> None")
+
+check(threat.fmt_units(32350000, 6) == "32.35", "6-dec USDC renders in token units (the old /1e18 printed 0.0000)")
+check(threat.fmt_units(1, 18) == "<0.000001" and threat.fmt_units(0, 6) == "0",
+      "a dust balance never prints as 0; a real 0 does")
+check(threat.fmt_units(None, 6) == "unknown" and threat.fmt_units(5, None) == "5 raw"
+      and threat.fmt_units(1509760 * 10 ** 15, 18) == "1509.76", "unknown balance / unknown decimals are said, not guessed")
+check(threat.spam_shaped("optibase.website \U0001f7e2") and threat.spam_shaped("Visit claim-x.com")
+      and not threat.spam_shaped("USDC.e") and not threat.spam_shaped("wsNET") and not threat.spam_shaped(None),
+      "spam_shaped: URL / claim / emoji symbols are the airdrop-spam shape; USDC.e / wsNET are not")
+check(threat.real_flow(_ROWS, _me) == {"0xt1", "0xt2"},
+      "real_flow: sent-out or >=2 senders counts; a spam symbol (even with a forged 'sent') and a lone deposit don't")
+check(abs(threat.last_flow_days(_ROWS, _me, now=1790000000 + 86400) - 1.0) < 1e-9,
+      "last_flow_days dates the newest REAL-flow transfer (the spam/lone rows are newer and ignored)")
+
+_lvl = lambda *a, **k: threat.assess(*a, **k)[0]  # noqa: E731
+check(_lvl(True, None, 0, [], 0, 3.0, scan_gap="held ERC20s not enumerable (etherscan: Free API ...)")
+      == "NO VALUE SEEN (INCOMPLETE SCAN)", "no enumerable holdings (BSC/Base) -> NOT EMPTY (the ea-finance false EMPTY)")
+check(_lvl(True, None, 0, [], 0, 3.0) == "EMPTY / PRE-LAUNCH", "a complete scan that finds nothing -> EMPTY")
+check(_lvl(True, None, 0, [("0xtok", None)], 0, 3.0) == "NO VALUE SEEN (INCOMPLETE SCAN)",
+      "an explicit --token whose balance read failed is unknown, not 0")
+check(_lvl(True, None, 0, [("0xtok", 32350000)], 0, 3.0) == "LIVE + ACTIVE + FUNDED", "a 6-dec token balance is value")
+_lu = threat.assess(True, None, 10 ** 18, [], None, None, recency_why="etherscan: Free API access is not supported")
+check(_lu[0] == "UNKNOWN-RECENCY" and "Free API access" in _lu[1] and "no Etherscan key" not in _lu[1],
+      "unknown recency names the explorer's reason (was '(no Etherscan key?)' even with the key set)")
+
+_rb, _tm = threat._erc20_balance, threat.token_meta
+threat._erc20_balance = lambda a, t, c, r: {"0xt1": 1509 * 10 ** 18, "0xspam": 10 ** 20, "0xt2": 0}.get(t)
+threat.token_meta = lambda t, r, call=None: (18, "X")
+try:
+    _held, _gap = threat.discover_holdings(_me, "56", None, _ROWS)
+    check([(h[0], h[4]) for h in _held] == [("wCC", True), ("optibase.website", False)] and _gap == "balanceOf unanswered for LONE",
+          "discover_holdings: non-zero balances only; spam printed but not counted; an unread balance is a gap")
+    check(threat.discover_holdings(_me, "56", None, None, "etherscan: Free API access")
+          == ([], "held ERC20s not enumerable (etherscan: Free API access)"), "no transfer rows -> a gap WITH the reason")
+finally:
+    threat._erc20_balance, threat.token_meta = _rb, _tm
+
+_q = explorer.query
+_now = int(time.time())
+_flow = [{"contractAddress": "0xT1", "tokenSymbol": "wCC", "tokenDecimal": "18", "from": _me, "to": "0xu2",
+          "timeStamp": str(_now - 86400)}]
+explorer.query = lambda chain, params, **k: (([{"timeStamp": str(_now - 232 * 86400)}], "etherscan", None)
+                                             if params["action"] == "txlist" else (_flow, "etherscan", None))
+try:
+    _d, _src, _w = threat.last_activity(_me, "143")
+    check(_d is not None and abs(_d - 1.0) < 0.01 and _src == "etherscan token transfers",
+          "last_activity: a newer real-flow token transfer dates an internal-only contract (Levr: 'ABANDONED 232d' "
+          "on txlist while its USDC moved)")
+    _now = int(time.time())
+    explorer.query = lambda chain, params, **k: (([{"timeStamp": str(_now - 86400)}, {"timeStamp": str(_now - 40 * 86400)},
+                                                   {"timeStamp": "junk"}], "etherscan", None))
+    check(activity.etherscan_txcount("0xabc", "1", now=_now) == 1,
+          "etherscan_txcount counts only txns inside the 30-day window (a long-idle contract is not 'ACTIVE')")
+    explorer.query = lambda chain, params, **k: (None, None, "etherscan: Free API access is not supported")
+    check(activity.etherscan_txcount("0xabc", "56") is None, "no explorer answer -> None (unknown), never 0")
+finally:
+    explorer.query = _q
+    explorer.reset()
+
+_dead = [a for a, cid in activity.CHAIN_ALIAS.items() if cid not in fetch_source.DEFAULT_RPC]
+check(not _dead, f"every chain alias resolves to a chain with an RPC (dead ends: {_dead})")
 
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

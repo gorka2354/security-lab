@@ -34,7 +34,9 @@ Every real hack becomes a detector + a golden test; every false positive becomes
     recover the surface from bytecode; EraVM-aware), `forkdrift.py` (audited-fork drift), `activity.py`
     (LIVE-FIRST Gate-0), `threat.py` (POST-FINDING threat assessment: deployed + ACTIVE-by-last-tx-recency
     + value-bearing, or dormant/abandoned? → a threat level that grounds severity + disclosure urgency;
-    adds the recency signal activity.py's count-based gate lacked).
+    recency = newest of normal tx and real-flow token transfer; held ERC20s discovered via tokentx),
+    `explorer.py` (the one port for txlist/tokentx: Etherscan-v2 → a freshness-checked keyless Blockscout;
+    the free tier refuses Base/BSC/OP, so a miss prints UNKNOWN + the reason -- never a silent EMPTY/0).
   - **DETECT:** `recon.py` (the static detectors), `ityfuzz_lane.py` (dynamic fork-fuzz),
     `decompile_match.py` (share-inflation math from decompiled bytecode), `hypothesize.py`
     (invariant seeds), `secrets_sweep.py`, `scaffold.py` (Foundry/Echidna/Medusa/Halmos).
