@@ -31,6 +31,10 @@ CHAINS = {  # token in free text -> canonical chain tag
     "zksync": "zksync", "katana": "katana", "sei": "sei", "hyperevm": "hyperevm", "hyperliquid": "hyperliquid",
     "blast": "blast", "scroll": "scroll", "avalanche": "avax", "fantom": "fantom", "fraxtal": "fraxtal",
     "bitcoin": "btc", "plasma": "plasma", "pharos": "pharos", "rise": "rise", "stellar": "stellar",
+    # the exotic chains our fresh GameFi findings live on (untagged before -> `--chain robinhood` found nothing)
+    "robinhood": "robinhood", "apechain": "apechain", "opbnb": "opbnb", "xlayer": "xlayer", "amoy": "amoy",
+    "monadtestnet": "monad-testnet", "gnosis": "gnosis", "citrea": "citrea", "kaia": "kaia", "flare": "flare",
+    "megaeth": "megaeth",
 }
 ZONES = ["lending", "lend", "borrow", "dex", "amm", "perp", "perps", "derivatives", "bridge", "crosschain",
          "vault", "rwa", "yield", "stablecoin", "stable", "cdp", "restaking", "staking", "stake", "oracle",
@@ -82,14 +86,45 @@ def _hits(text, vocab):
 
 
 # chain tokens that are common English words -> only trust them from a structured chain column, not prose
-AMBIGUOUS_CHAIN_WORDS = {"base", "op", "rise", "sonic"}
+AMBIGUOUS_CHAIN_WORDS = {"base", "op", "rise", "sonic", "flare"}
+# rewritten before the word match: multi-word chain names, and prose where eth / mainnet / arb / gnosis is NOT
+# the chain -- an amount of ETH, a launch stage, another chain's mainnet, arbitrage, a Gnosis product. They
+# tagged Monad / Amoy / Robinhood findings eth / arb (wager-chess "worth of ETH", pulso "PRE-MAINNET" + "no-arb",
+# hoodbet "Arbitrum-Orbit", narbet "Monad mainnet").
+_OTHER_MAINNETS = ("monad|megaeth|robinhood|apechain|abstract|base|sonic|linea|mantle|polygon|arbitrum|optimism|"
+                   "katana|plasma|pharos|citrea|kaia|gnosis|opbnb|x ?layer|blast|scroll|sei|hyperevm")
+CHAIN_PHRASES = [
+    (r"\barbitrum[- ]orbit\b", "orbitstack"),      # an Orbit L2 (Robinhood Chain) is not Arbitrum One
+    (r"\bmonad[- ]testnet\b", "monadtestnet"),
+    (r"\bx[- ]layer\b", "xlayer"),
+    (r"\bpolygon[- ]amoy\b", "amoy"),
+    (r"\b(" + _OTHER_MAINNETS + r")[- ]mainnet\b", r"\1"),
+    (r"\bpre[- ]mainnet\b|\b(?:for|to|before|until|awaiting)\s+mainnet\b", "prelaunch"),
+    (r"\b\d[\d,.]*\s*[kmb]?\s*eth\b|\b(?:worth of|dust-only|native|in)\s+eth\b", "ethamount"),
+    (r"\bno[- ]arb\b|\barb[- ]capital\b", "arbitrage"),
+    (r"\bgnosis[- ](?:safe|ctf|conditional)\b", "gnosisproduct"),
+]
+# an explicit chain id in prose ("Robinhood Chain 4663", "chainid 143", "--chain 33139") -- same ids as
+# activity.CHAIN_ALIAS (a golden test keeps them in step); a bare "chain N" needs >= 3 digits ("chain 1" is prose)
+CHAIN_IDS = {"1": "eth", "10": "op", "56": "bsc", "100": "gnosis", "137": "polygon", "143": "monad",
+             "146": "sonic", "196": "xlayer", "204": "opbnb", "999": "hyperevm", "2741": "abstract",
+             "4114": "citrea", "4663": "robinhood", "5000": "mantle", "8217": "kaia", "8453": "base",
+             "10143": "monad-testnet", "33139": "apechain", "42161": "arb", "59144": "linea", "80002": "amoy"}
+_CHAIN_ID_RE = re.compile(r"\bchain([ _-]?id)?\s*[:=]?\s*(\d{1,7})\b")
 
 
 def extract_chains(text, structured=False):
-    toks = _hits(text, list(CHAINS))
+    t = (text or "").lower()
+    for pat, repl in CHAIN_PHRASES:
+        t = re.sub(pat, repl, t)
+    toks = _hits(t, list(CHAINS))
     if not structured:
         toks = [w for w in toks if w not in AMBIGUOUS_CHAIN_WORDS]
-    return sorted({CHAINS[w] for w in toks if w in CHAINS})
+    tags = {CHAINS[w] for w in toks if w in CHAINS}
+    for m in _CHAIN_ID_RE.finditer(t):
+        if m.group(2) in CHAIN_IDS and (m.group(1) or len(m.group(2)) >= 3):
+            tags.add(CHAIN_IDS[m.group(2)])
+    return sorted(tags)
 
 
 def extract_zones(text):

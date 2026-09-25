@@ -50,6 +50,32 @@ eq(R.extract_chains("native money market of Fluent L2"), ["fluent"], "fluent pic
 eq(R.extract_chains("on ethereum mainnet"), ["eth"], "ethereum -> eth")
 eq(R.extract_chains("a codebase note"), [], "'codebase' does not match 'base'")
 
+print("== registry.extract_chains: the exotic chains + prose where eth/mainnet/arb is NOT the chain ==")
+eq(R.extract_chains("HoodRngBlockhash on Robinhood Chain; on Arbitrum-Orbit L2s prevrandao is hardcoded"), ["robinhood"],
+   "an Arbitrum-Orbit L2 is Robinhood, not Arbitrum One (hoodbet was tagged arb)")
+eq(R.extract_chains("PRE-MAINNET (Amoy 80002, $0 now); invariant suite blind (no-arb not accounting)"), ["amoy"],
+   "a launch stage + arbitrage are not chains (pulso was tagged arb,eth)")
+eq(R.extract_chains("fee deducted twice and totalFeesCollected worth of ETH is STRANDED"), [],
+   "ETH the currency is not Ethereum (wager-chess on Monad testnet was tagged eth)")
+eq(R.extract_chains("backend relayer (fixed 0.001 ETH); proxy holds 20.79 ETH on Abstract"), ["abstract"],
+   "an amount of ETH is the currency")
+eq(R.extract_chains("NarBet, Monad mainnet chain 143"), ["monad"], "another chain's mainnet is not Ethereum")
+eq(R.extract_chains("deployed only on Monad testnet 10143"), ["monad-testnet"], "Monad testnet is its own tag")
+eq(R.extract_chains("3-of-5 Gnosis Safe; resolved via the Gnosis CTF adapter"), [], "Gnosis products are not Gnosis chain")
+eq(R.extract_chains("RealT RMM on Gnosis"), ["gnosis"], "Gnosis chain")
+eq(R.extract_chains("HeadToHead on ApeChain; opBNB proxy; LuXMarket on X Layer"), ["apechain", "opbnb", "xlayer"],
+   "ApeChain / opBNB / X Layer recognised")
+eq(R.extract_chains("threat.py 0x88C1 --chain 33139; Etherscan-v2 chainid 56"), ["apechain", "bsc"],
+   "explicit chain ids resolve (--chain N, chainid N)")
+eq(R.extract_chains("a cross-chain 1 tx replay"), [], "a bare small 'chain N' in prose is not an id")
+eq(R.extract_chains("LIVE+FUNDED ~83k tGBP backing, ETH/1; factory live eth+arb; ~$6M TVL on mainnet"), ["arb", "eth"],
+   "ETH / arb / mainnet as chain names still tag (no regression on real Ethereum/Arbitrum targets)")
+
+import activity  # noqa: E402
+
+check(all(activity.CHAIN_ALIAS.get(tag) == cid for cid, tag in R.CHAIN_IDS.items()),
+      "registry.CHAIN_IDS agrees with activity.CHAIN_ALIAS (one id per chain tag across the toolkit)")
+
 print("== registry.extract_zones (DeFiLlama-style, canonicalised) ==")
 check("lending" in R.extract_zones("isolated lending market"), "lending")
 z = R.extract_zones("perp dex on arbitrum")
