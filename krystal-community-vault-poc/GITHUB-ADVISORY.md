@@ -63,8 +63,8 @@ entry point). Belt-and-suspenders: have `InventoryLib.removeAsset` require
 
 **Can a third party drain existing vaults right now? No.** `harvest()` is `onlyAuthorized`
 (`vaultOwner || admins[] || whitelisted-automator`), so only a vault's own authorized parties can call
-it — a random attacker cannot touch a vault they did not create. The existing funded vault
-(`0xe646a4487a49fb8e2545af788a3228a88cc2fcf0`, ~$1.4K) is **not** exposed to an external attacker.
+it — a random attacker cannot touch a vault they did not create. Funded vaults owned by someone else
+are **not** exposed to an external attacker.
 
 **The realistic exploit is a malicious vault operator (a rug backdoor).** The security guarantee a
 Community Vault gives its depositors is that the operator is *constrained to whitelisted strategies* and
@@ -74,10 +74,12 @@ against a self-deployed "strategy" to take everything, bypassing shares/fees/`mi
 exploit therefore requires the attacker to (a) be the `vaultOwner` (permissionless, $0) and (b) get
 victims to deposit into their vault first.
 
-**Current real-world exposure: low.** A live-state check (2026-08) shows the Community Vault product is
-**dormant** — the factory's last activity was ~3 months ago (Ethereum ~96d, Arbitrum ~81d; no funded
-instances on Base/BSC), and the one funded vault (~$1.4K) has been idle ~127 days. So no live theft is in
-progress and no third-party-drainable funds sit exposed today. **But the flaw is systemic** (every clone,
-all 6 chains) and becomes High-impact the moment the product is revived, a larger vault is funded, or a
-bad actor lures fresh deposits into a new vault. Worth fixing before any relaunch / new deposits — the
+**Current real-world exposure: low but non-zero.** A read-only live-state check (2026-09-25):
+`VaultFactory.vaultImplementation()` is still `0x964b88db9c467c34e8d5d2b1b833e8e6ae46198a` on Ethereum, Arbitrum, BSC, Base and Polygon;
+the factories hold 226 vaults (BSC 147, Arbitrum 26, Ethereum 24, Polygon 24, Base 5). Public
+(`allowDeposit = true`) vaults currently hold roughly **$2.6K of third-party deposits** -- e.g. Polygon
+`0xb3f297ee9fe4002a777c8dc7081d922d343e122e` (~$1.19K USDC, 0% owner-held) and BSC
+`0xaaccac497002635add58f8419f737089a4703669` (~$1.29K USDT, 0% owner-held) -- which their owners could take
+via this path. No malicious `harvest()` use was observed. **The flaw is systemic** (every clone, every
+chain) and scales with any growth in deposits or a bad actor luring fresh deposits into a new vault. Worth fixing before any relaunch / new deposits — the
 one-line `isWhitelistedStrategy` check restores the guarantee depositors rely on.
