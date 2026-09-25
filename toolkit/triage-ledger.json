@@ -821,9 +821,9 @@
       "line": 159,
       "detector": "oracle",
       "snippet": "",
-      "verdict": "real",
-      "reason": "CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle 0xfba2712d3bbcf32c6e0178a21955b61fe1ff424a = ChainlinkPriceOracle (verified); its LIVE getUnderlyingPrice has updatedAt+answeredInRound COMMENTED OUT -> no staleness check (price>0 present). cTokens have non-zero totalSupply (active markets, real value). Custom push oracle CapyfiAggregatorV3 (UXD/LAC). SEVERITY Low-Med, CONDITIONAL (heartbeat lapse / operator negligence, not attacker-triggerable). CAVEAT: missing-staleness is a common Compound-fork finding -> CHECK known-issues/out-of-scope before submit. Write-up: hunts/capyfi/FINDING-oracle-staleness.md. the researcher discloses.",
-      "date": "2026-06-30"
+      "verdict": "known",
+      "reason": "recheck 2026-09-26: KNOWN: Immunefi known-issues CAPY-02 (Coinspect Risk None/Ack; OZ Ack) -> not eligible. Was: CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle 0xfba2712d3bbcf32c6e0178a21955b61fe1ff424a = ChainlinkPriceOracle (verified); its LIVE getUnderlyingPrice has updatedAt+answeredInRound COMMENTED OUT -> no staleness check (price>0 present). cTokens have non-zero totalSupply (active markets, real value). Custom push oracle CapyfiAggregatorV3 (UXD/LAC). SEVERITY Low-Med, CONDITIONAL (heartbeat lapse / operator negligence, not attacker-triggerable). CAVEAT: missing-staleness is a common Compound-fork finding -> CHECK known-issues/out-of-scope before submit. Write-up: hunts/capyfi/FINDING-oracle-staleness.md. the researcher discloses.",
+      "date": "2026-09-26"
     },
     {
       "sig": "centrifuge|(labcore)|manual|",
@@ -1321,6 +1321,17 @@
       "date": "2026-08-22"
     },
     {
+      "sig": "fake-world-assets-v2|(hunt-wave-14)|manual|",
+      "target": "fake-world-assets-v2",
+      "file": "(hunt-wave-14)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "CLEAN (wave 14): FWAV2 0x958C...6A98 (Ethereum, 722 ETH) = Chainlink VRF v2.5 + strict FIFO sequencer; the revealed word cannot steer the pool (post-reveal lock proven on a fork), no re-roll / out-of-order processing, each listing's backing paid once. DefiLlama address = the FWA token (decoy). Not read: clone impl 0xeaa4d032, FWAVRFService, floor-oracle internals. No bounty.",
+      "date": "2026-09-26"
+    },
+    {
       "sig": "flex|src/trove_manager.vy:1402|signature|",
       "target": "flex",
       "file": "src/trove_manager.vy:1402",
@@ -1382,9 +1393,9 @@
       "line": 100,
       "detector": "signature",
       "snippet": "",
-      "verdict": "todo",
-      "reason": "PoC-PROVEN + GATE CONFIRMED on-chain: encodePacked(player,ids,amts,nonce) collision; _exportItemsFromGame has no len-equality check. Decoded real export txs (sel 0x59b43fc6): tx 0x842f79 = LEN-5 batch [4,21,76,83,7],[72,19,18,3,33] -> signer signs len>=2 -> exploitable. HONEST severity Medium: attacker only re-shuffles SIGNED words (concentrate largest word onto a chosen item, e.g. 72 of #21 vs 19); bounded by batch word magnitudes (700/2000 seen in single exports). Tradeable items (OpenSea). NO bounty (no Immunefi/SECURITY.md) -> goodwill disclosure. gigaverse-poc/ 3/3. Detector debt: det_signature misses encodePacked-adjacent-arrays + isValidSignatureNow.",
-      "date": "2026-06-15"
+      "verdict": "real",
+      "reason": "recheck 2026-09-26: REAL, still vulnerable (not upgraded), dormant path; letter ready. Was todo: PoC-PROVEN + GATE CONFIRMED on-chain: encodePacked(player,ids,amts,nonce) collision; _exportItemsFromGame has no len-equality check. Decoded real export txs (sel 0x59b43fc6): tx 0x842f79 = LEN-5 batch [4,21,76,83,7],[72,19,18,3,33] -> signer signs len>=2 -> exploitable. HONEST severity Medium: attacker only re-shuffles SIGNED words (concentrate largest word onto a chosen item, e.g. 72 of #21 vs 19); bounded by batch word magnitudes (700/2000 seen in single exports). Tradeable items (OpenSea). NO bounty (no Immunefi/SECURITY.md) -> goodwill disclosure. gigaverse-poc/ 3/3. Detector debt: det_signature misses encodePacked-adjacent-arrays + isValidSignatureNow.",
+      "date": "2026-09-26"
     },
     {
       "sig": "gigaverse-PetRacingSystem-0x0BA76CFC|src/gigaverse/petRacing/PetRacingSystem.sol|gamefi-rng-outcome|",
@@ -1629,6 +1640,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "levr-bet|(hunt-wave-14)|manual|",
+      "target": "levr-bet",
+      "file": "(hunt-wave-14)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "DIG / PARKED (wave 14): Monad mainnet chain 143, LevrMvpDepository 0x141B1d9Ebd2E21749d6425CaeBaCc9704aAb9583 holds 1.9M USDC; 19 contracts, none verified, no public repo, frontend behind AWS WAF. Next: heimdall decompile (Market 0x51fe22aa, Config 0xcdb28317, LevrMarketFeed 0xd42a276d). Seeds: bankroll solvency vs 5x wins, odds-feed staleness, settlement/void double-claim, userNonce replay, config immediacy.",
+      "date": "2026-09-26"
+    },
+    {
       "sig": "liquihood|src/LendingPool.sol|manual|",
       "target": "liquihood",
       "file": "src/LendingPool.sol",
@@ -1671,6 +1693,17 @@
       "verdict": "wontfix",
       "reason": "no bytecode at given address on chain 1 (Ethereum) -- wrong chain/stale address. Real LISTA token found on BSC (chain 56) but it is the gov ERC20 token, not the RWA core contract DefiLlama tracks -- needs manual re-resolution of the actual RWA vault address before any further triage.",
       "date": "2026-08-15"
+    },
+    {
+      "sig": "longbow|(hunt-wave-14)|manual|",
+      "target": "longbow",
+      "file": "(hunt-wave-14)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "CLEAN (wave 14): Robinhood Chain 4663, stock Morpho Blue + Vault V2 (unmodified); drift = oracle layer only (UniV2/UniV3 TWAP, fail-closed spot, backing-floor clamp; Chainlink-style RH stock feeds). Residual by design: divergence guard pauses liquidations in a fast NET dump; no staleness check vs market hours. Best DIG if revisited: InverseBond vs RFV backingPerToken.",
+      "date": "2026-09-26"
     },
     {
       "sig": "loreum-chamber|contracts/src/Chamber.sol|supply|delegate/transfer voting-weight double-count",
@@ -1778,9 +1811,9 @@
       "line": 223,
       "detector": "manual",
       "snippet": "",
-      "verdict": "real",
-      "reason": "LOW / admin-gated defense-in-depth (code-confirmed, LIVE+FUNDED ~83k tGBP backing, ETH/1, MaseerOne 0x57C3571f). redeem() (MaseerOne.sol:212-252) checks the RAW oracle price (_unit==0 revert, line 220) but NOT the post-spread value: line 223 _unit=_burncost(_unit); _adjustBurnPrice=price*(10000-bpsout)/10000 => EXACTLY 0 when bpsout=10000 (setBpsout permits up to 10000, MaseerGate:154). Then _claim=_wmul(amt,0)=0 (line 226) yet _burn(msg.sender,amt) burns the FULL balance (line 245) with no revert => silent total principal loss for anyone calling redeem() while bpsout=10000. The sibling WsgemFraxlendDualOracle._compose (line 280) DOES guard `burn_==0 revert InvalidQuote` and IWsgem docs note burncost can be 0 at 100% spread => the missing guard in MaseerOne.redeem is a real oversight, not intentional. Fix: require(_unit != 0) (or _claim!=0) AFTER _burncost. Trigger requires the auth role = 3-of-5 Gnosis Safe (currently bpsout=25, not live); protocol has a proper setHaltBurn, so bpsout=10000 is misconfig not normal op => Low likelihood, high impact-if-triggered. Rest of stack = permissioned trusted-operator RWA by design (smelt=arb-user-burn, issue=unbounded mint, no-timelock MaseerProxy) = trust boundary, not bugs. Disclose to Maseer as goodwill hardening. Arb-Capital/wsgem-fraxlend repo itself = pre-launch (Fraxlend pair not deployed) + oracle clean.",
-      "date": "2026-08-15"
+      "verdict": "known",
+      "reason": "recheck 2026-09-26: KNOWN: Prototech wstGBP audit 2026-04-29 p.25, acknowledged, no change planned -> DROP. Was: LOW / admin-gated defense-in-depth (code-confirmed, LIVE+FUNDED ~83k tGBP backing, ETH/1, MaseerOne 0x57C3571f). redeem() (MaseerOne.sol:212-252) checks the RAW oracle price (_unit==0 revert, line 220) but NOT the post-spread value: line 223 _unit=_burncost(_unit); _adjustBurnPrice=price*(10000-bpsout)/10000 => EXACTLY 0 when bpsout=10000 (setBpsout permits up to 10000, MaseerGate:154). Then _claim=_wmul(amt,0)=0 (line 226) yet _burn(msg.sender,amt) burns the FULL balance (line 245) with no revert => silent total principal loss for anyone calling redeem() while bpsout=10000. The sibling WsgemFraxlendDualOracle._compose (line 280) DOES guard `burn_==0 revert InvalidQuote` and IWsgem docs note burncost can be 0 at 100% spread => the missing guard in MaseerOne.redeem is a real oversight, not intentional. Fix: require(_unit != 0) (or _claim!=0) AFTER _burncost. Trigger requires the auth role = 3-of-5 Gnosis Safe (currently bpsout=25, not live); protocol has a proper setHaltBurn, so bpsout=10000 is misconfig not normal op => Low likelihood, high impact-if-triggered. Rest of stack = permissioned trusted-operator RWA by design (smelt=arb-user-burn, issue=unbounded mint, no-timelock MaseerProxy) = trust boundary, not bugs. Disclose to Maseer as goodwill hardening. Arb-Capital/wsgem-fraxlend repo itself = pre-launch (Fraxlend pair not deployed) + oracle clean.",
+      "date": "2026-09-26"
     },
     {
       "sig": "mellow|src/managers/ShareManager.sol|supply|function mintAllocatedShares(address account, uint256 value) external",
@@ -1800,9 +1833,9 @@
       "line": 101,
       "detector": "hunt-wave-10",
       "snippet": "",
-      "verdict": "real",
-      "reason": "DVNPublisher NAV oracle threshold()=1 and investmentManager is an approved signer + default executor -> the manager alone can publish NAV within +/-5% deviation per publish (defeats the multi-signer DVN premise). Trusted-role centralization; live ~$1.85M USDe (perps side not yet live). Robinhood Chain 4663.",
-      "date": "2026-08-22"
+      "verdict": "todo",
+      "reason": "recheck 2026-09-26: HYPOTHESIS only (trusted-role centralization, no PoC / no address) -> HOLD, re-dig before any claim. Was: DVNPublisher NAV oracle threshold()=1 and investmentManager is an approved signer + default executor -> the manager alone can publish NAV within +/-5% deviation per publish (defeats the multi-signer DVN premise). Trusted-role centralization; live ~$1.85M USDe (perps side not yet live). Robinhood Chain 4663.",
+      "date": "2026-09-26"
     },
     {
       "sig": "meridian-predict|(labcore)|manual|",
@@ -2091,6 +2124,17 @@
       "date": "2026-06-10"
     },
     {
+      "sig": "onchain-heroes|src/season2/HeroGachaMachine.sol|manual|",
+      "target": "onchain-heroes",
+      "file": "src/season2/HeroGachaMachine.sol",
+      "line": 174,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "FALSE POSITIVE (recheck 2026-09-26): the claimed unbounded rarity loop needs chances summing <100, but setSlotRarity reverts InvalidPercentage unless the sum is 100 (:174-176), GachaMachine.setWeaponRarityChances likewise (:241), and a zero rarity reverts at mint; both machines were paused 03-28, before the finding. Lesson: read the setter's validation before claiming an owner-misconfig trigger. DO-NOT-SEND banner on hunts/onchain-heroes/DISCLOSURE.md.",
+      "date": "2026-09-26"
+    },
+    {
       "sig": "panoptic-v2|panoptic-v2-core (PanopticFactory + deployed pools)|scope|",
       "target": "panoptic-v2",
       "file": "panoptic-v2-core (PanopticFactory + deployed pools)",
@@ -2177,6 +2221,17 @@
       "verdict": "wontfix",
       "reason": "LIVE-FIRST kill (2026-06-13 on-chain check): DEAD target. positionPerBlock=0 (no emissions), single-pool pid=1 empty (staking holds 0 POSI, lastRewardBlock~25M=2022), deployed vaults 0x75Ec/0x0385 totalSupply=0 + 1e14 dust POSI, POSI -99.98% (ATL Feb2026, swap in maintenance, migrated to StakingManagerV2). Repo->live link UNPROVEN: POSIAutoCompoundVault (cleanest F2) not deployed; deployed BNB/BUSD vaults expose a DIFFERENT ABI (rewardPerTokenStored missing) + repo files are on testnet config. Real bug (quadratic reward inflation, math confirmed) but ZERO live impact -> not a finding.",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "predix-plinko|(hunt-wave-14)|manual|",
+      "target": "predix-plinko",
+      "file": "(hunt-wave-14)",
+      "line": 0,
+      "detector": "manual",
+      "snippet": "",
+      "verdict": "fp",
+      "reason": "CLEAN (wave 14): Arbitrum 42161, deployed == repo; Pyth first-update pinning, house is the counterparty (no permissionless curve), creditPayout reverts Insolvent -> order skipped, withdraw needs player + operator sigs. Residual = documented centralization (immediate UUPS upgrades, fee read at execution). Vault 215.90 USDC.",
+      "date": "2026-09-26"
     },
     {
       "sig": "predmart|(labcore)|manual|",
@@ -2773,6 +2828,17 @@
       "date": "2026-06-13"
     },
     {
+      "sig": "tizi|(recheck-2026-09-26)|recheck|",
+      "target": "tizi",
+      "file": "(recheck-2026-09-26)",
+      "line": 0,
+      "detector": "recheck",
+      "snippet": "",
+      "verdict": "todo",
+      "reason": "CODE-CHANGED: tokenStats NAV source replaced 09-15, helper changed 09-15 + 09-22, TD 122K -> 224K; the June PoC was a hand-model -> re-dig against the new code before any claim. No contact found.",
+      "date": "2026-09-26"
+    },
+    {
       "sig": "tizi|contracts/Statistics/MainTokenStats.sol|det_divide_before_multiply|",
       "target": "tizi",
       "file": "contracts/Statistics/MainTokenStats.sol",
@@ -2956,8 +3022,8 @@
       "detector": "access",
       "snippet": "",
       "verdict": "real",
-      "reason": "wager-chess (fenestbuc) ChessLogic -- HIGH, PoC-proven (wager-chess-poc/ 3/3 on the REAL code). FREE PROMOTION on any non-pawn move: isValidMove validates the promotion arg ONLY for pawns (pt==1 -> _isPawnMove requires promotion==NONE off the last rank / _isValidPromotion on it); for knight/bishop/rook/queen/king the promotion arg is IGNORED, yet executeMove line 483 applies it unconditionally: board[to] = promotion!=NONE ? (white?promotion:promotion+8) : piece. So a LEGAL non-pawn move carrying promotion=5 turns the moved piece into a QUEEN (WQ=5). Exploit: spawn a Queen army over a few moves -> trivial checkmate -> _finalizeGame pays the winner totalPot -> STEAL the opponent wager. Every wagered game is winnable by the cheater. PoC: knight b1(1)->c3(18) promo=5 -> board[18]==5 (Queen); rook variant too; control (no promo) stays a knight. FIX: in isValidMove/executeMove reject promotion!=NONE unless pt==1 AND last rank (gate line 483 on pt==1). Same gap likely in the Kubar-Labs variant (shared ChessLogic). LIVE-FIRST caveat: GitHub hobby repo -- verify on-chain deployment/real wagers before treating as live; as-is a real High-severity logic bug + training find.",
-      "date": "2026-07-10"
+      "reason": "recheck 2026-09-26: PRE-LAUNCH on Monad testnet (chain 10143) only. Was: wager-chess (fenestbuc) ChessLogic -- HIGH, PoC-proven (wager-chess-poc/ 3/3 on the REAL code). FREE PROMOTION on any non-pawn move: isValidMove validates the promotion arg ONLY for pawns (pt==1 -> _isPawnMove requires promotion==NONE off the last rank / _isValidPromotion on it); for knight/bishop/rook/queen/king the promotion arg is IGNORED, yet executeMove line 483 applies it unconditionally: board[to] = promotion!=NONE ? (white?promotion:promotion+8) : piece. So a LEGAL non-pawn move carrying promotion=5 turns the moved piece into a QUEEN (WQ=5). Exploit: spawn a Queen army over a few moves -> trivial checkmate -> _finalizeGame pays the winner totalPot -> STEAL the opponent wager. Every wagered game is winnable by the cheater. PoC: knight b1(1)->c3(18) promo=5 -> board[18]==5 (Queen); rook variant too; control (no promo) stays a knight. FIX: in isValidMove/executeMove reject promotion!=NONE unless pt==1 AND last rank (gate line 483 on pt==1). Same gap likely in the Kubar-Labs variant (shared ChessLogic). LIVE-FIRST caveat: GitHub hobby repo -- verify on-chain deployment/real wagers before treating as live; as-is a real High-severity logic bug + training find.",
+      "date": "2026-09-26"
     },
     {
       "sig": "wager-chess-fenestbuc|WagerChessEngine.sol|reward|",
@@ -3054,9 +3120,9 @@
       "line": 220,
       "detector": "validation_gap",
       "snippet": "redeem(): if (_unit==0) revert InvalidPrice(); THEN _unit=_burncost(_unit); -- checks RAW navprice, not the post-spread burncost",
-      "verdict": "real",
-      "reason": "act.burncost() can be driven to exactly 0 via auth-only setBpsout(10000) (bounded at 100% but that IS the destructive value); redeem() only guards raw pip.read()!=0 before applying the spread, so a bpsout=10000 config burns the caller's full wstGBP for a recorded claim of 0, silently (no revert). Sibling oracle (WsgemFraxlendDualOracle._compose) correctly re-checks burn_==0 AFTER calling burncost() -- this token's own redeem() doesn't. Admin/multisig-gated (3-of-5 Safe 0xa73c94...), not outsider-exploitable; currently bpsout=25 (0.25%, healthy). Medium, hardening-class finding for the Maseer team.",
-      "date": "2026-08-15"
+      "verdict": "known",
+      "reason": "recheck 2026-09-26: KNOWN (duplicate of maseer-one-wstgbp, acknowledged in the Prototech audit). Was: act.burncost() can be driven to exactly 0 via auth-only setBpsout(10000) (bounded at 100% but that IS the destructive value); redeem() only guards raw pip.read()!=0 before applying the spread, so a bpsout=10000 config burns the caller's full wstGBP for a recorded claim of 0, silently (no revert). Sibling oracle (WsgemFraxlendDualOracle._compose) correctly re-checks burn_==0 AFTER calling burncost() -- this token's own redeem() doesn't. Admin/multisig-gated (3-of-5 Safe 0xa73c94...), not outsider-exploitable; currently bpsout=25 (0.25%, healthy). Medium, hardening-class finding for the Maseer team.",
+      "date": "2026-09-26"
     },
     {
       "sig": "wstgbp|fetched/1_0x57C3571f10767E49C9d7b60feb6c67804783B7aE/src/MaseerToken.sol|ecrecover_unbound|ecrecover(...) then recoveredAddress != owner check",
