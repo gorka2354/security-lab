@@ -1,36 +1,10 @@
 {
- "fetched": 1787766406,
- "count": 483,
- "errors": [],
+ "fetched": 1790370266,
+ "count": 447,
+ "errors": [
+  "code4rena: The read operation timed out"
+ ],
  "programs": [
-  {
-   "platform": "sherlock",
-   "name": "Metric",
-   "kind": "bounty",
-   "open": true,
-   "start": 1783350000,
-   "end": 1785164400,
-   "reward": 150000,
-   "reward_usd": 150000,
-   "currency": "USDC",
-   "url": "https://audits.sherlock.xyz/contests/1279",
-   "repo": null,
-   "kyc": false
-  },
-  {
-   "platform": "sherlock",
-   "name": "Tare",
-   "kind": "contest",
-   "open": false,
-   "start": 1784559600,
-   "end": 1785337200,
-   "reward": 50000,
-   "reward_usd": 50000,
-   "currency": "USDC",
-   "url": "https://audits.sherlock.xyz/contests/1234",
-   "repo": null,
-   "kyc": false
-  },
   {
    "platform": "sherlock",
    "name": "Ethereum Fusaka Upgrade",
@@ -308,6 +282,20 @@
    "reward_usd": 150215,
    "currency": "USDC",
    "url": "https://audits.sherlock.xyz/contests/219",
+   "repo": null,
+   "kyc": false
+  },
+  {
+   "platform": "sherlock",
+   "name": "Metric",
+   "kind": "bounty",
+   "open": true,
+   "start": 1783350000,
+   "end": 1785164400,
+   "reward": 150000,
+   "reward_usd": 150000,
+   "currency": "USDC",
+   "url": "https://audits.sherlock.xyz/contests/1279",
    "repo": null,
    "kyc": false
   },
@@ -844,353 +832,17 @@
    "kyc": true
   },
   {
-   "platform": "code4rena",
-   "name": "Monetrix",
+   "platform": "sherlock",
+   "name": "Arcadia",
    "kind": "contest",
    "open": false,
-   "start": 1777060800,
-   "end": 1777924800,
-   "reward": "$22,000 in USDC",
-   "reward_usd": 22000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-04-monetrix",
-   "repo": "https://github.com/code-423n4/2026-04-monetrix",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "K2",
-   "kind": "contest",
-   "open": false,
-   "start": 1776456000,
-   "end": 1779912000,
-   "reward": "$135,000 in USDC",
-   "reward_usd": 135000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-04-k2",
-   "repo": "https://github.com/code-423n4/2026-04-k2",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Intuition Mitigation Review",
-   "kind": "contest",
-   "open": false,
-   "start": 1775160000,
-   "end": 1775505600,
-   "reward": "$4,000 in USDC",
-   "reward_usd": 4000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-04-intuition-mitigation-review",
-   "repo": "https://github.com/code-423n4/2026-04-intuition-mitigation",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "LayerZero - Stellar endpoint",
-   "kind": "contest",
-   "open": false,
-   "start": 1775073600,
-   "end": 1776196800,
-   "reward": "$101,000 in USDC",
-   "reward_usd": 101000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-04-layerzero-stellar-endpoint",
-   "repo": "https://github.com/code-423n4/2026-04-layerzero",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Swafe Mitigation Review: Round 2",
-   "kind": "contest",
-   "open": false,
-   "start": 1774900800,
-   "end": 1775073600,
-   "reward": "$12,000 in USDC",
-   "reward_usd": 12000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-03-swafe-mitigation-review-round-2",
-   "repo": "https://github.com/code-423n4/2026-03-swafe-mitigation-round2",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "Swafe Mitigation Review",
-   "kind": "contest",
-   "open": false,
-   "start": 1774036800,
-   "end": 1774382400,
-   "reward": "$12,000 in USDC",
-   "reward_usd": 12000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-03-swafe-mitigation-review",
-   "repo": "https://github.com/code-423n4/2026-03-swafe-mitigation",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "Chainlink Payment Abstraction V2",
-   "kind": "contest",
-   "open": false,
-   "start": 1773864000,
-   "end": 1774641600,
-   "reward": "$65,000 in USDC",
-   "reward_usd": 65000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-03-chainlink-payment-abstraction-v2",
-   "repo": "https://github.com/code-423n4/2026-03-chainlink",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Intuition",
-   "kind": "contest",
-   "open": false,
-   "start": 1772654400,
-   "end": 1773086400,
-   "reward": "$17,500 in USDC",
-   "reward_usd": 17500,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-03-intuition",
-   "repo": "https://github.com/code-423n4/2026-03-intuition",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Injective Peggy Bridge",
-   "kind": "contest",
-   "open": false,
-   "start": 1772049600,
-   "end": 1773777600,
-   "reward": "$105,500 in USDC",
-   "reward_usd": 105500,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-02-injective-peggy-bridge",
-   "repo": "https://github.com/code-423n4/2026-02-injective",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Panoptic: Next Core Mitigation Review: Round 2",
-   "kind": "contest",
-   "open": false,
-   "start": 1771876800,
-   "end": 1772049600,
-   "reward": "$6,000 in USDC (all rounds)",
-   "reward_usd": 6000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-02-panoptic-next-core-mitigation-review-round-2",
-   "repo": "https://github.com/code-423n4/2026-02-panoptic-next-core-mitigation-round2",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "Panoptic: Next Core Mitigation Review",
-   "kind": "contest",
-   "open": false,
-   "start": 1771012800,
-   "end": 1771444800,
-   "reward": "$6,000 in USDC",
-   "reward_usd": 6000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-02-panoptic-next-core-mitigation-review",
-   "repo": "https://github.com/code-423n4/2026-02-panoptic-next-core-mitigation",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "Jupiter Lend",
-   "kind": "contest",
-   "open": false,
-   "start": 1770926400,
-   "end": 1773432000,
-   "reward": "$107,000 in USDC",
-   "reward_usd": 107000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-02-jupiter-lend",
-   "repo": "https://github.com/code-423n4/2026-02-jupiter-lend",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Olas",
-   "kind": "contest",
-   "open": false,
-   "start": 1769112000,
-   "end": 1770667200,
-   "reward": "$62,000 in USDC",
-   "reward_usd": 62000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2026-01-olas",
-   "repo": "https://github.com/code-423n4/2026-01-olas",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Panoptic: Next Core",
-   "kind": "contest",
-   "open": false,
-   "start": 1766174400,
-   "end": 1767816000,
-   "reward": "$56,000 in USDC",
-   "reward_usd": 56000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-12-panoptic-next-core",
-   "repo": "https://github.com/code-423n4/2025-12-panoptic",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Rujira",
-   "kind": "contest",
-   "open": false,
-   "start": 1765915200,
-   "end": 1768593600,
-   "reward": "$40,000 in USDC",
-   "reward_usd": 40000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-12-rujira",
-   "repo": "https://github.com/code-423n4/2025-12-rujira",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Brix Money",
-   "kind": "contest",
-   "open": false,
-   "start": 1764187200,
-   "end": 1764792000,
-   "reward": "$23,000 in USDC",
-   "reward_usd": 23000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-brix-money",
-   "repo": "https://github.com/code-423n4/2025-11-brix-money",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "SukukFi",
-   "kind": "contest",
-   "open": false,
-   "start": 1764187200,
-   "end": 1764964800,
-   "reward": "$40,000 in USDC",
-   "reward_usd": 40000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-sukukfi",
-   "repo": "https://github.com/code-423n4/2025-11-sukukfi",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Merkl",
-   "kind": "contest",
-   "open": false,
-   "start": 1764100800,
-   "end": 1764619200,
-   "reward": "$18,000 in USDC",
-   "reward_usd": 18000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-merkl",
-   "repo": "https://github.com/code-423n4/2025-11-merkl",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Garden",
-   "kind": "contest",
-   "open": false,
-   "start": 1764014400,
-   "end": 1765224000,
-   "reward": "$37,500 in USDC",
-   "reward_usd": 37500,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-garden",
-   "repo": "https://github.com/code-423n4/2025-11-garden",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Ekubo",
-   "kind": "contest",
-   "open": false,
-   "start": 1763582400,
-   "end": 1765396800,
-   "reward": "$183,500 in USDC",
-   "reward_usd": 183500,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-ekubo",
-   "repo": "https://github.com/code-423n4/2025-11-ekubo",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Swafe",
-   "kind": "contest",
-   "open": false,
-   "start": 1763496000,
-   "end": 1765310400,
-   "reward": "$100,000 in USDC",
-   "reward_usd": 100000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-swafe",
-   "repo": "https://github.com/code-423n4/2025-11-swafe",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Hybra Finance: mitigation review, round 2",
-   "kind": "contest",
-   "open": false,
-   "start": 1762891200,
-   "end": 1762977600,
-   "reward": "$5,000 in USDC (all rounds)",
-   "reward_usd": 5000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-hybra-finance-mitigation-review-round-2",
-   "repo": "https://github.com/code-423n4/2025-11-hybra-finance-mitigation-round2",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "Sequence: Transaction Rails",
-   "kind": "contest",
-   "open": false,
-   "start": 1762891200,
-   "end": 1763409600,
-   "reward": "$18,500 in USDC",
-   "reward_usd": 18500,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-sequence-transaction-rails",
-   "repo": "https://github.com/code-423n4/2025-11-sequence",
-   "kyc": false
-  },
-  {
-   "platform": "code4rena",
-   "name": "Hybra Finance Mitigation Review",
-   "kind": "contest",
-   "open": false,
-   "start": 1762459200,
-   "end": 1762804800,
-   "reward": "$5,000 in USDC",
-   "reward_usd": 5000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-hybra-finance-mitigation-review",
-   "repo": "https://github.com/code-423n4/2025-11-hybra-finance-mitigation",
-   "kyc": true
-  },
-  {
-   "platform": "code4rena",
-   "name": "Megapot",
-   "kind": "contest",
-   "open": false,
-   "start": 1762200000,
-   "end": 1763064000,
-   "reward": "$30,000 in USDC",
-   "reward_usd": 30000,
-   "currency": "USD",
-   "url": "https://code4rena.com/audits/2025-11-megapot",
-   "repo": "https://github.com/code-423n4/2025-11-megapot",
+   "start": 1706540400,
+   "end": 1708095600,
+   "reward": 84500,
+   "reward_usd": 84500,
+   "currency": "USDC",
+   "url": "https://audits.sherlock.xyz/contests/137",
+   "repo": null,
    "kyc": false
   },
   {
@@ -2693,20 +2345,6 @@
   },
   {
    "platform": "cantina",
-   "name": "Royco Day",
-   "kind": "contest",
-   "open": false,
-   "start": null,
-   "end": null,
-   "reward": "30000",
-   "reward_usd": 30000,
-   "currency": "USDC",
-   "url": "https://cantina.xyz/competitions/c3bbae37-a6f4-45b0-acd9-92dbe01301ce",
-   "repo": null,
-   "kyc": true
-  },
-  {
-   "platform": "cantina",
    "name": "Royco Protocol",
    "kind": "contest",
    "open": false,
@@ -2774,6 +2412,20 @@
    "url": "https://cantina.xyz/competitions/980a5976-9a7d-4014-b2e1-c248b4c6fa44",
    "repo": null,
    "kyc": false
+  },
+  {
+   "platform": "cantina",
+   "name": "Royco Day",
+   "kind": "contest",
+   "open": false,
+   "start": null,
+   "end": null,
+   "reward": "30000",
+   "reward_usd": 30000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/competitions/c3bbae37-a6f4-45b0-acd9-92dbe01301ce",
+   "repo": null,
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3249,7 +2901,7 @@
    "currency": "USDC + rEUL + USUAL",
    "url": "https://cantina.xyz/bounties/4d285eee-602e-440a-845e-25e155cec26a",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3277,7 +2929,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/ff945ca2-2a6e-4b83-b1b6-7a0cd3b94bea",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3333,7 +2985,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/607dd012-08ad-4080-bf4a-78dc1c28faa9",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3361,21 +3013,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/ea552420-8bd6-4119-815d-3d5203d0377a",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
-  },
-  {
-   "platform": "cantina",
-   "name": "Aave V3 on Aptos",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": "1000000",
-   "reward_usd": 1000000,
-   "currency": "GHO",
-   "url": "https://cantina.xyz/bounties/5376c015-441e-40e3-8252-0d328c537906",
-   "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3389,7 +3027,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/a98129d7-dd15-4c16-b2cb-d8cc42f87de4",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3435,6 +3073,20 @@
   },
   {
    "platform": "cantina",
+   "name": "Robinhood",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": "1000000",
+   "reward_usd": 1000000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/bounties/2acbecd1-3a5e-44fb-a324-a524c156d690",
+   "repo": "https://github.com/cantina-forks/test",
+   "kyc": true
+  },
+  {
+   "platform": "cantina",
    "name": "Kiln V2 Bounty",
    "kind": "bounty",
    "open": true,
@@ -3445,7 +3097,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/185c683c-77e7-4b71-822d-95e1a98fee9e",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3459,7 +3111,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/c9a4b51b-2e80-4713-a06f-13524c530fa6",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3473,7 +3125,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/253a4e11-c99c-49e9-83f7-d076d8804475",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3501,7 +3153,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/4e88f4df-c483-47d3-8d78-b9d7cc67be73",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3529,7 +3181,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/d77405e5-99ce-4ba5-846c-885820b030e1",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3543,7 +3195,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/79042c5c-2331-4100-9bc7-249a540cd013",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3557,7 +3209,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/5240b7c7-6fec-4902-bec0-8cad12f14ec4",
    "repo": "https://github.com/chronicleprotocol/scribe",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3571,7 +3223,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/6cc9d51a-ac1e-4385-a88a-a3924e40c00e",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3585,7 +3237,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/3aaad22b-52ee-4bb2-bed2-4be53b0993cc",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3641,7 +3293,7 @@
    "currency": "USD (in Mezo)",
    "url": "https://cantina.xyz/bounties/82d15510-9264-4ce0-9bee-ee0cb5c53742",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3669,7 +3321,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/246de4d3-e138-4340-bdfc-fc4c95951491",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3683,7 +3335,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/509e46d0-a107-43aa-b46e-b2fe7e2ea591",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3697,7 +3349,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/32e64f2e-5f01-4a0b-bbe3-76f32c17b99f",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3711,21 +3363,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/06fa2fa7-0ec0-475a-987c-a8b05cb8e9b2",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
-  },
-  {
-   "platform": "cantina",
-   "name": "Monad.xyz UI",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": "100000",
-   "reward_usd": 100000,
-   "currency": "USDC",
-   "url": "https://cantina.xyz/bounties/a3806410-4f70-4023-8b29-103ddbd5b8a3",
-   "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3753,7 +3391,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/5314819f-b0b2-4d39-b953-d02ec74cac1a",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3767,21 +3405,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/78a734d2-b460-4245-9c81-833487d6a339",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
-  },
-  {
-   "platform": "cantina",
-   "name": "doppler-contracts",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": "50000",
-   "reward_usd": 50000,
-   "currency": "USDC",
-   "url": "https://cantina.xyz/bounties/2c7af549-c36c-4432-bae6-3f4b1fa6b217",
-   "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3809,7 +3433,49 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/80e74370-10d8-4e52-8e4b-7294deb7c9ee",
    "repo": "https://github.com/cantina-forks/test/",
+   "kyc": true
+  },
+  {
+   "platform": "cantina",
+   "name": "Tenbin Bug Bounty",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": "40000",
+   "reward_usd": 40000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/bounties/0420bc1a-9177-4e4e-8da7-826d273e3d3e",
+   "repo": "https://github.com/tenbinlabs/tenbin-contracts",
+   "kyc": true
+  },
+  {
+   "platform": "cantina",
+   "name": "Monad.xyz UI",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": "30000",
+   "reward_usd": 30000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/bounties/a3806410-4f70-4023-8b29-103ddbd5b8a3",
+   "repo": "https://github.com/cantina-forks/test",
    "kyc": false
+  },
+  {
+   "platform": "cantina",
+   "name": "Perena Bug Bounty",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": "25000",
+   "reward_usd": 25000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/bounties/4bbe54f6-c8ea-4704-a756-0066689d7371",
+   "repo": "https://github.com/cantina-forks/test",
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3823,7 +3489,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/5a488487-a48e-41c6-be92-2e65b569b01c",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3837,7 +3503,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/b5e376ee-2fe9-47eb-a667-df98d3d201ae",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3851,7 +3517,7 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/8f671963-4313-4ac3-aed9-3186a240b75a",
    "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3869,20 +3535,6 @@
   },
   {
    "platform": "cantina",
-   "name": "vetrafi-bounty",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": "8000",
-   "reward_usd": 8000,
-   "currency": "USDC",
-   "url": "https://cantina.xyz/bounties/ba65a579-761a-4d63-adb9-01d6cfdf319d",
-   "repo": "https://github.com/cantina-forks/test",
-   "kyc": false
-  },
-  {
-   "platform": "cantina",
    "name": "Cantina Bounty",
    "kind": "bounty",
    "open": true,
@@ -3894,6 +3546,20 @@
    "url": "https://cantina.xyz/bounties/ade8dd1f-f6a3-42e5-ad59-0f9d137c831f",
    "repo": "https://github.com/cantina-forks/spearbit-bounty",
    "kyc": false
+  },
+  {
+   "platform": "cantina",
+   "name": "Aave V3 on Aptos",
+   "kind": "bounty",
+   "open": false,
+   "start": null,
+   "end": null,
+   "reward": "1000000",
+   "reward_usd": 1000000,
+   "currency": "GHO",
+   "url": "https://cantina.xyz/bounties/5376c015-441e-40e3-8252-0d328c537906",
+   "repo": "https://github.com/cantina-forks/test",
+   "kyc": true
   },
   {
    "platform": "cantina",
@@ -3995,6 +3661,20 @@
   },
   {
    "platform": "cantina",
+   "name": "doppler-contracts",
+   "kind": "bounty",
+   "open": false,
+   "start": null,
+   "end": null,
+   "reward": "50000",
+   "reward_usd": 50000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/bounties/2c7af549-c36c-4432-bae6-3f4b1fa6b217",
+   "repo": "https://github.com/cantina-forks/test",
+   "kyc": false
+  },
+  {
+   "platform": "cantina",
    "name": "marginal-bounty",
    "kind": "bounty",
    "open": false,
@@ -4005,20 +3685,6 @@
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/faedfdc2-d858-4c58-8881-3fa6bd40e2b6",
    "repo": "https://github.com/cantina-forks/marginal-bounty-monorepo",
-   "kyc": false
-  },
-  {
-   "platform": "cantina",
-   "name": "Perena Bug Bounty",
-   "kind": "bounty",
-   "open": false,
-   "start": null,
-   "end": null,
-   "reward": "25000",
-   "reward_usd": 25000,
-   "currency": "USDC",
-   "url": "https://cantina.xyz/bounties/4bbe54f6-c8ea-4704-a756-0066689d7371",
-   "repo": "https://github.com/cantina-forks/test",
    "kyc": false
   },
   {
@@ -4060,6 +3726,20 @@
    "reward_usd": 10000,
    "currency": "USDC",
    "url": "https://cantina.xyz/bounties/6d37b9b2-b37e-4d9d-a8e6-c0f41ddcea0b",
+   "repo": "https://github.com/cantina-forks/test",
+   "kyc": false
+  },
+  {
+   "platform": "cantina",
+   "name": "vetrafi-bounty",
+   "kind": "bounty",
+   "open": false,
+   "start": null,
+   "end": null,
+   "reward": "8000",
+   "reward_usd": 8000,
+   "currency": "USDC",
+   "url": "https://cantina.xyz/bounties/ba65a579-761a-4d63-adb9-01d6cfdf319d",
    "repo": "https://github.com/cantina-forks/test",
    "kyc": false
   },
@@ -4359,20 +4039,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Celer",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 2000000,
-   "reward_usd": 2000000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/celer/information/",
-   "repo": "celer",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
    "name": "Arbitrum",
    "kind": "bounty",
    "open": true,
@@ -4398,20 +4064,6 @@
    "url": "https://immunefi.com/bug-bounty/lido/information/",
    "repo": "lido",
    "kyc": false
-  },
-  {
-   "platform": "immunefi",
-   "name": "Kamino",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 1500000,
-   "reward_usd": 1500000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/kamino/information/",
-   "repo": "kamino",
-   "kyc": true
   },
   {
    "platform": "immunefi",
@@ -4481,20 +4133,6 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/compoundfinance/information/",
    "repo": "compoundfinance",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
-   "name": "Kiln On Chain V1",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 1000000,
-   "reward_usd": 1000000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/kiln-on-chain-v1/information/",
-   "repo": "kiln-on-chain-v1",
    "kyc": true
   },
   {
@@ -4621,7 +4259,7 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/cowprotocol/information/",
    "repo": "cowprotocol",
-   "kyc": false
+   "kyc": true
   },
   {
    "platform": "immunefi",
@@ -4677,34 +4315,6 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/1inch-SmartContracts/information/",
    "repo": "1inch-SmartContracts",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
-   "name": "Nucleus",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 500000,
-   "reward_usd": 500000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/nucleus/information/",
-   "repo": "nucleus",
-   "kyc": false
-  },
-  {
-   "platform": "immunefi",
-   "name": "Kiln Defi",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 500000,
-   "reward_usd": 500000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/kiln-defi/information/",
-   "repo": "kiln-defi",
    "kyc": true
   },
   {
@@ -4793,20 +4403,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Kiln",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 500000,
-   "reward_usd": 500000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/kiln/information/",
-   "repo": "kiln",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
    "name": "Utix",
    "kind": "bounty",
    "open": true,
@@ -4832,20 +4428,6 @@
    "url": "https://immunefi.com/bug-bounty/ankr/information/",
    "repo": "ankr",
    "kyc": false
-  },
-  {
-   "platform": "immunefi",
-   "name": "Decentraland",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 500000,
-   "reward_usd": 500000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/decentraland/information/",
-   "repo": "decentraland",
-   "kyc": true
   },
   {
    "platform": "immunefi",
@@ -5031,20 +4613,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Jito",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 250000,
-   "reward_usd": 250000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/jito/information/",
-   "repo": "jito",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
    "name": "Kelp Dao",
    "kind": "bounty",
    "open": true,
@@ -5139,6 +4707,20 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/starknet/information/",
    "repo": "starknet",
+   "kyc": true
+  },
+  {
+   "platform": "immunefi",
+   "name": "Decentraland",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": 250000,
+   "reward_usd": 250000,
+   "currency": "USD",
+   "url": "https://immunefi.com/bug-bounty/decentraland/information/",
+   "repo": "decentraland",
    "kyc": true
   },
   {
@@ -5283,20 +4865,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Indexcoop",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 200000,
-   "reward_usd": 200000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/indexcoop/information/",
-   "repo": "indexcoop",
-   "kyc": false
-  },
-  {
-   "platform": "immunefi",
    "name": "Beets",
    "kind": "bounty",
    "open": true,
@@ -5350,6 +4918,20 @@
    "url": "https://immunefi.com/bug-bounty/debridge/information/",
    "repo": "debridge",
    "kyc": false
+  },
+  {
+   "platform": "immunefi",
+   "name": "Celer",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": 200000,
+   "reward_usd": 200000,
+   "currency": "USD",
+   "url": "https://immunefi.com/bug-bounty/celer/information/",
+   "repo": "celer",
+   "kyc": true
   },
   {
    "platform": "immunefi",
@@ -5587,20 +5169,6 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/zksync-os/information/",
    "repo": "zksync-os",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
-   "name": "Kiln Webapp",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 100000,
-   "reward_usd": 100000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/kiln-webapp/information/",
-   "repo": "kiln-webapp",
    "kyc": true
   },
   {
@@ -5885,20 +5453,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Termstructurelabs",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 80000,
-   "reward_usd": 80000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/termstructurelabs/information/",
-   "repo": "termstructurelabs",
-   "kyc": false
-  },
-  {
-   "platform": "immunefi",
    "name": "Beefyfinance",
    "kind": "bounty",
    "open": true,
@@ -6021,20 +5575,6 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/usdn/information/",
    "repo": "usdn",
-   "kyc": false
-  },
-  {
-   "platform": "immunefi",
-   "name": "Aspida",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 50000,
-   "reward_usd": 50000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/aspida/information/",
-   "repo": "aspida",
    "kyc": false
   },
   {
@@ -6319,20 +5859,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Zenlink",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 30000,
-   "reward_usd": 30000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/zenlink/information/",
-   "repo": "zenlink",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
    "name": "1Inch Aqua Improvement",
    "kind": "bounty",
    "open": true,
@@ -6417,20 +5943,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Integral",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 25000,
-   "reward_usd": 25000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/integral/information/",
-   "repo": "integral",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
    "name": "Nexusmutual",
    "kind": "bounty",
    "open": true,
@@ -6473,20 +5985,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Uniswaponzksync",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 20000,
-   "reward_usd": 20000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/uniswaponzksync/information/",
-   "repo": "uniswaponzksync",
-   "kyc": true
-  },
-  {
-   "platform": "immunefi",
    "name": "Trufin",
    "kind": "bounty",
    "open": true,
@@ -6501,7 +5999,7 @@
   },
   {
    "platform": "immunefi",
-   "name": "Ipor",
+   "name": "Hathornetwork",
    "kind": "bounty",
    "open": true,
    "start": null,
@@ -6509,9 +6007,9 @@
    "reward": 20000,
    "reward_usd": 20000,
    "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/ipor/information/",
-   "repo": "ipor",
-   "kyc": false
+   "url": "https://immunefi.com/bug-bounty/hathornetwork/information/",
+   "repo": "hathornetwork",
+   "kyc": true
   },
   {
    "platform": "immunefi",
@@ -6627,20 +6125,6 @@
   },
   {
    "platform": "immunefi",
-   "name": "Spot",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 10000,
-   "reward_usd": 10000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/spot/information/",
-   "repo": "spot",
-   "kyc": false
-  },
-  {
-   "platform": "immunefi",
    "name": "Marsecosystem",
    "kind": "bounty",
    "open": true,
@@ -6651,20 +6135,6 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/marsecosystem/information/",
    "repo": "marsecosystem",
-   "kyc": false
-  },
-  {
-   "platform": "immunefi",
-   "name": "Charm",
-   "kind": "bounty",
-   "open": true,
-   "start": null,
-   "end": null,
-   "reward": 10000,
-   "reward_usd": 10000,
-   "currency": "USD",
-   "url": "https://immunefi.com/bug-bounty/charm/information/",
-   "repo": "charm",
    "kyc": false
   },
   {
@@ -6680,6 +6150,20 @@
    "url": "https://immunefi.com/bug-bounty/moneyonchain/information/",
    "repo": "moneyonchain",
    "kyc": true
+  },
+  {
+   "platform": "immunefi",
+   "name": "Charm",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": 6000,
+   "reward_usd": 6000,
+   "currency": "USD",
+   "url": "https://immunefi.com/bug-bounty/charm/information/",
+   "repo": "charm",
+   "kyc": false
   },
   {
    "platform": "immunefi",
@@ -6735,6 +6219,20 @@
    "currency": "USD",
    "url": "https://immunefi.com/bug-bounty/mtpelerin/information/",
    "repo": "mtpelerin",
+   "kyc": false
+  },
+  {
+   "platform": "immunefi",
+   "name": "Ipor",
+   "kind": "bounty",
+   "open": true,
+   "start": null,
+   "end": null,
+   "reward": 1000,
+   "reward_usd": 1000,
+   "currency": "USD",
+   "url": "https://immunefi.com/bug-bounty/ipor/information/",
+   "repo": "ipor",
    "kyc": false
   },
   {

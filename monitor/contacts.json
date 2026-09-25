@@ -7,7 +7,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "luxmarket": {
   "key": "luxmarket",
@@ -17,7 +17,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "equivaults": {
   "key": "equivaults",
@@ -27,7 +27,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "krystal": {
   "key": "krystal",
@@ -44,7 +44,7 @@
     "confidence": "high"
    }
   ],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "hoodbet-fun": {
   "key": "hoodbet-fun",
@@ -54,7 +54,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "capyfi": {
   "key": "capyfi",
@@ -73,7 +73,7 @@
     "confidence": "high"
    }
   ],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "maseer-one-wstgbp": {
   "key": "maseer-one-wstgbp",
@@ -83,7 +83,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "head2head-monkebet": {
   "key": "head2head-monkebet",
@@ -93,7 +93,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "clawking": {
   "key": "clawking",
@@ -103,7 +103,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "heavy-helms": {
   "key": "heavy-helms",
@@ -113,7 +113,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "wager-chess-fenestbuc": {
   "key": "wager-chess-fenestbuc",
@@ -123,7 +123,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "witty": {
   "key": "witty",
@@ -133,7 +133,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "ea-finance-staking-wcc": {
   "key": "ea-finance-staking-wcc",
@@ -143,7 +143,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "dealers-sh": {
   "key": "dealers-sh",
@@ -153,7 +153,7 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  },
  "liquihood": {
   "key": "liquihood",
@@ -163,6 +163,6 @@
   "reward_usd": null,
   "confidence": "none",
   "candidates": [],
-  "checked_at": "2026-08-23"
+  "checked_at": "2026-09-25"
  }
 }
