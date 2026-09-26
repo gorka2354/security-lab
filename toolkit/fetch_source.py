@@ -19,6 +19,7 @@ import json
 import os
 import re
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 # EIP-1967 implementation slot = keccak256("eip1967.proxy.implementation") - 1
 EIP1967_IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
@@ -37,6 +38,13 @@ DEFAULT_RPC = {
     "4114": "https://rpc.mainnet.citrea.xyz",         # Citrea (BTC L2; Zentra money market)
     "14": "https://flare-api.flare.network/ext/C/rpc",  # Flare (SparkDEX stFLR liquid staking)
     "8217": "https://public-en.node.kaia.io",         # Kaia (SuperEarn crosschain vaults)
+    # the exotic chains our fresh GameFi findings live on (were watch.py-only -> threat/activity had no RPC)
+    "196": "https://xlayerrpc.okx.com",               # X Layer (LuXMarket)
+    "4663": "https://rpc.mainnet.chain.robinhood.com",  # Robinhood Chain (HoodBet, Liquihood)
+    "33139": "https://rpc.apechain.com",              # ApeChain (HEAD2HEAD / monke.bet)
+    "204": "https://opbnb-mainnet-rpc.bnbchain.org",  # opBNB (ClawKing)
+    "80002": "https://polygon-amoy-bor-rpc.publicnode.com",  # Polygon Amoy testnet (PulsoMarket pre-launch)
+    "10143": "https://testnet-rpc.monad.xyz",         # Monad testnet (wager-chess, the-arbiter-arena)
 }
 
 

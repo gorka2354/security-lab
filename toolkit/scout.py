@@ -25,7 +25,9 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ledger  # same folder: skip already-hunted targets
@@ -63,21 +65,48 @@ def gh(url):
     req = urllib.request.Request(url, headers={
         "User-Agent": "security-lab-scout", "Accept": "application/vnd.github+json",
     })
-    tok = os.environ.get("GITHUB_TOKEN")
+    # both names: githubsweep paces itself as authenticated when EITHER is set, so sending only GITHUB_TOKEN made a
+    # GH_TOKEN-only run fire unauthenticated requests at the authenticated pace -> a wall of 403s
+    tok = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if tok:
         req.add_header("Authorization", f"Bearer {tok}")
     return _get(req)
 
 
-def _get(req_or_url):
+def _ratelimit_wait(e, now=None):
+    """Seconds until the GitHub rate-limit bucket behind a 403/429 resets (Retry-After, or X-RateLimit-Reset when
+    Remaining=0); None when the error is not a rate limit. PURE."""
+    hdr = getattr(e, "headers", None)
+    if getattr(e, "code", None) not in (403, 429) or hdr is None:
+        return None
+    ra = (hdr.get("Retry-After") or "").strip()
+    if ra.isdigit():
+        return int(ra)
+    reset = (hdr.get("X-RateLimit-Reset") or "").strip()
+    if hdr.get("X-RateLimit-Remaining") == "0" and reset.isdigit():
+        return max(1, int(reset) - int(now if now is not None else time.time()) + 1)
+    return None
+
+
+def _get(req_or_url, max_wait=65):
+    """GET JSON, or None on failure. A rate limit that resets within `max_wait` s (the search bucket is per-minute)
+    is waited out and retried once -- dropping the call would pass a lost query off as 'no results'. A longer wait
+    (the hourly core bucket) is not worth blocking on: warn and return None."""
     req = req_or_url if isinstance(req_or_url, urllib.request.Request) else \
         urllib.request.Request(req_or_url, headers={"User-Agent": "security-lab-scout"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.load(r)
-    except Exception as e:
-        print(f"  [warn] {getattr(req, 'full_url', req_or_url)}: {e}", file=sys.stderr)
-        return None
+    url = getattr(req, "full_url", req_or_url)
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+        except Exception as e:
+            wait = _ratelimit_wait(e)
+            if attempt == 1 and wait is not None and wait <= max_wait:
+                print(f"  [rate-limit] {url}: bucket resets in {wait}s -> waiting, then one retry", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            print(f"  [warn] {url}: {e}", file=sys.stderr)
+            return None
 
 
 def target_key(name):

@@ -16,6 +16,7 @@ Output is ASCII for Windows consoles. Findings carry a priority (0=high).
 """
 
 import argparse
+import functools
 import os
 import re
 import sys
@@ -126,6 +127,208 @@ def lineno(text, idx):
     return text.count("\n", 0, idx) + 1
 
 
+# ── masked code ── comments + string literals blanked to spaces, newlines kept: offsets and line
+# numbers are unchanged, but a brace in a comment can't unbalance a body and a word in a comment/string can't fake
+# a gate or a msg.value read (a comment must never change a verdict; cf. _strip_comments).
+_CODE_MASK = re.compile(r"//[^\n]*|/\*.*?\*/|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'", re.S)
+_BRACE = re.compile(r"[{}]")
+
+
+@functools.lru_cache(maxsize=32)
+def _code_only(text):
+    return _CODE_MASK.sub(lambda mm: re.sub(r"[^\n]", " ", mm.group(0)), text)
+
+
+def _brace_end(code, open_idx):
+    """code[open_idx] == '{' -> index just past its matching '}' (masked code), or -1 if unbalanced."""
+    depth = 0
+    for bm in _BRACE.finditer(code, open_idx):
+        depth += 1 if bm.group() == "{" else -1
+        if depth == 0:
+            return bm.end()
+    return -1
+
+
+def _split_top(args):
+    """Split an argument list on its top-level commas (nested ()/[]/{} kept whole)."""
+    parts, depth, cur = [], 0, []
+    for ch in args:
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    parts.append("".join(cur))
+    return parts
+
+
+_FN_DEF = re.compile(r"function\s+(\w+)\s*(\([^{};]*?)\{", re.S)
+
+
+@functools.lru_cache(maxsize=32)
+def _fn_index(text):
+    """{name: [(modifiers, body)]} for every function DEFINED in this file, read from masked code. `modifiers` is
+    the signature AFTER the parameter list (visibility / modifiers / returns); `body` is the brace-balanced block."""
+    code = _code_only(text)
+    idx = {}
+    for m in _FN_DEF.finditer(code):
+        blob = m.group(2)
+        pe = _match_paren(blob, 0)
+        end = _brace_end(code, m.end() - 1)
+        idx.setdefault(m.group(1), []).append(
+            (blob[pe:] if pe > 0 else blob, code[m.end() - 1:end] if end > 0 else code[m.end() - 1:m.end() + 1500]))
+    return idx
+
+
+# ── fix#48: gates the flat INLINE_AUTH / [msg.sender]-key tiers miss (det_access + det_sibling) ──
+# Real-deploy FPs: predix-plinko PlinkoVault.sweepToCold/collectProfit (`_checkOperatorOrOwner();` helper),
+# FWAV2.updateBacking (`_activeOwned(id)` helper), FWAV2.recoverStuckNFT (`if (stuck[id] != msg.sender) revert`),
+# PlinkoGame.revokeSessionKey (`sessionRegistry.revoke(msg.sender, key)` -- revokes the CALLER's own key).
+_SENDER = r"(?:msg\.sender\b|_msgSender\s*\(\s*\))"
+# (b) a caller compare with msg.sender on the RIGHT, in a REJECTING if: INLINE_AUTH only knew `msg.sender ==`
+# (left) and require(...msg.sender...). `!=` + revert only: `if (x == msg.sender) revert` bans ONE caller (not a gate).
+SENDER_CMP_IF = re.compile(r"\bif\s*\([^;{]*!=\s*" + _SENDER + r"[^;{]*\)\s*\{?\s*revert\b")
+# a caller-keyed ALLOW-list read that rejects (helper bodies): `if (!isOperator[msg.sender]) revert` /
+# `if (wards[msg.sender] == 0) revert`. Negated form only -- `if (blocked[msg.sender]) revert` is a blocklist.
+_SENDER_KEY_COND = re.compile(r"\bif\s*\(\s*(?:!\s*[\w.$]+\s*(?:\[[^\[\]]*\]\s*)*\[\s*" + _SENDER + r"\s*\]\s*|"
+                              r"[\w.$]+\s*(?:\[[^\[\]]*\]\s*)*\[\s*" + _SENDER + r"\s*\]\s*==\s*(?:false|0)\s*)"
+                              r"\)\s*\{?\s*revert\b")
+_REJECT = re.compile(r"\brevert\b|\brequire\s*\(|\bassert\s*\(")
+_BARE_CALL = re.compile(r"(?<![\w.$])([A-Za-z_]\w*)\s*\(")
+# an INLINE_AUTH hit that is a DELEGATED reverting auth call (_checkOwner() / _onlyX() / LibX.enforceIsOwner()) --
+# NOT a bare compare, a bool predicate (hasRole / _isX) or signature plumbing (a digest helper verifies nothing).
+_NOT_DELEGATED = re.compile(r"[!=]=|require|hasRole|_is[A-Z]|ecrecover|ECDSA|SignatureChecker|isValidSignature|"
+                            r"_hashTypedData|verifySignature|_verifySignatures|_authorizeUpgrade")
+# a top-level statement prefix that makes a helper call CONDITIONAL (not an unconditional gate)
+_CTRL_PREFIX = re.compile(r"^\s*(?:if|else|for|while|do|try|catch)\b|\?|&&|\|\|")
+# (c) RELINQUISH verbs only: a GRANT to the caller (`_setOwner(msg.sender)`, `_grantRole(R, msg.sender)`) is the
+# worst ungated bug and must keep firing.
+_RELINQUISH = re.compile(r"(?<![\w$])_?(?:revoke|renounce|remove|disable|cancel|unregister|deregister|leave|exit|"
+                         r"resign|invalidate|burn)\w*\s*\(")
+_LOCAL_DECL = re.compile(r"[A-Za-z_]\w*(?:\s*\[\s*\w*\s*\])*\s+(?:(?:memory|storage|calldata)\s+)?[A-Za-z_$][\w$]*\s*=(?!=)")
+# a bool predicate over the caller: `isOperator(msg.sender)` / `_isApprovedOrOwner(msg.sender, id)` / `hasAccess(..)` /
+# `ops.contains(msg.sender)` -- but never an ACTION verb (`approve(msg.sender, x)`, `_grantRole(R, msg.sender)`)
+_PRED_CALL = re.compile(r"_?(?:is|has|can)[A-Z_]\w*$|(?:contains|includes)$|\w*(?:[Aa]uthori[sz]|[Aa]llowed|[Aa]llow[Ll]ist|"
+                        r"[Ww]hite[Ll]ist|[Aa]pproved|[Rr]ole|[Oo]wner|[Aa]dmin|[Oo]perator|[Mm]ember|[Gg]uardian|[Kk]eeper)\w*$")
+_ACTION_CALL = re.compile(r"_?(?:grant|revoke|renounce|set|add|remove|transfer|approve|mint|burn|update|register|enable|"
+                          r"disable|increase|decrease|change|accept|claim|execute)(?:[A-Z_]|$)")
+
+
+def _sender_checked(expr):
+    """Is the caller CHECKED in condition `expr`: compared, used as a mapping key, or passed to a bool predicate --
+    not merely handed to an action (`require(mkt.repayBorrowBehalf(msg.sender, x) == 0)` checks a return code)."""
+    for sm in re.finditer(_SENDER, expr):
+        before, after = expr[:sm.start()], expr[sm.end():]
+        if re.search(r"[!=]=\s*$", before) or re.match(r"\s*[!=]=", after):
+            return True                 # msg.sender == x / x != msg.sender
+        if re.search(r"\[\s*$", before) and re.match(r"\s*\]", after):
+            return True                 # map[msg.sender] (allow-list / self-scoped balance)
+        depth, k = 0, len(before) - 1
+        while k >= 0:                   # innermost call whose argument list holds the caller
+            if before[k] == ")":
+                depth += 1
+            elif before[k] == "(":
+                if depth == 0:
+                    break
+                depth -= 1
+            k -= 1
+        cm = re.search(r"([A-Za-z_]\w*)\s*$", before[:k]) if k >= 0 else None
+        if cm and _PRED_CALL.match(cm.group(1)) and not _ACTION_CALL.match(cm.group(1)):
+            return True
+    return False
+
+
+def _req_checks_sender(body):
+    """Some require(...)/assert(...) in `body` checks the caller (see _sender_checked)."""
+    for rm in re.finditer(r"\b(?:require|assert)\s*\(", body):
+        args = _balanced_arg(body, rm.end())
+        if args is not None and _sender_checked(args):
+            return True
+    return False
+
+
+def _helper_gates(idx, name, depth=0, seen=frozenset()):
+    """True only if EVERY in-file definition of helper `name` rejects an unauthorized caller in its OWN code: an
+    auth modifier on it, a caller check next to a revert/require, a delegated reverting auth call, or a nested
+    helper that does. Resolved from the body, never trusted by name: a `_checkX()` that checks nothing is no gate."""
+    defs = idx.get(name)
+    if not defs or depth > 3 or name in seen:
+        return False
+    seen = seen | {name}
+    for mods, body in defs:
+        if re.search(r"\bonly[A-Z_]\w*", mods) or WARD_MOD.search(mods) or INLINE_AUTH.search(mods):
+            continue                    # the helper itself carries an auth modifier
+        if SENDER_CMP_IF.search(body) or _SENDER_KEY_COND.search(body):
+            continue                    # right-hand caller compare / caller-keyed allow-list, with a revert
+        # INLINE_AUTH's loose `require(..msg.sender..)` tier also matches a caller merely PASSED to an action; in a
+        # helper it counts only when the require really checks the caller (_req_checks_sender).
+        hits = [h.group(0) for h in INLINE_AUTH.finditer(body) if not re.match(r"require\s*\(", h.group(0))]
+        if (hits or _req_checks_sender(body)) and _REJECT.search(body):
+            continue                    # a caller check + a way to reject, in the helper's own code
+        if any(not _NOT_DELEGATED.search(h) for h in hits):
+            continue                    # delegates to a reverting auth call
+        if any(c != name and _helper_gates(idx, c, depth + 1, seen) for c in _BARE_CALL.findall(body)):
+            continue
+        return False
+    return True
+
+
+def _self_relinquish(body):
+    """(c) a thin self-service wrapper: every top-level statement is an emit / require / revert / local decl or a
+    RELINQUISH call taking the CALLER as a bare arg (>=1 of them); no nested block, no other write or call."""
+    inner = body[1:-1]
+    if "{" in inner:
+        return False
+    found = False
+    for st in inner.split(";"):
+        st = st.strip()
+        if not st or re.match(r"(?:emit|revert)\b|(?:require|assert)\s*\(|if\s*\([^;{]*\)\s*revert\b", st):
+            continue
+        rm = _RELINQUISH.search(st)
+        if not rm:
+            if _LOCAL_DECL.match(st):
+                continue                # `Storage storage $ = _s();` -- a local, not a state write
+            return False
+        args = _balanced_arg(st, rm.end())
+        if args is None or not any(re.fullmatch(r"\s*(?:(?:address|payable)\s*\(\s*)?" + _SENDER + r"\s*\)?\s*", a)
+                                   for a in _split_top(args)):
+            return False                # relinquishes SOMEONE ELSE's entry (or unparseable) -> keep firing
+        found = True
+    return found
+
+
+def _resolved_gate(text, m):
+    """fix#48: is the external fn matched by `m` (function\\s+(\\w+)\\s*(\\(..)\\{ on raw text) gated in a way the flat
+    tiers miss? (a) an unconditional top-level call to an in-file helper whose OWN body rejects an unauthorized
+    caller; (b) a right-hand caller compare in a rejecting if; (c) a thin self-service relinquish on the caller.
+    Read from masked code, so a comment/string can't fake any of them."""
+    code = _code_only(text)
+    ob = m.end() - 1
+    if code[ob:ob + 1] != "{":
+        return False                    # the match sits inside a comment/string
+    end = _brace_end(code, ob)
+    if end < 0:
+        return False
+    body = code[ob:end]
+    if SENDER_CMP_IF.search(body):
+        return True                     # (b)
+    idx, name = _fn_index(text), m.group(1)
+    for cm in _BARE_CALL.finditer(body):   # (a)
+        callee, p = cm.group(1), cm.start()
+        if callee == name or callee not in idx:
+            continue
+        if body.count("{", 0, p) - body.count("}", 0, p) != 1:
+            continue                    # nested in an if/else/loop/unchecked block -> conditional, not a gate
+        b = max(body.rfind(";", 0, p), body.rfind("{", 0, p), body.rfind("}", 0, p))
+        if not _CTRL_PREFIX.search(body[b + 1:p]) and _helper_gates(idx, callee):
+            return True
+    return _self_relinquish(body)       # (c)
+
+
 # ── Detector 1: disabled signals (our strongest real lead, twice) ──
 def det_disabled(text, rel):
     out = []
@@ -174,6 +377,8 @@ def det_access(text, rel):
                 or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]", text[m.end():end])):
             continue
         if PRIV.search(name):
+            if _resolved_gate(text, m):   # fix#48: helper-resolved gate / right-hand compare / self-relinquish
+                continue
             delegates = bool(LIB_DELEGATE.search(text[m.end():end]))   # fix#19: thin facet delegator
             empty_body = text[m.end():].lstrip().startswith("}")       # fix#37: dispatcher/override stub
             note = "external/public + privileged name, NO only* / inline auth"
@@ -212,6 +417,8 @@ def det_sibling(text, rel):
                     or re.search(r"\[\s*(msg\.sender|_msgSender\(\))\s*\]",
                                  text[m.end():min(m.end() + 280, end)])):
                 gname = "inline-auth"
+        if not gname and PRIV.search(name) and _resolved_gate(text, m):
+            gname = "inline-auth"   # fix#48: helper-resolved gate / right-hand compare / self-relinquish
         if not gname and text[m.end():].lstrip().startswith("}"):
             gname = "empty-stub"   # fix#37b: empty body -> no local mutation, not a real ungated lead (EtherFi LiquidityPool deprecated setStakingTargetWeights(){})
         funcs.append((name, lineno(text, m.start()), gname))
@@ -401,15 +608,56 @@ def det_multicall_value(text, rel):
                     "delegatecall-multicall + payable fn(s) reading msg.value (" + ",".join(payable_value[:3])
                     + ") -> msg.value REUSED across batched sub-calls (N payments for 1); forbid value in "
                     "multicall or track consumed value", 0))
-    # (b) msg.value inside a loop body (bounded window, cut at the next function so it can't leak across fns)
-    for fm in re.finditer(r"\bfor\s*\([^)]*\)\s*\{", text):
-        win = text[fm.end():fm.end() + 400]
-        cut = win.find("function ")
-        if cut >= 0:
-            win = win[:cut]
-        if "msg.value" in win:
-            out.append((rel, lineno(text, fm.start()), "for(...) { ... msg.value ... }",
-                        "msg.value read INSIDE a loop -> same tx value credited each iteration (value-reuse)", 0))
+    # (b) msg.value read LEXICALLY inside a for/while/do body. fix#46 (FWAV2.acquire:1504): the old fixed 400-char
+    # window after `for(..){` ran past the loop's `}` and caught `_refund(msg.value - cost)` AFTER the loop. Now the
+    # body is brace-balanced on masked code (a comment can't fire it), and each read is charged to its INNERMOST loop.
+    code = _code_only(text)
+    loops = _loop_bodies(code)
+    hit = {}
+    for vm in re.finditer(r"\bmsg\.value\b", code):
+        inner = None
+        for lp in loops:
+            if lp[2] <= vm.start() < lp[3] and (inner is None or lp[2] > inner[2]):
+                inner = lp
+        if inner:
+            hit[inner[1]] = inner[0]
+    for head, kind in sorted(hit.items()):
+        out.append((rel, lineno(text, head), _LOOP_SNIP[kind],
+                    "msg.value read INSIDE a loop -> same tx value credited each iteration (value-reuse)", 0))
+    return out
+
+
+_LOOP_HEAD = re.compile(r"\b(for|while)\s*\(|\bdo\s*\{")
+_LOOP_SNIP = {"for": "for(...) { ... msg.value ... }", "while": "while(...) { ... msg.value ... }",
+              "do": "do { ... msg.value ... } while(...)"}
+
+
+def _loop_bodies(code):
+    """[(kind, head_idx, body_start, body_end)] for every for/while/do loop in MASKED code. The header is paren-
+    balanced (a `(` inside it no longer breaks the match); the body is the brace block, or the single statement up to
+    its `;`. `while (c);` (the tail of do{}while, or an empty body) has no body."""
+    out = []
+    for lm in _LOOP_HEAD.finditer(code):
+        kind = lm.group(1) or "do"
+        ob = lm.end() - 1
+        if kind != "do":
+            j = _match_paren(code, ob)
+            if j < 0:
+                continue
+            while j < len(code) and code[j].isspace():
+                j += 1
+            if j >= len(code) or code[j] == ";":
+                continue
+            ob = j
+            if code[j] != "{":
+                semi, brace = code.find(";", j), code.find("{", j)
+                if brace < 0 or 0 <= semi < brace:
+                    out.append((kind, lm.start(), j, semi + 1 if semi >= 0 else len(code)))
+                    continue
+                ob = brace              # `for (..) if (c) { .. }` -> the block the single statement opens
+        end = _brace_end(code, ob)
+        if end > 0:
+            out.append((kind, lm.start(), ob, end))
     return out
 
 
@@ -665,6 +913,91 @@ def det_upgrade(text, rel):
     return out
 
 
+# ── fix#47: ERC721/1155 vs ERC20 transfer (det_unchecked + det_feeontransfer precision) ──
+# FWAV2 (Fake World Assets V2): `ERC721(collection).transferFrom(from, to, tokenId)` was flagged as an unchecked ERC20
+# return and `ERC721(c).safeTransferFrom(address(this), ..)` as fee-on-transfer. An ERC721/1155 move returns NO bool
+# (EIP-721 reverts on failure) and has no fee semantics -> neither lead applies. Suppress ONLY on clear NFT evidence:
+# (1) the receiver is CAST to an ERC721/1155 type, (2) the receiver var is declared ONLY with such types in this file,
+# or (3) an NFT-context file + a tokenId-named 3rd arg on a receiver not typed ERC20. Anything else stays an ERC20 lead.
+_NFT_T = r"I?ERC(?:721|1155)(?!\w*Receiver)\w*"
+_NFT_TYPE = re.compile(_NFT_T + r"$")
+_ERC20_TYPE = re.compile(r"(?:I?ERC20|IWETH|WETH)\w*$")
+_NFT_FILE = re.compile(r"\b" + _NFT_T + r"\b|onERC(?:721|1155)Received")
+_TOKENID_ARG = re.compile(r"_?(?:token_?ids?|nft_?ids?|ids?)$", re.I)
+_DECL_MODS = (r"(?:(?:public|private|internal|external|immutable|constant|memory|calldata|storage|indexed|payable|"
+              r"override)\s+)*")
+_TYPED_DECL = re.compile(r"\b([A-Za-z_]\w*)(?:\s*\[\s*\w*\s*\])*\s+" + _DECL_MODS + r"([A-Za-z_$][\w$]*)\s*(?=[;=,)])"
+                         r"|=>\s*([A-Za-z_]\w*)\s*\)\s*" + _DECL_MODS + r"([A-Za-z_$][\w$]*)\s*(?=[;=])")
+_NOT_TYPE = {"return", "returns", "emit", "delete", "new", "else", "is", "for", "using", "import", "revert",
+             "require", "assert", "if", "while", "do", "case", "let", "memory", "storage", "calldata"}
+
+
+@functools.lru_cache(maxsize=32)
+def _typed_vars(text):
+    """{name: {types}} for every `Type [mods] name` declaration (state var / param / local / struct field /
+    mapping value) in the file, from masked code."""
+    out = {}
+    for mm in _TYPED_DECL.finditer(_code_only(text)):
+        t, n = (mm.group(1), mm.group(2)) if mm.group(1) else (mm.group(3), mm.group(4))
+        if t not in _NOT_TYPE:
+            out.setdefault(n, set()).add(t)
+    return out
+
+
+def _call_receiver(s, dot):
+    """Receiver of the call whose '.' is at s[dot]: ('cast', Callee) for `T(x).f(`, ('var', lastIdent) for
+    `a.b[i].f(`, else (None, None)."""
+    j = dot
+    while j > 0 and s[j - 1].isspace():
+        j -= 1
+    if j > 0 and s[j - 1] == ")":
+        depth, k = 0, j - 1
+        while k >= 0:
+            if s[k] == ")":
+                depth += 1
+            elif s[k] == "(":
+                depth -= 1
+                if depth == 0:
+                    break
+            k -= 1
+        cm = re.search(r"([A-Za-z_]\w*)\s*$", s[:k]) if k >= 0 else None
+        return ("cast", cm.group(1)) if cm else (None, None)
+    t, prev = s[:j], None
+    while t != prev:                    # drop index brackets, innermost first: a[b[i]] -> a
+        prev, t = t, re.sub(r"\[[^\[\]]*\]", "", t)
+    vm = re.search(r"([A-Za-z_$][\w$]*)\s*$", t)
+    return ("var", vm.group(1)) if vm else (None, None)
+
+
+def _nft_transfer(text, s, dot, open_paren):
+    """fix#47: True only on CLEAR evidence that the transfer call in line `s` (receiver ends at s[dot], None if no
+    receiver; args open at s[open_paren]) moves an ERC721/1155 token rather than an ERC20."""
+    kind, rname = _call_receiver(s, dot) if dot is not None else (None, None)
+    types = {rname} if kind == "cast" else (_typed_vars(text).get(rname, set()) if kind == "var" else set())
+    if types and all(_NFT_TYPE.match(t) for t in types):
+        return True                     # (1) cast to / (2) declared only as an ERC721/1155 type
+    if any(_ERC20_TYPE.match(t) for t in types):
+        return False                    # explicitly an ERC20 -> a real lead
+    args = _balanced_arg(s, open_paren + 1)
+    parts = _split_top(args) if args is not None else []
+    if len(parts) >= 3 and _NFT_FILE.search(_code_only(text)):
+        t = parts[2]
+        prev = None
+        while t != prev:
+            prev, t = t, re.sub(r"\[[^\[\]]*\]", "", t)
+        ids = re.findall(r"[A-Za-z_$][\w$]*", t)
+        return bool(ids) and bool(_TOKENID_ARG.match(ids[-1]))   # (3) NFT file + tokenId-named 3rd arg
+    return False
+
+
+def _dot_before(s, i):
+    """Index of the '.' just before s[i] (spaces skipped), or None for a bare call."""
+    j = i
+    while j > 0 and s[j - 1].isspace():
+        j -= 1
+    return j - 1 if j > 0 and s[j - 1] == "." else None
+
+
 # ── Detector 9: unchecked ERC20 return (silent transfer failure) ──
 def det_unchecked(text, rel):
     """A bare ERC20 transfer/transferFrom whose bool return is dropped. Non-
@@ -688,6 +1021,8 @@ def det_unchecked(text, rel):
             continue
         if "," not in s[m.end():]:
             continue                       # 1 arg => ETH x.transfer(amt) (reverts), skip
+        if _nft_transfer(text, s, m.start(), m.end() - 1):
+            continue                       # fix#47: ERC721/1155 move returns no bool -> not an unchecked ERC20 return
         out.append((rel, i, s[:90],
                     "ERC20 transfer/transferFrom return ignored -> use SafeERC20 "
                     "(USDT/ZRX return false, not revert)", 0))
@@ -1377,7 +1712,11 @@ def det_feeontransfer(text, rel):
         s = line.strip()
         if not s or s.startswith(("//", "*", "/*")):
             continue
-        if PULL_IN.search(s) and "address(this)" in s.replace(" ", ""):
+        if not ("address(this)" in s.replace(" ", "") and PULL_IN.search(s)):
+            continue
+        # fix#47: an ERC721/1155 transferFrom/safeTransferFrom (FWAV2 `ERC721(c).safeTransferFrom(..)`) has no fee
+        # semantics -> fire only if some pull on the line is NOT clearly an NFT move.
+        if any(not _nft_transfer(text, s, _dot_before(s, pm.start()), pm.end() - 1) for pm in PULL_IN.finditer(s)):
             out.append((rel, i, s[:90],
                         "transferFrom pulls to address(this) but the file never measures a balanceOf(this) "
                         "delta -> a fee-on-transfer token over-credits; credit the MEASURED received amount", 1))

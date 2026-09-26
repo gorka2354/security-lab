@@ -2,7 +2,7 @@
  "Capyfi/capyfi-smart-contracts": {
   "repo": "Capyfi/capyfi-smart-contracts",
   "stars": 2,
-  "forks": 6,
+  "forks": 8,
   "open_issues": 2,
   "pushed_at": "2025-07-28T14:02:05Z",
   "updated_at": "2026-01-19T20:16:24Z",
@@ -10,33 +10,33 @@
   "archived": false,
   "license": "BSD-3-Clause",
   "description": null,
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "EquiVaults/equivaults-contracts": {
   "repo": "EquiVaults/equivaults-contracts",
   "stars": 1,
   "forks": 0,
   "open_issues": 0,
-  "pushed_at": "2026-08-11T06:22:53Z",
-  "updated_at": "2026-08-11T06:22:58Z",
+  "pushed_at": "2026-09-14T13:31:48Z",
+  "updated_at": "2026-09-14T13:31:37Z",
   "created_at": "2026-07-28T06:02:38Z",
   "archived": false,
   "license": "MIT",
   "description": "Non-custodial protocol for customizable multi-asset crypto vaults with automated rebalancing, configurable timelocks, and secure yield strategies.",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "KrystalDeFi/krystal-vault-contracts-v2": {
   "repo": "KrystalDeFi/krystal-vault-contracts-v2",
   "stars": 6,
-  "forks": 2,
-  "open_issues": 10,
-  "pushed_at": "2026-08-19T07:42:55Z",
-  "updated_at": "2026-08-19T07:44:12Z",
+  "forks": 3,
+  "open_issues": 11,
+  "pushed_at": "2026-09-24T08:57:51Z",
+  "updated_at": "2026-09-24T08:57:56Z",
   "created_at": "2025-03-05T10:30:26Z",
   "archived": false,
   "license": null,
   "description": null,
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "Littania/pulso-market": {
   "repo": "Littania/pulso-market",
@@ -49,7 +49,7 @@
   "archived": false,
   "license": "MIT",
   "description": "Solidity smart contracts for a price-based prediction market AMM with pool-distributed payouts",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "fenestbuc/wager-chess": {
   "repo": "fenestbuc/wager-chess",
@@ -62,7 +62,7 @@
   "archived": false,
   "license": null,
   "description": null,
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "jinruozai/ClawKing": {
   "repo": "jinruozai/ClawKing",
@@ -75,7 +75,7 @@
   "archived": false,
   "license": "MIT",
   "description": "The world's first on-chain AI battle royale. 8-player lobster brawl, fully computed by smart contracts. Write your AI strategy, mint your lobster, claim the crown.",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "kingskuan/luxmarket-contracts": {
   "repo": "kingskuan/luxmarket-contracts",
@@ -88,7 +88,7 @@
   "archived": false,
   "license": null,
   "description": "LuXMarket onchain contracts — LMSR binary prediction markets with shared pool, oracle + dispute window (X Layer, BuildX AI Season)",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "maketh-labs/arcade": {
   "repo": "maketh-labs/arcade",
@@ -101,7 +101,7 @@
   "archived": false,
   "license": null,
   "description": "Async gaming. Set up a game with a toll and reward. Play to win rewards.",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "maseer-finance/maseer-one": {
   "repo": "maseer-finance/maseer-one",
@@ -114,7 +114,7 @@
   "archived": false,
   "license": null,
   "description": null,
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "warlock-forge/heavy-helms-contracts": {
   "repo": "warlock-forge/heavy-helms-contracts",
@@ -127,20 +127,20 @@
   "archived": false,
   "license": "GPL-3.0",
   "description": "Onchain auto-battler RPG built entirely in Solidity. Combat engine, player progression, tournaments, and NFT equipment deployed on Base.",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "Dealers-sh/dealers-contracts": {
   "repo": "Dealers-sh/dealers-contracts",
   "stars": 1,
   "forks": 0,
   "open_issues": 0,
-  "pushed_at": "2026-08-20T14:51:47Z",
-  "updated_at": "2026-08-13T13:29:21Z",
+  "pushed_at": "2026-09-11T18:43:36Z",
+  "updated_at": "2026-09-11T18:43:41Z",
   "created_at": "2025-10-28T10:21:46Z",
   "archived": false,
   "license": null,
   "description": "On-chain mafia strategy game on Abstract Chain 🌹. PvE hustles, PvP battles, dynamic NFT dealers with fully on-chain SVG + interactive HTML renders.",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  },
  "Liquihood-dev/liquihood-contracts": {
   "repo": "Liquihood-dev/liquihood-contracts",
@@ -153,6 +153,6 @@
   "archived": false,
   "license": null,
   "description": "Liquihood smart contracts. Full lending protocol with isolated markets, kinked interest rates, health factor engine, and on-chain name registry. Deployed on Robinhood Chain (Chain ID 4663).",
-  "fetched": "2026-08-23"
+  "fetched": "2026-09-25"
  }
 }

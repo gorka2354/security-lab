@@ -1,6 +1,6 @@
 {
- "count": 150,
- "generated": "2026-08-23",
+ "count": 189,
+ "generated": "2026-09-26",
  "targets": {
   "1sec": {
    "addresses": [],
@@ -14,7 +14,7 @@
    "name": "1sec",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -39,7 +39,7 @@
    "name": "Aborean",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -63,7 +63,7 @@
    "name": "AccountSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -87,7 +87,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -109,7 +109,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -130,7 +130,7 @@
    "name": "Alvara",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -150,7 +150,7 @@
    "name": "ammalgam",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -169,7 +169,7 @@
    "name": "ammalgam-vaults",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -188,7 +188,7 @@
    "name": "Ample",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -197,6 +197,27 @@
    "status": "CLEAN",
    "zones": [
     "gamefi"
+   ]
+  },
+  "ample-money": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "ample-money",
+   "last_reason": "prize-linked savings, Base 8453 REACHED live. VRF proof off-chain-only (no on-chain crypto binding) but setMerkleRoots is operator-gated = intended trust model, not unprivileged. CLEAN.",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "ample-money",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "savings"
    ]
   },
   "antarctic-exchange": {
@@ -213,7 +234,7 @@
    "name": "Antarctic Exchange",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -228,7 +249,9 @@
   },
   "ape-church": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "apechain"
+   ],
    "firstseen": "2026-07-01",
    "fork_base": null,
    "key": "ape-church",
@@ -238,7 +261,7 @@
    "name": "ape-church",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -248,6 +271,7 @@
   "ape-church-deathfun": {
    "addresses": [],
    "chains": [
+    "apechain",
     "eth"
    ],
    "firstseen": "2026-07-01",
@@ -259,7 +283,7 @@
    "name": "ape-church-deathfun",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -278,7 +302,7 @@
    "name": "ape-church-house",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -297,7 +321,7 @@
    "name": "apiary-berachain",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -313,14 +337,168 @@
    "fork_base": null,
    "key": "apriori-aprmon",
    "last_reason": "CLEAN honest-negative (LIVE+ACTIVE+FUNDED ~920k MON, Monad/143). aprMON ERC-4626 LST guarded by design: totalAssets() is internal-counter-based (totalPendingDeposit+totalStaked-lockedRewards), NEVER reads address(this).balance -> classic do",
-   "lastupdated": "2026-08-15",
-   "ledger_entries": 1,
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 2,
    "name": "apriori-aprmon",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "vault"
+   ]
+  },
+  "arc-agentforge-protocol": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "arc-agentforge-protocol",
+   "last_reason": "[PARK/wave13-github-defillama] score 2. Ran the full pipeline. Phase 0 (reach): resolved the real deployed code cleanly -- the given lead address is AgentRegistry's UUPS/EIP-1967 proxy; fetch_source.py's proxy-follow didn't auto-resolve sin",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Arc AgentForge Protocol",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
+  },
+  "archiel-finance": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "archiel-finance",
+   "last_reason": "[PARK/wave13-github-defillama] score 4. Ran the full pipeline. Phase 0: cloned yukimana-dev/Archiel-Finance-contracts (43 .sol, matches lead) into hunts/_volume/archiel-arc/repo; README pins the given address 0xcAdDE...B3f8 as ArchielLiquid",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Archiel Finance",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
+  },
+  "arcis-core": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "arcis-core",
+   "last_reason": "githubsweep wave-12. LIVE Base 8453, deployed==repo byte-identical. liquidate() permissionless but NO liquidation bonus -> liquidating = guaranteed loss -> nobody liquidates -> bad-debt accrual (economic-design weakness, not a drain). high-",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "arcis-core",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": []
+  },
+  "arcus-perps": {
+   "addresses": [],
+   "chains": [
+    "robinhood"
+   ],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "arcus-perps",
+   "last_reason": "dYdX-built hybrid DEX, Robinhood 4663, ~19.2M TVL LIVE-GROWING. Perp math is OFF-CHAIN (not reachable). Rootchain (BridgeVault) ToB+OZ audited, all findings Resolved. Spot RFQ/Wrapped-Token layer (unaudited, live) READ CLEAN. UNREAD: rialto",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "arcus-perps",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "dex",
+    "perp"
+   ]
+  },
+  "artosphere": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "artosphere",
+   "last_reason": "[PARK/wave13-github-defillama] score 3. Ran the full pipeline. Phase 0: the sourced address 0x1C11133D... resolved (via fetch_source --proxy) to a PhiCoin/ARTS ERC20Votes governance-token proxy -- a decoy for the \"core,\" exactly per the CLA",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Artosphere",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "prediction"
+   ]
+  },
+  "artosphere-discoverystaking": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "artosphere-discoverystaking",
+   "last_reason": "wave13 REAL-but-LATENT: emergencyWithdraw()/withdrawExpired() gate only on !pool.resolved, never on pool.frozen, so after DiscoveryOracle.propose() reveals the outcome and freezes staking for 21d, a known-losing staker exits at 61.8% instea",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "artosphere-discoverystaking",
+   "owasp_classes": [
+    "SC04-InputValidation"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "staking"
+   ]
+  },
+  "astro-fun-crashgame": {
+   "addresses": [],
+   "chains": [
+    "robinhood"
+   ],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "astro-fun-crashgame",
+   "last_reason": "on-chain crash game, Robinhood 4663. RIGOROUS CLEAN via heimdall decompile+eth_call: refund/payout mutually exclusive (status byte pre-set + nonReentrant); finalizeRound operator-only w/ vault-side len+exposure reconciliation (2.5%/25% caps",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "astro-fun-crashgame",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
     "ledger"
    ],
    "status": "CLEAN",
@@ -342,7 +520,7 @@
    "name": "autorange-vaultfactory-0x93590F9a",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -363,7 +541,7 @@
    "name": "avalon-superearn",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -374,6 +552,27 @@
     "gamefi",
     "vault"
    ]
+  },
+  "avocado-fund": {
+   "addresses": [],
+   "chains": [
+    "arb"
+   ],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "avocado-fund",
+   "last_reason": "githubsweep wave-12. LIVE+FUNDED ~$43.8K Arbitrum, deployed==repo verified. declareDefault() non-idempotent (Borrower.principal never zeroed -> replay diverges totalPrincipal vs deployedAssets). BUT onlyOwner (Ownable2Step), no callback -> ",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "avocado-fund",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
   },
   "azverse-perps-assetvault": {
    "addresses": [],
@@ -389,7 +588,7 @@
    "name": "azverse-perps-assetvault",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -412,7 +611,7 @@
    "name": "Boar Finance",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -422,6 +621,29 @@
    "zones": [
     "yield"
    ]
+  },
+  "caldera": {
+   "addresses": [],
+   "chains": [
+    "robinhood"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "caldera",
+   "last_reason": "[PARK/wave13-github-defillama] score 2. Phase 0: cloned calderagame/caldera (single squashed commit, 2026-08-08→08-17, 329 files incl. deps, real actively-CI'd Foundry project — not a toy). No addresses committed anywhere (contracts/broadca",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Caldera",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
   },
   "cambria-duelarena": {
    "addresses": [],
@@ -437,7 +659,7 @@
    "name": "cambria-duelarena",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -459,7 +681,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "ledger"
@@ -475,20 +697,20 @@
    "firstseen": "2026-06-30",
    "fork_base": "compound",
    "key": "capyfi",
-   "last_reason": "CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle 0xfba2712d3bbcf32c6e0178a21955b61fe1ff424a = ChainlinkPriceOracle (verified); its LIVE getUnderlyingPrice has upd",
-   "lastupdated": "2026-06-30",
+   "last_reason": "recheck 2026-09-26: KNOWN: Immunefi known-issues CAPY-02 (Coinspect Risk None/Ack; OZ Ack) -> not eligible. Was: CONFIRMED LIVE (Gate-0 PASSED 2026-06-30): ETH mainnet. Comptroller 0x0b9af1fd73885aD52680A1aeAa7A3f17AC702afA -> wired oracle ",
+   "lastupdated": "2026-09-26",
    "ledger_entries": 1,
    "name": "capyfi",
    "owasp_classes": [
     "SC02-OracleManipulation"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "immunefi",
     "ledger"
    ],
-   "status": "REAL",
+   "status": "CLEAN",
    "zones": [
     "oracle"
    ]
@@ -508,7 +730,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -518,7 +740,8 @@
   "chisino-megaeth": {
    "addresses": [],
    "chains": [
-    "eth"
+    "megaeth",
+    "robinhood"
    ],
    "firstseen": "2026-08-22",
    "fork_base": null,
@@ -529,7 +752,7 @@
    "name": "chisino-megaeth",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -543,6 +766,7 @@
   "citrea-bridge": {
    "addresses": [],
    "chains": [
+    "citrea",
     "eth"
    ],
    "firstseen": "2026-06-26",
@@ -554,7 +778,7 @@
    "name": "Citrea Bridge",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -566,11 +790,31 @@
     "bridge"
    ]
   },
+  "clash-jayteemoney": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-23",
+   "fork_base": null,
+   "key": "clash-jayteemoney",
+   "last_reason": "Clash (Celo MiniPay 1v1 duel): settlement backend POST /api/duel/score trusts a client-supplied `address` with only shape validation, no signature/wallet-ownership proof -> anyone can claim a duel win. REAL but OFF-CHAIN (web2 API, not the ",
+   "lastupdated": "2026-08-23",
+   "ledger_entries": 1,
+   "name": "clash-jayteemoney",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": []
+  },
   "clawking": {
    "addresses": [
     "0xcaEa857C7E9aa1BAebFDbD9502f2BFA1e0451F10"
    ],
    "chains": [
+    "opbnb",
     "polygon"
    ],
    "firstseen": "2026-08-21",
@@ -582,7 +826,7 @@
    "name": "clawking",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -605,7 +849,7 @@
    "name": "curve-llamalend-v2",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -629,7 +873,7 @@
    "name": "Dango Bridge",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -655,7 +899,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -679,7 +923,7 @@
    "name": "dealers-sh",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -694,8 +938,7 @@
     "0x2c133230cfca00b9bf78c46dae03a97019d96551"
    ],
    "chains": [
-    "abstract",
-    "eth"
+    "abstract"
    ],
    "firstseen": "2026-06-14",
    "fork_base": null,
@@ -706,7 +949,7 @@
    "name": "death-fun",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -733,7 +976,7 @@
     "SC08-IntegerOverflow"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -758,7 +1001,7 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "ledger"
@@ -782,7 +1025,7 @@
    "name": "ea-finance-staking-wcc",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -803,7 +1046,7 @@
    "name": "Edel",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -827,7 +1070,7 @@
    "name": "enhanced-finance",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -855,7 +1098,7 @@
     "SC10-DoS"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -882,7 +1125,7 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -910,7 +1153,7 @@
    "name": "eva-markets",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -943,7 +1186,7 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -958,9 +1201,36 @@
     "yield"
    ]
   },
+  "everything-inc": {
+   "addresses": [],
+   "chains": [
+    "arb"
+   ],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "everything-inc",
+   "last_reason": "AMM+oracle-less lending, Arb 42161 REACHED. Novel invariant surface (collateral valued w/o oracle via AMM state) but 0 concrete suspicion this pass; needs a dedicated manipulation-in-same-tx read. dig_score 22.",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "everything-inc",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "dex",
+    "lending",
+    "oracle"
+   ]
+  },
   "fake-wall-street": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "robinhood"
+   ],
    "firstseen": "2026-08-22",
    "fork_base": null,
    "key": "fake-wall-street",
@@ -970,7 +1240,7 @@
    "name": "fake-wall-street",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -980,7 +1250,9 @@
   },
   "fake-wall-street-fws": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "robinhood"
+   ],
    "firstseen": "2026-08-22",
    "fork_base": null,
    "key": "fake-wall-street-fws",
@@ -990,13 +1262,47 @@
    "name": "fake-wall-street-fws",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "CLEAN",
    "zones": [
     "lottery"
+   ]
+  },
+  "fake-world-assets-v2": {
+   "addresses": [
+    "0x019817aD02a31B990433542097bE29D97613E8Cb",
+    "0x60661cfa46a470e0922a3b6e9998b343a3a53669",
+    "0x716486a7bD6B4d7409fC4F8B52f0B23D2BcFac72",
+    "0x958C41181182e76F221331b2755b77D9e1426A98",
+    "0xA54b44C7a894AA19C49734A753D01f9B8C5f6516",
+    "0xA59A249355efE20c6de666aaC43773aA1FD59De6",
+    "0xaA4D9009a4664604b57644bF13e447E9036727DC",
+    "0xd134029b301a820C137b5E7854bd21b83a6a7EAe",
+    "0xf5a3a153164791ab579c3d9ba5dbecf7cdfd300c"
+   ],
+   "chains": [
+    "eth"
+   ],
+   "firstseen": "2026-09-26",
+   "fork_base": null,
+   "key": "fake-world-assets-v2",
+   "last_reason": "CLEAN (wave 14): FWAV2 0x958C...6A98 (Ethereum, 722 ETH) = Chainlink VRF v2.5 + strict FIFO sequencer; the revealed word cannot steer the pool (post-reveal lock proven on a fork), no re-roll / out-of-order processing, each listing's backing",
+   "lastupdated": "2026-09-26",
+   "ledger_entries": 1,
+   "name": "fake-world-assets-v2",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "oracle"
    ]
   },
   "fedemolteni-forecast": {
@@ -1011,7 +1317,7 @@
    "name": "FedeMolteni/forecast",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1032,7 +1338,7 @@
    "name": "Flex",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1054,7 +1360,7 @@
    "name": "flip-battle",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1078,7 +1384,7 @@
    "name": "fluid-dex-v2",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1103,7 +1409,7 @@
    "name": "gacha",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1127,7 +1433,7 @@
    "name": "GAIB",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "defillama",
@@ -1156,7 +1462,7 @@
    "name": "GigaJuiceSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1174,18 +1480,18 @@
    "firstseen": "2026-06-15",
    "fork_base": null,
    "key": "gigaverse",
-   "last_reason": "PoC-PROVEN + GATE CONFIRMED on-chain: encodePacked(player,ids,amts,nonce) collision; _exportItemsFromGame has no len-equality check. Decoded real export txs (sel 0x59b43fc6): tx 0x842f79 = LEN-5 batch [4,21,76,83,7],[72,19,18,3,33] -> signe",
-   "lastupdated": "2026-06-15",
+   "last_reason": "recheck 2026-09-26: REAL, still vulnerable (not upgraded), dormant path; letter ready. Was todo: PoC-PROVEN + GATE CONFIRMED on-chain: encodePacked(player,ids,amts,nonce) collision; _exportItemsFromGame has no len-equality check. Decoded re",
+   "lastupdated": "2026-09-26",
    "ledger_entries": 1,
    "name": "gigaverse",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "immunefi",
     "ledger"
    ],
-   "status": "DIG",
+   "status": "REAL",
    "zones": []
   },
   "gigaverse-petracingsystem-0x0ba76cfc": {
@@ -1202,7 +1508,7 @@
    "name": "gigaverse-PetRacingSystem-0x0BA76CFC",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -1224,7 +1530,7 @@
     "SC09-BadRandomness"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1233,7 +1539,9 @@
   },
   "head2head-monkebet": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "apechain"
+   ],
    "firstseen": "2026-08-21",
    "fork_base": null,
    "key": "head2head-monkebet",
@@ -1243,7 +1551,7 @@
    "name": "head2head-monkebet",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1262,11 +1570,30 @@
    "name": "heavy-helms",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "REAL",
+   "zones": []
+  },
+  "helm-arc": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "helm-arc",
+   "last_reason": "githubsweep wave-12. Arc TESTNET ~$6.50 faucet USDC. ERC-4626 decimalsOffset=3 dead-shares; agentInvest/Divest hard-gated to isAllowedAdapter (construction-set, no runtime add); forceApprove reset to 0 post-invest; no delegatecall. CLEAN.",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "helm-arc",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
    "zones": []
   },
   "hoodbet-fun": {
@@ -1274,7 +1601,7 @@
     "0x8B6EdfeCe14210eCb2A8D28F333D81621103Dd19"
    ],
    "chains": [
-    "arb"
+    "robinhood"
    ],
    "firstseen": "2026-08-21",
    "fork_base": null,
@@ -1285,7 +1612,7 @@
    "name": "hoodbet-fun",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1306,7 +1633,7 @@
    "name": "hyperbeat-liquid-bank",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1331,7 +1658,7 @@
    "name": "Hyperbeat USD",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1357,7 +1684,7 @@
    "name": "Ignition LST",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1380,7 +1707,7 @@
    "name": "ImportExportSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1402,7 +1729,7 @@
    "name": "ItemMarketSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1424,7 +1751,7 @@
    "name": "justlend-v2",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -1446,7 +1773,7 @@
    "name": "K613",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1465,13 +1792,13 @@
    "firstseen": "2026-08-22",
    "fork_base": null,
    "key": "katana-perps",
-   "last_reason": "Exchange_v2 = not-yet-public V2 of the audited Kuma/IDEX Ikon perps stack; LIVE-ACTIVE + ~$2.13M USDC custody. No confirmed bug this pass -> DIG-MORE (best follow-up target of the wave). Katana chain 747474 (not in fork-fuzz map).",
-   "lastupdated": "2026-08-22",
-   "ledger_entries": 1,
+   "last_reason": "Exchange_v2 (Katana 747474, ~$2.17M live) rigorously CLEARED: full normalized diff vs the audited Niseko/IDEX-Ikon base = 4 library files only (EIP-712 version bump, 2 unused Math helpers, a proven-no-op ManagedAccounts require simplificati",
+   "lastupdated": "2026-08-23",
+   "ledger_entries": 2,
    "name": "katana-perps",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1496,7 +1823,7 @@
     "SC02-OracleManipulation"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1527,7 +1854,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1550,7 +1877,7 @@
    "name": "krystal-community-vault-lpStrategy-0x851ee187bc85152708d38a421d48733f1490a8e3",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1574,7 +1901,7 @@
    "name": "krystal-shared-vault",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -1598,7 +1925,7 @@
    "name": "krystal-sharedvault-v4",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1619,7 +1946,7 @@
    "name": "krystal-sharedvault-v4-strategy/0x91e51388F894c3A4c204E643140e480c53BF1f20@42161",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1642,7 +1969,7 @@
    "name": "lazy",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1671,11 +1998,39 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "CLEAN",
+   "zones": []
+  },
+  "levr-bet": {
+   "addresses": [
+    "0x08Dd3D91e60a6c856D1aeBE02237322aD3Caa583",
+    "0x141B1d9Ebd2E21749d6425CaeBaCc9704aAb9583",
+    "0x2880aB155794e7179c9eE2e38200202908C17B43",
+    "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+    "0xcdb28317a1c83b6e042fb83342ec0c109f77c7f3",
+    "0xd05ebdcd4757c75b08d59c16638c5795c8e55004"
+   ],
+   "chains": [
+    "monad"
+   ],
+   "firstseen": "2026-09-26",
+   "fork_base": null,
+   "key": "levr-bet",
+   "last_reason": "DIG / PARKED (wave 14): Monad mainnet chain 143, LevrMvpDepository 0x141B1d9Ebd2E21749d6425CaeBaCc9704aAb9583 holds 1.9M USDC; 19 contracts, none verified, no public repo, frontend behind AWS WAF. Next: heimdall decompile (Market 0x51fe22aa",
+   "lastupdated": "2026-09-26",
+   "ledger_entries": 1,
+   "name": "levr-bet",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
    "zones": []
   },
   "liquihood": {
@@ -1694,7 +2049,7 @@
    "name": "liquihood",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1713,7 +2068,7 @@
    "name": "lisAster",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1737,7 +2092,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1761,7 +2116,7 @@
    "name": "lista-rwa-0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -1784,7 +2139,7 @@
    "name": "LiveArt",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -1808,12 +2163,44 @@
    "name": "LiveArt/VestingStrategy",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "DIG",
    "zones": []
+  },
+  "longbow": {
+   "addresses": [
+    "0x04822Ea321A0DEE6F40656172F29312104855d66",
+    "0x451b42a15100c340ca12f7c66de06fac5ea2d751",
+    "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+    "0x929631b33F4070D6f54477fba3FD27566567dAca",
+    "0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010",
+    "0xCDE9599059f8Ae6D6B9F33A0aF7877827ec75F16",
+    "0xf0eef247585b184836915e80f984246d981c55c4"
+   ],
+   "chains": [
+    "robinhood"
+   ],
+   "firstseen": "2026-09-26",
+   "fork_base": "morpho",
+   "key": "longbow",
+   "last_reason": "CLEAN (wave 14): Robinhood Chain 4663, stock Morpho Blue + Vault V2 (unmodified); drift = oracle layer only (UniV2/UniV3 TWAP, fail-closed spot, backing-floor clamp; Chainlink-style RH stock feeds). Residual by design: divergence guard paus",
+   "lastupdated": "2026-09-26",
+   "ledger_entries": 1,
+   "name": "longbow",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "oracle",
+    "vault"
+   ]
   },
   "lorenzo-susd1": {
    "addresses": [],
@@ -1827,7 +2214,7 @@
    "name": "Lorenzo sUSD1+",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1855,7 +2242,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1866,7 +2253,9 @@
    "addresses": [
     "0xFb7154E06B068031502051D285dE910b16A5aF0D"
    ],
-   "chains": [],
+   "chains": [
+    "xlayer"
+   ],
    "firstseen": "2026-08-21",
    "fork_base": "curve",
    "key": "luxmarket",
@@ -1876,7 +2265,7 @@
    "name": "luxmarket",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1900,7 +2289,7 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1923,7 +2312,7 @@
    "name": "mantle-index-four",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -1949,7 +2338,7 @@
    "name": "mantle-index-four-fund",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -1970,17 +2359,17 @@
    "firstseen": "2026-08-21",
    "fork_base": null,
    "key": "maseer-one-wstgbp",
-   "last_reason": "LOW / admin-gated defense-in-depth (code-confirmed, LIVE+FUNDED ~83k tGBP backing, ETH/1, MaseerOne 0x57C3571f). redeem() (MaseerOne.sol:212-252) checks the RAW oracle price (_unit==0 revert, line 220) but NOT the post-spread value: line 22",
-   "lastupdated": "2026-08-15",
+   "last_reason": "recheck 2026-09-26: KNOWN: Prototech wstGBP audit 2026-04-29 p.25, acknowledged, no change planned -> DROP. Was: LOW / admin-gated defense-in-depth (code-confirmed, LIVE+FUNDED ~83k tGBP backing, ETH/1, MaseerOne 0x57C3571f). redeem() (Mase",
+   "lastupdated": "2026-09-26",
    "ledger_entries": 1,
    "name": "maseer-one-wstgbp",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
-   "status": "REAL",
+   "status": "CLEAN",
    "zones": [
     "oracle",
     "rwa"
@@ -2000,7 +2389,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2009,21 +2398,23 @@
   },
   "meridian-perps": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "robinhood"
+   ],
    "firstseen": "2026-08-22",
    "fork_base": null,
    "key": "meridian-perps",
-   "last_reason": "DVNPublisher NAV oracle threshold()=1 and investmentManager is an approved signer + default executor -> the manager alone can publish NAV within +/-5% deviation per publish (defeats the multi-signer DVN premise). Trusted-role centralization",
-   "lastupdated": "2026-08-22",
+   "last_reason": "recheck 2026-09-26: HYPOTHESIS only (trusted-role centralization, no PoC / no address) -> HOLD, re-dig before any claim. Was: DVNPublisher NAV oracle threshold()=1 and investmentManager is an approved signer + default executor -> the manage",
+   "lastupdated": "2026-09-26",
    "ledger_entries": 1,
    "name": "meridian-perps",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
-   "status": "REAL",
+   "status": "DIG",
    "zones": [
     "oracle",
     "perp"
@@ -2031,7 +2422,9 @@
   },
   "meridian-predict": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "robinhood"
+   ],
    "firstseen": "2026-08-17",
    "fork_base": null,
    "key": "meridian-predict",
@@ -2043,7 +2436,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2064,7 +2457,7 @@
    "name": "mezo-borrow",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2093,7 +2486,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -2113,7 +2506,7 @@
    "name": "Mezo Vaults",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "defillama",
@@ -2124,6 +2517,50 @@
    "zones": [
     "vault",
     "yield"
+   ]
+  },
+  "mezo-vaults-smusd": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "mezo-vaults-smusd",
+   "last_reason": "Halborn-audited (sMUSD savings-rate 4626); flash-loan yield-index dilution HIGH already fixed @67b8d87 (force-distribute before deposit); setStrategy owner-strand is acknowledged-informational. CLEAN.",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "mezo-vaults-smusd",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "index",
+    "savings",
+    "yield"
+   ]
+  },
+  "mini-7575-vault": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "mini-7575-vault",
+   "last_reason": "githubsweep wave-12. UNDEPLOYED teaching repo (ERC-7575 multi-asset). Cross-vault value non-conservation is a design gap requiring trusted owner to register non-value-pegged assets -> not a finding. CLEAN.",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "mini-7575-vault",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "vault"
    ]
   },
   "monolith-market": {
@@ -2142,7 +2579,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -2162,12 +2599,12 @@
    "fork_base": "morpho",
    "key": "morpho-midnight",
    "last_reason": "9 audits (Spearbit x4, Stermi, Cantina competition, Blackthorn x2, TrustSec incl. 2026-08-03 buy-callback-specific re-audit), formal verification claimed, immutable. Full-read of Midnight.sol+libs: no exploitable vector found. Rounding-in-f",
-   "lastupdated": "2026-08-15",
-   "ledger_entries": 1,
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 2,
    "name": "morpho-midnight",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -2192,7 +2629,7 @@
    "name": "myriad-markets",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2217,7 +2654,7 @@
    "name": "narbet-casino",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2227,7 +2664,6 @@
   "narbet-monad": {
    "addresses": [],
    "chains": [
-    "eth",
     "monad"
    ],
    "firstseen": "2026-08-22",
@@ -2239,7 +2675,7 @@
    "name": "narbet-monad",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -2262,7 +2698,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2286,9 +2722,28 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
+  },
+  "onchain-heroes": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-09-26",
+   "fork_base": null,
+   "key": "onchain-heroes",
+   "last_reason": "FALSE POSITIVE (recheck 2026-09-26): the claimed unbounded rarity loop needs chances summing <100, but setSlotRarity reverts InvalidPercentage unless the sum is 100 (:174-176), GachaMachine.setWeaponRarityChances likewise (:241), and a zero",
+   "lastupdated": "2026-09-26",
+   "ledger_entries": 1,
+   "name": "onchain-heroes",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
     "ledger"
    ],
    "status": "CLEAN",
@@ -2308,7 +2763,7 @@
    "name": "panoptic-v2",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -2321,7 +2776,6 @@
   "perpl-exchange-monad": {
    "addresses": [],
    "chains": [
-    "eth",
     "monad"
    ],
    "firstseen": "2026-08-15",
@@ -2333,12 +2787,35 @@
    "name": "perpl-exchange-monad",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "DIG",
    "zones": []
+  },
+  "perpl-monad": {
+   "addresses": [],
+   "chains": [
+    "monad"
+   ],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "perpl-monad",
+   "last_reason": "Monad 143 perps CLOB. DelegatedAccount+Factory read CLEAN (no fund-exfil); CORE Exchange/matching/liquidation UNREAD this pass. dig_score 30 -> re-approach core.",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "perpl-monad",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "perp"
+   ]
   },
   "petracingsystem": {
    "addresses": [],
@@ -2352,7 +2829,7 @@
    "name": "PetRacingSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -2376,11 +2853,53 @@
    "name": "pharaoh-dlmm",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "CLEAN",
+   "zones": []
+  },
+  "plinth": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "plinth",
+   "last_reason": "[PARK/wave13-github-defillama] score 3. Ran the full pipeline. Phase 0: cloned github.com/Ccheh/plinth into hunts/_volume/plinth-arc/ (34 .sol files across contracts/src, script, test). Confirmed the deployed PlinthV06 bytecode exists on-ch",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "plinth",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
+  },
+  "pmarket-ctfexchange": {
+   "addresses": [],
+   "chains": [
+    "polygon"
+   ],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "pmarket-ctfexchange",
+   "last_reason": "CTFExchange._assertOrderWithSig checks ECDSA.recover==order.signer but NEVER binds signer==order.maker (drift from Polymarket verifyEOASignature). Forged order signed by ATTACKER with maker=VICTIM -> self-cross drains any USDC/CTF approver.",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "pmarket-ctfexchange",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "REAL",
    "zones": []
   },
   "posi-vaults": {
@@ -2397,7 +2916,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2418,7 +2937,7 @@
    "name": "PRED",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -2426,6 +2945,37 @@
    "status": "CLEAN",
    "zones": [
     "prediction"
+   ]
+  },
+  "predix-plinko": {
+   "addresses": [
+    "0x33f451821565e4f45946b29c16889cf9be0d67cd",
+    "0x84da8745aa578eacbd4c8a448bcd40d93c284702",
+    "0x8704751E56Aa6A184079681591258DE664d77BE7",
+    "0xA600ad53dcBd8a13F4f2Af3540fCCA2EE424e1bF",
+    "0xaA035F511272d214eFcADC844809E9D7Cf97576C",
+    "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    "0xc27f666178c062b939a6899ca6e0e127d2595de7"
+   ],
+   "chains": [
+    "arb"
+   ],
+   "firstseen": "2026-09-26",
+   "fork_base": "curve",
+   "key": "predix-plinko",
+   "last_reason": "CLEAN (wave 14): Arbitrum 42161, deployed == repo; Pyth first-update pinning, house is the counterparty (no permissionless curve), creditPayout reverts Insolvent -> order skipped, withdraw needs player + operator sigs. Residual = documented",
+   "lastupdated": "2026-09-26",
+   "ledger_entries": 1,
+   "name": "predix-plinko",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "vault"
    ]
   },
   "predmart": {
@@ -2442,7 +2992,7 @@
    "name": "predmart",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2454,17 +3004,19 @@
   },
   "pulso-market": {
    "addresses": [],
-   "chains": [],
+   "chains": [
+    "amoy"
+   ],
    "firstseen": "2026-08-22",
-   "fork_base": null,
+   "fork_base": "curve",
    "key": "pulso-market",
-   "last_reason": "LMSR buy/sell price whole batch at pre-trade spot -> atomic round-trip drains pool+seed (CRITICAL, pre-launch)",
-   "lastupdated": "2026-08-22",
-   "ledger_entries": 1,
+   "last_reason": "CRITICAL (2nd LuXMarket-class): buyShares/sellShares price whole batch at pre-trade spot (getPriceYes before mint/burn) instead of integrating cost curve -> atomic buy->sell round-trip drains pool+seed. Confirmed 2 ways identical: poc_sim.p",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 2,
    "name": "pulso-market",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2488,7 +3040,7 @@
    "name": "punks-terminal",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2513,7 +3065,7 @@
    "name": "R25 / Lazy Protocol -- LazyUSDVault",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2537,7 +3089,7 @@
    "name": "RandomSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -2561,11 +3113,57 @@
     "SC02-OracleManipulation"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "CLEAN",
+   "zones": []
+  },
+  "realt-rmm-marketplace-v2": {
+   "addresses": [],
+   "chains": [
+    "gnosis"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": "aave",
+   "key": "realt-rmm-marketplace-v2",
+   "last_reason": "[DIG-CAREFUL/wave13-github-defillama] score 5. Phase 0 (reach): defillama.py's slug lookup 404'd, so I cross-referenced the DefiLlama /lite/protocols2 feed directly and confirmed \"RealT RMM Marketplace V2\" (TVL $29.65M, forkedFrom Aave V3, ",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "RealT RMM Marketplace V2",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": []
+  },
+  "realt-rmm-v2": {
+   "addresses": [],
+   "chains": [
+    "gnosis"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": "aave",
+   "key": "realt-rmm-v2",
+   "last_reason": "wave13 Medium (PoC 3/3, realt-rmm-poc/): _syncReusdBalance() is the unconditional first stmt of withdrawReg/borrowReusd/repayReusdWithStable/syncReusdBalance and burns the aREUSD's REUSD balance, but the manager holds neither GOVERNANCE_ROL",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 2,
+   "name": "realt-rmm-v2",
+   "owasp_classes": [
+    "SC10-DoS"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "REAL",
    "zones": []
   },
   "redeemsystem": {
@@ -2580,7 +3178,7 @@
    "name": "RedeemSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -2604,7 +3202,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2623,7 +3221,7 @@
    "name": "revert-lend",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -2647,7 +3245,7 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2655,6 +3253,75 @@
    "zones": [
     "rwa",
     "vault"
+   ]
+  },
+  "riccati-finance": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "riccati-finance",
+   "last_reason": "githubsweep wave-12. Arc TESTNET fresh-uninitialized ($0). Full hand-read PT/YT split-brain + isolated-lending liq: CLEAN. donation capped at RATE_SCALE via Math.min; virtual-shares 1e6 block first-depositor; borrow/withdraw re-check health",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "riccati-finance",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "lending"
+   ]
+  },
+  "risex": {
+   "addresses": [
+    "0xa51c3d367e895988232750d297d8904cd712ab91"
+   ],
+   "chains": [],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "risex",
+   "last_reason": "REACHED via heimdall decompile (7 impls) + READ (5 Opus agents+skeptic) + my live-trace grounding. CLEAN for unprivileged attacker: ALL value-moving fns (liquidate/crossTakeover/ADL/OTC) role-gated (eth_call-proven AccessManagedUnauthorized",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 3,
+   "name": "risex",
+   "owasp_classes": [
+    "SC01-AccessControl"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "oracle"
+   ]
+  },
+  "risex-oracle-hardening": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-25",
+   "fork_base": null,
+   "key": "risex-oracle-hardening",
+   "last_reason": "LOW goodwill-hardening (defense-in-depth, NOT unprivileged-exploitable): RISExOracle wrapper circuit-breaker inert -- deviationThresholdBps()=0, no fallback source, no block.timestamp staleness revert in getMarkPrice/getIndexPrice (docs pro",
+   "lastupdated": "2026-08-25",
+   "ledger_entries": 1,
+   "name": "risex-oracle-hardening",
+   "owasp_classes": [
+    "SC02-OracleManipulation"
+   ],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "REAL",
+   "zones": [
+    "oracle"
    ]
   },
   "rocksolid": {
@@ -2671,7 +3338,7 @@
    "name": "rocksolid",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2692,7 +3359,7 @@
    "name": "royco-day",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "ledger"
@@ -2722,7 +3389,7 @@
     "SC02-OracleManipulation"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -2747,7 +3414,7 @@
    "name": "rujira-money-market",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "defillama",
@@ -2758,6 +3425,30 @@
     "credit",
     "lending",
     "vault"
+   ]
+  },
+  "rushbase": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "rushbase",
+   "last_reason": "[SKIP/wave13-github-defillama] score 1.5. Phase 0 (reach): fetch_source.py --proxy on the given address on Base pulled 2 verified files (MarketFactory.sol 186 lines, PredictionMarket.sol 490 lines, both fully read) -- this IS the deployed f",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "RushBase",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "oracle",
+    "prediction"
    ]
   },
   "rysk-ciao": {
@@ -2772,7 +3463,7 @@
    "name": "rysk-ciao",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "immunefi",
     "ledger"
@@ -2794,7 +3485,7 @@
    "name": "Rysk Premium",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2823,7 +3514,7 @@
    "name": "rysk-premium-vault-registry",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -2848,7 +3539,7 @@
    "name": "sakuraswap",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2873,7 +3564,7 @@
    "name": "sodax-spoke-assetmanager-0x39E77f86",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -2894,7 +3585,7 @@
    "name": "SoDEX Bridge / SoSoValue SSI Protocol",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2910,9 +3601,7 @@
   },
   "solo-ascend": {
    "addresses": [],
-   "chains": [
-    "eth"
-   ],
+   "chains": [],
    "firstseen": "2026-06-13",
    "fork_base": null,
    "key": "solo-ascend",
@@ -2922,7 +3611,7 @@
    "name": "solo-ascend",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -2947,12 +3636,37 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "CLEAN",
    "zones": []
+  },
+  "sparkdex-stflr": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "sparkdex-stflr",
+   "last_reason": "[DIG-CAREFUL/wave13-github-defillama] score 5. Phase 0 (reach) was the real work here: DefiLlama's listed \"address\" (0x657097cc...) is the SPRK gov token, confirmed by fetching the DefiLlama-Adapters index.js for sparkdex-stflr, which names",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "SparkDEX stFLR",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "index",
+    "staking",
+    "vault"
+   ]
   },
   "stakelink": {
    "addresses": [
@@ -2974,7 +3688,7 @@
     "SC02-OracleManipulation"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3000,7 +3714,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3024,7 +3738,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -3046,7 +3760,7 @@
    "name": "stockfi",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3067,7 +3781,7 @@
    "name": "strato",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -3078,6 +3792,33 @@
     "cdp",
     "gamefi",
     "stablecoin"
+   ]
+  },
+  "superearn": {
+   "addresses": [],
+   "chains": [
+    "kaia"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": "yearn",
+   "key": "superearn",
+   "last_reason": "wave13: SuperEarn is 3x-Certik-audited + self-hosted bounty (00-0k). 11 candidates -> 8 hard FP (most are the bounty doc's own pre-filed known-issues/AI-FP table), 3 informational, 1 LT. The LT (#9): StrategyOriginVault.premintCooldownVault",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 2,
+   "name": "SuperEarn",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "DIG",
+   "zones": [
+    "bridge",
+    "vault",
+    "yield"
    ]
   },
   "syntropia": {
@@ -3092,7 +3833,7 @@
    "name": "syntropia",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -3101,6 +3842,46 @@
    "zones": [
     "yield"
    ]
+  },
+  "tartswap": {
+   "addresses": [],
+   "chains": [
+    "bsc"
+   ],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "tartswap",
+   "last_reason": "githubsweep wave-12. BSC deployed==repo but INERT (0 CREPE reward funding, rewardPerSecond=0). No per-pool reward-budget isolation (rewardAvailable global) -> FCFS shortfall redistribution under operator underfunding. Medium->Low: no unpriv",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "tartswap",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": []
+  },
+  "tartswap-lpfarmv3": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "tartswap-lpfarmv3",
+   "last_reason": "Cross-pool reward-token isolation defect: rewardAvailable(pid)=balanceOf(this)-totalStakedByToken[rewardToken] is GLOBAL per reward token (LPFarmV3:277-285); addPool de-dupes stakeToken only NOT rewardToken (:100 vs :119-120); fundRewards p",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "tartswap-lpfarmv3",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "REAL",
+   "zones": []
   },
   "textile-fx": {
    "addresses": [],
@@ -3114,7 +3895,7 @@
    "name": "textile-fx",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3126,9 +3907,7 @@
   },
   "textile-fx-0x225f99aaaa914d0481ef3a0bedd8aabf1b9c4d1d": {
    "addresses": [],
-   "chains": [
-    "eth"
-   ],
+   "chains": [],
    "firstseen": "2026-08-15",
    "fork_base": null,
    "key": "textile-fx-0x225f99aaaa914d0481ef3a0bedd8aabf1b9c4d1d",
@@ -3140,7 +3919,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3150,7 +3929,7 @@
   "the-arbiter-arena": {
    "addresses": [],
    "chains": [
-    "monad"
+    "monad-testnet"
    ],
    "firstseen": "2026-08-22",
    "fork_base": null,
@@ -3161,7 +3940,7 @@
    "name": "the-arbiter-arena",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3172,7 +3951,7 @@
    "addresses": [],
    "chains": [
     "eth",
-    "monad"
+    "monad-testnet"
    ],
    "firstseen": "2026-06-13",
    "fork_base": null,
@@ -3183,7 +3962,7 @@
    "name": "the-lobster-pot",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -3192,6 +3971,31 @@
    "status": "CLEAN",
    "zones": [
     "gamefi"
+   ]
+  },
+  "the-pit": {
+   "addresses": [],
+   "chains": [
+    "arb"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "the-pit",
+   "last_reason": "[SKIP/wave13-github-defillama] score 2. Sourcing lead's address/chain pairing was wrong: 0xDe5302...832F7 has NO bytecode on Arbitrum (42161) — confirmed via reach_bytecode.py and activity.py (clean NO-CODE). Traced the real deployment thro",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "The Pit",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "prediction"
    ]
   },
   "tizi": {
@@ -3203,12 +4007,12 @@
    "fork_base": null,
    "key": "tizi",
    "last_reason": "Split-brain rebase contamination, LIVE+PoC+Beosin-missed (plausibly novel). CRITICALITY NOW = INERT: liquid USDC buffer static $1.75 for >=7d (archive-RPC: $1.75 now/1d/7d, $0 at 30d, $480 at 90d when supply=500); buggy liquid path capped a",
-   "lastupdated": "2026-06-15",
-   "ledger_entries": 3,
+   "lastupdated": "2026-09-26",
+   "ledger_entries": 4,
    "name": "Tizi",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -3235,7 +4039,7 @@
     "SC01-AccessControl"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3259,7 +4063,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3282,7 +4086,7 @@
     "SC05-Reentrancy"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -3310,13 +4114,40 @@
    "name": "usual-eth0",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
    ],
    "status": "CLEAN",
    "zones": []
+  },
+  "valos": {
+   "addresses": [],
+   "chains": [
+    "monad"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "valos",
+   "last_reason": "[SKIP/wave13-github-defillama] score 3. Phase 0: DefiLlama's Valos listing has no github/address -- resolved the real deployment myself: web search -> Monad blog post (Valos+Accountable institutional credit vault, launched Feb 2026) -> trad",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Valos",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "credit",
+    "rwa",
+    "vault"
+   ]
   },
   "vbill": {
    "addresses": [],
@@ -3332,7 +4163,7 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3355,7 +4186,7 @@
    "name": "Vena Finance",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "contest",
     "defillama",
@@ -3382,7 +4213,7 @@
    "name": "VendorSystem",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "fanout",
     "ledger"
@@ -3404,7 +4235,7 @@
    "name": "venus-flux",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -3419,13 +4250,13 @@
   "wager-chess-fenestbuc": {
    "addresses": [],
    "chains": [
-    "eth"
+    "monad-testnet"
    ],
    "firstseen": "2026-07-10",
    "fork_base": null,
    "key": "wager-chess-fenestbuc",
    "last_reason": "wager-chess (fenestbuc, GitHub, on-chain wager chess; TRAINING rep, GameFi focus). Reentrancy CLOSED (claimPayout/withdrawUnmatchedWager/claimTimeout all CEI + pull-payment pendingWithdrawals). Lead KILLED: claimTimeout insta-steal -- lastM",
-   "lastupdated": "2026-07-10",
+   "lastupdated": "2026-09-26",
    "ledger_entries": 2,
    "name": "wager-chess-fenestbuc",
    "owasp_classes": [
@@ -3433,13 +4264,37 @@
     "SC03-LogicError"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "REAL",
    "zones": [
     "gamefi"
+   ]
+  },
+  "wise-token": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "wise-token",
+   "last_reason": "[SKIP/wave13-github-defillama] score 4. Phase 0: DefiLlama protocol id 8449 'Wise Token' resolved cleanly -- token addr 0x66a0...5bd6 is real (not a decoy), confirmed by fetch_source.py Etherscan-v2 verified-source pull that byte-for-byte m",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Wise Token",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "staking",
+    "yield"
    ]
   },
   "witty": {
@@ -3456,7 +4311,7 @@
    "name": "witty",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "fanout",
@@ -3480,7 +4335,7 @@
    "name": "witty-arcade",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
@@ -3504,7 +4359,7 @@
     "SC08-IntegerOverflow"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
@@ -3513,26 +4368,24 @@
   },
   "wstgbp": {
    "addresses": [],
-   "chains": [
-    "arb"
-   ],
+   "chains": [],
    "firstseen": "2026-08-15",
    "fork_base": "compound",
    "key": "wstgbp",
    "last_reason": "wsgem-fraxlend is NOT a copy-fork of FraxlendPairCore; it's a standalone IDualOracle adapter (WsgemFraxlendDualOracle.sol) + FraxLend v5 pair-deploy scripting. forkdrift.py fingerprint found NO known-audited base match (correctly -- it IS o",
-   "lastupdated": "2026-08-15",
+   "lastupdated": "2026-09-26",
    "ledger_entries": 3,
    "name": "wstgbp",
    "owasp_classes": [
     "SC04-InputValidation"
    ],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "defillama",
     "ledger"
    ],
-   "status": "REAL",
+   "status": "CLEAN",
    "zones": [
     "lending",
     "oracle"
@@ -3552,13 +4405,88 @@
    "name": "xax-xausd-vault",
    "owasp_classes": [],
    "reviewed_impl": {},
-   "run_tag": "2026-08-23",
+   "run_tag": "2026-09-26",
    "sources": [
     "ledger"
    ],
    "status": "CLEAN",
    "zones": [
     "vault"
+   ]
+  },
+  "xphere-stake": {
+   "addresses": [],
+   "chains": [],
+   "firstseen": "2026-08-26",
+   "fork_base": null,
+   "key": "xphere-stake",
+   "last_reason": "githubsweep wave-12. LIVE staking vault (non-Etherscan chain, RPC-confirmed value). Staking share math + reward distribution CLEAN on read. no unprivileged extraction.",
+   "lastupdated": "2026-08-26",
+   "ledger_entries": 1,
+   "name": "xphere-stake",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "staking",
+    "vault"
+   ]
+  },
+  "zentory-protocol": {
+   "addresses": [],
+   "chains": [
+    "hyperevm"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": null,
+   "key": "zentory-protocol",
+   "last_reason": "[PARK/wave13-github-defillama] score 3. PHASE 0/0.5: Cloned Zentory-Labs/zentory-protocol into hunts/_volume/zentory-hyperevm/repo (public, active — pushed today 2026-08-28, latest commit a docs/security-policy PR). DEPLOYMENTS.md is unambi",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 1,
+   "name": "Zentory Protocol",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger"
+   ],
+   "status": "CLEAN",
+   "zones": [
+    "vault"
+   ]
+  },
+  "zentra-finance": {
+   "addresses": [],
+   "chains": [
+    "btc",
+    "citrea"
+   ],
+   "firstseen": "2026-08-28",
+   "fork_base": "aave",
+   "key": "zentra-finance",
+   "last_reason": "wave13 HONEST-NEGATIVE on a live+funded (60K, Citrea 4114) genuinely-unaudited Aave-v3.0.x fork. 11 candidates from 3 lenses, 0 above informational after the skeptic. Confirmed live: hooks wired (getPoolHooks=0x9df4ba), AFTER_LIQUIDATION ho",
+   "lastupdated": "2026-08-28",
+   "ledger_entries": 2,
+   "name": "Zentra Finance",
+   "owasp_classes": [],
+   "reviewed_impl": {},
+   "run_tag": "2026-09-26",
+   "sources": [
+    "defillama",
+    "fanout",
+    "ledger",
+    "legacy"
+   ],
+   "status": "DIG",
+   "zones": [
+    "lending",
+    "stablecoin"
    ]
   }
  }

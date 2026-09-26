@@ -30,6 +30,7 @@ import re
 import sys
 import time
 import urllib.parse
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 import urllib.request
 
 import ledger
@@ -108,7 +109,10 @@ def readme_signals(text):
 
 
 def tree_signals(paths):
-    """From a git-tree path list: deploy artifacts present + number of .sol contract files."""
+    """From a git-tree path list: deploy artifacts present + number of .sol contract files. `None` = the tree
+    was never read (rate-limited) -> no bonus, but marked `unread` so the row doesn't pass for 'no contracts'."""
+    if paths is None:
+        return {"has_artifact": False, "sol_files": 0, "unread": True}
     has_artifact = any(ARTIFACT_RE.search(p) for p in paths)
     sol_files = sum(1 for p in paths if SOL_RE.search(p))
     return {"has_artifact": has_artifact, "sol_files": sol_files}
@@ -152,12 +156,18 @@ def _throttle():
     time.sleep(2.5 if os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") else 7.0)
 
 
+SEARCH_FAILED = []  # queries lost even after scout's rate-limit retry -> the queue is marked PARTIAL
+TREE_FAILED = []    # repos whose git tree was never read (core REST 60/hr unauth) -> their scores are lower bounds
+
+
 def search_repos(q, per_page=50, sort="updated"):
-    """One /search/repositories call. Returns items[] (or [] on rate-limit/error, graceful)."""
+    """One /search/repositories call -> (items, total). A failed call returns ([], None) AND is recorded in
+    SEARCH_FAILED, so a lost query is reported as a coverage gap instead of passing for 'no results'."""
     url = ("https://api.github.com/search/repositories?q="
            + urllib.parse.quote(q) + f"&sort={sort}&order=desc&per_page={per_page}")
-    d = scout.gh(url)  # scout.gh already attaches GITHUB_TOKEN if present
+    d = scout.gh(url)  # attaches GITHUB_TOKEN/GH_TOKEN; waits out a per-minute search rate-limit once
     if not isinstance(d, dict):
+        SEARCH_FAILED.append(q)
         return [], None
     return d.get("items", []) or [], d.get("total_count")
 
@@ -178,10 +188,12 @@ def raw_readme(full_name, branch):
 
 
 def git_tree(full_name, branch):
-    """One core-REST git/trees call (separate 60/hr-unauth bucket). Returns path list (possibly truncated)."""
+    """One core-REST git/trees call (separate 60/hr-unauth bucket). Returns path list (possibly truncated), or
+    None when the call failed -- recorded in TREE_FAILED (was [] = 'no contracts', silently -110 score)."""
     d = scout.gh(f"https://api.github.com/repos/{full_name}/git/trees/{branch or 'main'}?recursive=1")
     if not isinstance(d, dict):
-        return []
+        TREE_FAILED.append(full_name)
+        return None
     return [t.get("path", "") for t in d.get("tree", []) if t.get("type") == "blob"]
 
 
@@ -295,7 +307,13 @@ def run(days, top, topics, hack_topics, max_fetch, min_size_kb, today, out, do_c
     if do_code_search:
         _code_search_note(out_rows[:top])
 
-    md = _render(out_rows[:top], today, len(done), days)
+    if SEARCH_FAILED:
+        print(f"  [PARTIAL] {len(SEARCH_FAILED)} search quer(ies) failed -> NOT covered this run: "
+              + "; ".join(SEARCH_FAILED), file=sys.stderr)
+    if TREE_FAILED:
+        print(f"  [PARTIAL] {len(TREE_FAILED)} repo tree(s) unread -> no artifact/.sol signal, scores are lower "
+              "bounds: " + ", ".join(TREE_FAILED), file=sys.stderr)
+    md = _render(out_rows[:top], today, len(done), days, failed=SEARCH_FAILED, tree_failed=TREE_FAILED)
     with open(out, "w", encoding="utf-8") as f:
         f.write(md)
     print(_ascii(md))
@@ -310,13 +328,20 @@ def run(days, top, topics, hack_topics, max_fetch, min_size_kb, today, out, do_c
     return 10 if (n_new and not first_run) else 0
 
 
-def _render(rows, today, n_done, days):
+def _render(rows, today, n_done, days, failed=(), tree_failed=()):
     lines = ["# GitHub sweep queue",
              "",
              f"> Ref {today} (last {days}d). {len(rows)} candidates after ledger-suppression ({n_done} hunted).",
              "> Ranked by freshness x our-zone fit x deployed-signal (a 0x in the README/artifacts is the strongest).",
              "> Pick top -> clone -> recon+hypothesize (+ fetch_source <addr> if deployed). WATCH = pre-mainnet -> radar.",
              ""]
+    if failed:
+        lines[3:3] = [f"> **PARTIAL SWEEP: {len(failed)} search quer(ies) failed and were NOT covered** "
+                      f"({'; '.join(failed)}) -- re-run; a GITHUB_TOKEN lifts search 10->30/min."]
+    if tree_failed:
+        lines[3:3] = [f"> **TREES UNREAD for {len(tree_failed)} repo(s)** (core REST 60/hr unauth; a GITHUB_TOKEN "
+                      f"lifts it to 5000/hr) -- no artifact/.sol bonus, their scores are lower bounds: "
+                      f"{', '.join(tree_failed)}"]
     for x in rows:
         sig, tree = x.get("sig") or {}, x.get("tree") or {}
         large = "  [LARGE: verify fit]" if x["size"] > scout.LARGE_KB else ""
@@ -328,7 +353,11 @@ def _render(rows, today, n_done, days):
                     else ("chain-mentioned" if sig.get("has_chain") else "no on-chain signal yet"))
         arts = "artifacts:" + (",".join(a for a, on in
                 (("broadcast/deployments", tree.get("has_artifact")),) if on) or " -")
-        lines.append(f"    {deployed}  |  {arts}  |  sol_files={tree.get('sol_files', '?')}  |  [{x['route']}]")
+        if tree.get("unread"):
+            arts, sols = "artifacts: tree unread", "?"
+        else:
+            sols = tree.get("sol_files", "?")
+        lines.append(f"    {deployed}  |  {arts}  |  sol_files={sols}  |  [{x['route']}]")
         lines.append(f"    `git clone --depth 1 https://github.com/{x['full']}.git hunts/_volume/{x['key']}`   # then recon+hypothesize")
         if sig.get("has_address"):
             cid = CHAIN_ID.get(sig.get("chain", ""), "")

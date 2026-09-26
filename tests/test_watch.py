@@ -58,5 +58,41 @@ combo = W.classify(snap(1000, code="aaaa"), snap(100, code="cccc"))
 types = {e["type"] for e in combo}
 check(types == {"CODE-CHANGE", "DRAINED"}, "simultaneous code-swap + drain -> both events emitted")
 
+print("== unread value: an RPC that gives no answer is unknown, never a 0 (no false DRAINED / FUNDED) ==")
+check(W.classify(snap(1000), snap(None)) == [], "value unread this cycle -> no DRAINED (a null RPC answer is not a drain)")
+check(W.classify(snap(None), snap(500)) == [], "no baseline value -> no FUNDED (nothing to diff against)")
+
+
+def _rpc_null_balance(rpc, method, params):
+    return {"eth_getCode": "0x6080", "eth_getBalance": None}.get(method)
+
+
+_s = W.snapshot({"key": "k", "chain": "x", "addr": "0x" + "11" * 20}, "t0", _rpc=_rpc_null_balance)
+check(_s["value"] is None and _s["native"] is None and _s["has_code"], "snapshot: eth_getBalance null -> value None, not 0")
+
+import json  # noqa: E402
+import tempfile  # noqa: E402
+
+_tmp = tempfile.mkdtemp()
+_paths = (W.WATCHLIST, W.STATE, W.EVENTS, W.QUEUE)
+W.WATCHLIST, W.STATE, W.EVENTS, W.QUEUE = (os.path.join(_tmp, n) for n in ("wl.json", "st.json", "ev.json", "q.md"))
+try:
+    with open(W.WATCHLIST, "w") as f:
+        json.dump([{"key": "k", "chain": "1", "addr": "0x" + "22" * 20}], f)
+    with open(W.STATE, "w") as f:
+        json.dump({"k": snap(1000, last_days=90)}, f)
+    ev = W.run(_snap=lambda e, now: snap(None, last_days=None))
+    with open(W.STATE) as f:
+        st = json.load(f)["k"]
+    check(ev == [] and st["value"] == 1000 and st.get("value_unread") and st["last_days"] == 90,
+          "run: an unread cycle keeps the last good baseline (value + last_days), flagged *_unread")
+finally:
+    W.WATCHLIST, W.STATE, W.EVENTS, W.QUEUE = _paths
+
+import fetch_source  # noqa: E402
+
+check(W.WATCH_RPC is fetch_source.DEFAULT_RPC,
+      "one RPC map: the watcher and threat/activity see the same chains (X Layer/Robinhood/ApeChain/opBNB)")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)

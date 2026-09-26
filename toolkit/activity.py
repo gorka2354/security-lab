@@ -19,15 +19,20 @@ contract-level activity (people touched it) != your bug-path being exercised -- 
 import argparse
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_source as fs  # reuse _rpc / DEFAULT_RPC  # noqa: E402
+import explorer  # noqa: E402  (txlist port: Etherscan-v2 -> a current Blockscout)
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 CHAIN_ALIAS = {"eth": "1", "ethereum": "1", "mainnet": "1", "base": "8453", "arb": "42161",
                "arbitrum": "42161", "op": "10", "optimism": "10", "linea": "59144",
                "polygon": "137", "matic": "137", "bsc": "56", "mantle": "5000",
                "hyperevm": "999", "hyperliquid": "999", "mezo": "31612", "sonic": "146",
-               "abstract": "2741", "abs": "2741"}
+               "abstract": "2741", "abs": "2741", "xlayer": "196", "robinhood": "4663", "apechain": "33139",
+               "opbnb": "204", "amoy": "80002", "monad": "143", "monad-testnet": "10143", "gnosis": "100",
+               "citrea": "4114", "flare": "14", "kaia": "8217"}
 
 BAL_OF = "0x70a08231"  # balanceOf(address)
 TOTAL_SUPPLY = "0x18160ddd"  # totalSupply() -- the contract's OWN positions/shares (0 = empty -> not live)
@@ -58,25 +63,18 @@ def resolve_chain(c):
     return CHAIN_ALIAS.get(str(c).lower(), str(c))
 
 
-def etherscan_txcount(addr, chain, key=None):
-    """Recent on-chain tx activity via the Etherscan-v2 account txlist -- a liveness signal that does NOT
-    rely on eth_getLogs (which range-limits / quirk-returns a FALSE 0). Returns the # of txns on the most
-    recent page (0..N, capped), or None when no key / the call fails. The death.fun lesson: 0 getLogs
-    events but ~100 txns / 20 min -> a false-DORMANT that an event-only gate misses; txns are authoritative."""
-    key = key or os.environ.get("ETHERSCAN_API_KEY")
-    if not key:
+def etherscan_txcount(addr, chain, key=None, days=30, now=None):
+    """Recent on-chain tx activity from the account txlist (explorer.py: Etherscan-v2, else a current Blockscout)
+    -- a liveness signal that does NOT rely on eth_getLogs (which range-limits / quirk-returns a FALSE 0).
+    Returns how many of the latest 20 txns fall within `days` (0..20), or None when no explorer answers.
+    The death.fun lesson: 0 getLogs events but ~100 txns / 20 min -> txns are authoritative. The age cut matters:
+    counting the latest page regardless of age called any contract with a tx history ACTIVE, however long idle."""
+    rows, _src, _why = explorer.query(chain, {"module": "account", "action": "txlist", "address": addr,
+                                             "page": 1, "offset": 20, "sort": "desc"}, key=key)
+    if rows is None:
         return None
-    url = ("https://api.etherscan.io/v2/api?chainid=%s&module=account&action=txlist&address=%s"
-           "&page=1&offset=20&sort=desc&apikey=%s" % (chain, addr, key))
-    try:
-        import urllib.request
-        import json as _json
-        d = _json.load(urllib.request.urlopen(
-            urllib.request.Request(url, headers={"User-Agent": "security-lab"}), timeout=25))
-        r = d.get("result")
-        return len(r) if isinstance(r, list) else None
-    except Exception:
-        return None
+    cutoff = (now or time.time()) - days * 86400
+    return sum(1 for r in rows if explorer.row_ts(r) >= cutoff)
 
 
 def classify(code_len, events, balance_wei, token_bal=None, supply=None, txcount=None):

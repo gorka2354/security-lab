@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import re
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 CHAINS = (r"ethereum|arbitrum|base|bsc|binance|polygon|optimism|avax|avalanche|fantom|linea|scroll|"
           r"gnosis|celo|sonic|mantle|blast|mode|zksync|era|metis|kava|core|manta|fraxtal|unichain|"

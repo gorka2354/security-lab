@@ -1,9 +1,13 @@
 # Responsible-disclosure package — Krystal Community Vault
 
 **Status:** ready to send. Kept private; NO live-contract interaction (PoC runs locally against the
-Etherscan-verified deployed source). No public bounty program found for Krystal/Kyber (no Immunefi
-page, no SECURITY.md on `github.com/KrystalDeFi/krystal-vault-contracts-v2`), so this is a courtesy
-responsible disclosure.
+Etherscan-verified deployed source). **Update 2026-09-25:** Krystal added `SECURITY.md` to
+`github.com/KrystalDeFi/krystal-vault-contracts-v2` on 2026-08-19 -- GitHub private reporting,
+discretionary rewards (Critical $2K-$8K, High case-by-case), 90-day disclosure window. This is now a
+**bounty submission** via channel (1) below. In scope: ETH/Arbitrum/Base/BSC/Polygon/Robinhood deployments
+(HyperEVM is out of scope). Current state: implementation unchanged on all chains; ~$2.6K of third-party
+deposits sit in public vaults (Polygon/BSC/Arbitrum); the ETH vault cited earlier was emptied by its owner
+on 2026-09-18. Before filing, check whether a Krystal report was already sent (avoid a duplicate).
 
 ## Recommended channel (pick one, in order)
 1. **GitHub private Security Advisory** on `KrystalDeFi/krystal-vault-contracts-v2` (repo is public):
@@ -53,5 +57,5 @@ private channel.
 
 ## Disclosure hygiene
 - Do NOT publish the exploit publicly or on-chain before the team has fixed + acknowledged.
-- Give a reasonable coordinated window (e.g. 90 days, or sooner given live funds).
-- If they have a bounty you missed, submit there instead (a live-fund-theft High is typically well-rewarded).
+- Coordinated window: 90 days from the report (their SECURITY.md asks for exactly this).
+- Submit through their program (GitHub private advisory); they acknowledge within 72h per SECURITY.md.

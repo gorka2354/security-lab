@@ -1,3 +1,9 @@
+<!-- DO NOT SEND -- recheck 2026-09-25: FALSE POSITIVE. The "chances sum < 100" trigger is unreachable:
+setSlotRarity (HeroGachaMachine.sol:174-176) and setWeaponRarityChances (GachaMachine.sol:241) revert
+InvalidPercentage unless the chances sum to exactly 100, and an unset (0) rarity reverts at request time
+(RewardsOrCostNotSet / RarityNotSet). Both machines are also paused since 2026-03-28/29.
+See hunts/onchain-heroes/RECHECK-2026-09-25.md. Letter kept only as a record. -->
+
 # Onchain Heroes — responsible disclosure (goodwill)
 
 **Contract:** `HeroGachaMachine` (Abstract, chain 2741) — proxy `0xB964Bbf171ec414d2343066fD217FeC036B7B098`.

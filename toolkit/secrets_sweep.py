@@ -29,6 +29,7 @@ import re
 import subprocess
 import sys
 import urllib.request
+import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import secrets as S   # the per-repo scanner (scan_tree / scan_history / _TEST_PATH / git)
