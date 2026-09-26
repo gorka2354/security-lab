@@ -1681,5 +1681,145 @@ finally:
 _dead = [a for a, cid in activity.CHAIN_ALIAS.items() if cid not in fetch_source.DEFAULT_RPC]
 check(not _dead, f"every chain alias resolves to a chain with an RPC (dead ends: {_dead})")
 
+print("== fix#46 det_multicall_value: msg.value read LEXICALLY inside a loop body (FWAV2 acquire FP) ==")
+# FWAV2.sol:1504 -- msg.value is read before (1496) and after (1507) the loop, never inside it; the old 400-char
+# window after `for(..){` fired anyway. Now the loop body is brace-balanced on masked code.
+_mv_fp = ("contract C{ function acquire(uint count) external payable returns (uint[] memory ids) { uint cost = count * fee; "
+          "if (msg.value < cost) revert InsufficientPayment(); ids = new uint[](count); "
+          "for (uint i = 0; i < count; i++) { ids[i] = _open(i); } _refund(msg.value - cost); } }")
+check(not flagged(recon.det_multicall_value, _mv_fp),
+      "fix#46: msg.value read before AND after the loop (FWAV2 acquire) -> NOT flagged")
+check(not flagged(recon.det_multicall_value,
+                  "contract C{ function f(uint n) external payable { for (uint i; i < n; i++) { // msg.value is used once\n x += i; } } }"),
+      "fix#46: msg.value only in a COMMENT inside the loop body -> NOT flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(address[] calldata to) external payable { for (uint i = 0; i < to.length; i++) { credit[to[i]] += msg.value; } } }", "for("),
+      "fix#46 TP: msg.value credited inside a for body -> still flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(uint n) external payable { uint i; while (i < n) { bal[msg.sender] += msg.value; i++; } } }", "while("),
+      "fix#46 TP: msg.value inside a while body -> flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(uint n) external payable { uint i; do { bal[msg.sender] += msg.value; i++; } while (i < n); } }", "do {"),
+      "fix#46 TP: msg.value inside a do-while body -> flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(address[] calldata to) external payable { for (uint i; i < to.length; i++) credit[to[i]] += msg.value; } }", "for("),
+      "fix#46 TP: brace-less single-statement loop body reading msg.value -> flagged")
+check(flagged(recon.det_multicall_value,
+              "contract C{ function f(address[] calldata to) external payable { for (uint i; i < _len(to); i++) { credit[to[i]] += msg.value; } } }", "for("),
+      "fix#46 TP: loop header with nested parens `i < _len(to)` still scoped -> flagged")
+_mv_nest = recon.det_multicall_value("contract C{ function f(uint n) external payable {\n for (uint i; i < n; i++) {\n"
+                                     " for (uint j; j < n; j++) {\n bal[i][j] += msg.value; } } } }", "src/C.sol")
+check(len(_mv_nest) == 1 and _mv_nest[0][1] == 3 and _mv_nest[0][4] == 0,
+      "fix#46: a read inside nested loops -> ONE [!] lead, on the innermost loop head (line 3)")
+
+print("== fix#47 det_unchecked / det_feeontransfer: ERC721/1155 moves are not ERC20 transfers (FWAV2 FPs) ==")
+# FWAV2.sol:2177 `ERC721(collection).transferFrom(from, to, tokenId)` (unchecked-ERC20 [!]) and :1249/:2044
+# `ERC721(c).safeTransferFrom(address(this), ..)` (fee-on-transfer [.]): an NFT move returns no bool and has no fee.
+check(not flagged(recon.det_unchecked,
+                  "contract C{ function _t(address c,address f,address t,uint256 tokenId) internal { ERC721(c).transferFrom(f, t, tokenId); } }"),
+      "fix#47: ERC721(c).transferFrom (receiver CAST to ERC721, FWAV2 _transferNFT) -> NOT an unchecked ERC20 return")
+check(not flagged(recon.det_unchecked,
+                  "contract C{ IERC721 public nft; function f(uint256 id) external { nft.transferFrom(msg.sender, address(this), id); } }"),
+      "fix#47: receiver var declared ONLY as IERC721 -> NOT flagged")
+_nftfile = ("contract C{ Hero hero;\n function onERC721Received(address,address,uint256,bytes calldata) external returns (bytes4) "
+            "{ return this.onERC721Received.selector; }\n function stake(uint256 tokenId) external {\n"
+            " hero.transferFrom(msg.sender, address(this), tokenId);\n } }")
+check(not flagged(recon.det_unchecked, _nftfile),
+      "fix#47: NFT-context file + tokenId-named 3rd arg on an untyped-as-ERC20 receiver -> NOT flagged")
+check(flagged(recon.det_unchecked, "contract C{ function f(address t,address a,address b,uint256 amount) external { IERC20(t).transferFrom(a, b, amount); } }"),
+      "fix#47 TP: IERC20(t).transferFrom with the bool dropped -> still flagged")
+check(flagged(recon.det_unchecked, _nftfile.replace("hero.transferFrom(msg.sender, address(this), tokenId);",
+                                                    "IERC20(t).transferFrom(msg.sender, address(this), tokenId);")),
+      "fix#47 TP: an explicit IERC20 cast wins over NFT file context + an id-named arg -> flagged")
+check(flagged(recon.det_unchecked, _nftfile.replace("hero.transferFrom(msg.sender, address(this), tokenId);",
+                                                    "token.transferFrom(msg.sender, address(this), amount);")),
+      "fix#47 TP: untyped receiver + amount arg in an NFT file stays ambiguous -> flagged")
+check(flagged(recon.det_unchecked,
+              "contract A{ IERC721 token; } contract B{ IERC20 token; function f(address a,uint256 amt) external { token.transferFrom(a, address(this), amt); } }"),
+      "fix#47 TP: a receiver name declared as BOTH IERC721 and IERC20 in the file -> ambiguous -> flagged")
+check(not flagged(recon.det_feeontransfer,
+                  "contract C{ function w(address c,uint256 tokenId) external { ERC721(c).safeTransferFrom(address(this), msg.sender, tokenId); } }"),
+      "fix#47: ERC721(c).safeTransferFrom(address(this), ..) (FWAV2 :1249) -> NOT a fee-on-transfer lead")
+check(not flagged(recon.det_feeontransfer,
+                  "contract C{ function d(address nft,uint256 tokenId) external { IERC721(nft).transferFrom(msg.sender, address(this), tokenId); } }"),
+      "fix#47: IERC721(nft).transferFrom pulling an NFT into address(this) -> NOT a fee-on-transfer lead")
+check(flagged(recon.det_feeontransfer,
+              "contract C{ function onERC721Received(address,address,uint256,bytes calldata) external returns (bytes4) { return 0x150b7a02; } "
+              "function d(address t,uint256 amt) external { IERC20(t).transferFrom(msg.sender, address(this), amt); bal[msg.sender] += amt; } }"),
+      "fix#47 TP: an ERC20 pull into address(this) in an NFT-context file -> still flagged")
+check(flagged(recon.det_feeontransfer,
+              "contract C{ function d(address t,address c,uint256 amt,uint256 tokenId) external { "
+              "IERC20(t).transferFrom(msg.sender, address(this), amt); ERC721(c).transferFrom(msg.sender, address(this), tokenId); } }"),
+      "fix#47 TP: an ERC20 pull next to an NFT pull on ONE line -> the ERC20 pull still fires")
+
+print("== fix#48 det_access / det_sibling: resolved helper gate / right-hand compare / self-relinquish ==")
+# (a) predix-plinko PlinkoVault:310/:323 -- `_checkOperatorOrOwner();` resolved from its in-file body
+_op = ("contract V{ function setFloat(uint f) external onlyOwner { floatTarget = f; } "
+       "function sweepToCold(uint256 amt) external nonReentrant { _checkOperatorOrOwner(); if (amt == 0) revert ZeroAmount(); "
+       "usdc.safeTransfer(cold, amt); } "
+       "function _checkOperatorOrOwner() internal view { if (msg.sender != operator && msg.sender != owner()) revert NotOperator(); } }")
+check(not flagged(recon.det_access, _op, "sweepToCold") and not flagged(recon.det_sibling, _op, "sweepToCold"),
+      "fix#48a: helper _checkOperatorOrOwner() whose body rejects a non-operator caller is a gate (predix sweepToCold)")
+_opfake = _op.replace("if (msg.sender != operator && msg.sender != owner()) revert NotOperator();", "lastCheck = block.timestamp;")
+check(flagged(recon.det_access, _opfake, "sweepToCold") and flagged(recon.det_sibling, _opfake, "sweepToCold"),
+      "fix#48a TP: a gate-NAMED helper that checks nothing -> still flagged (resolved by body, never by name)")
+_opcmt = _op.replace("if (msg.sender != operator && msg.sender != owner()) revert NotOperator();",
+                     "// if (msg.sender != operator) revert NotOperator();\n")
+check(flagged(recon.det_access, _opcmt, "sweepToCold"),
+      "fix#48a TP: the helper's check exists only in a COMMENT -> still flagged")
+check(flagged(recon.det_access, _op.replace("_checkOperatorOrOwner(); if (amt == 0)", "if (amt > 100) _checkOperatorOrOwner(); if (amt == 0)"),
+              "sweepToCold"),
+      "fix#48a TP: a CONDITIONAL helper call (if (amt > 100) _check..();) is no gate -> still flagged")
+check(flagged(recon.det_access, _op[:-1] + "function _checkOperatorOrOwner(uint x) internal { last = x; } }", "sweepToCold"),
+      "fix#48a TP: an overload of the helper that checks nothing -> ambiguous -> still flagged")
+# (a) FWAV2.sol:1308 updateBacking -- `_activeOwned(id)` gates (depositor != msg.sender -> revert); `_requireExitUnlocked`
+# is a state lock, not a caller check
+_ex = ("contract F{ function setMin(uint x) external onlyOwner { minBacking = x; } "
+       "function updateBacking(uint256 id, uint256 v) external payable { _requireExitUnlocked(); listings[id].value = v; } "
+       "function _requireExitUnlocked() internal view { if (unsettled != 0) revert WithdrawLocked(); } }")
+check(flagged(recon.det_access, _ex, "updateBacking") and flagged(recon.det_sibling, _ex, "updateBacking"),
+      "fix#48a TP: a revert-only helper with NO caller check (_requireExitUnlocked) is no gate -> still flagged")
+_ao = (_ex.replace("{ _requireExitUnlocked(); listings[id].value = v; }",
+                   "{ Listing storage l = _activeOwned(id); _requireExitUnlocked(); l.value = v; }")[:-1]
+       + "function _activeOwned(uint256 id) internal view returns (Listing storage l) { l = listings[id]; "
+         "if (l.status != 1) revert NotActive(); if (l.depositor != msg.sender) revert NotDepositor(); } }")
+check(not flagged(recon.det_access, _ao, "updateBacking") and not flagged(recon.det_sibling, _ao, "updateBacking"),
+      "fix#48a: `Listing storage l = _activeOwned(id);` (depositor != msg.sender -> revert) is a gate (FWAV2 updateBacking)")
+# the helper must CHECK the caller, not merely pass it to an action inside a require (malda _repayAll shape)
+_rq = ("contract M{ function setA(uint x) external onlyOwner { a = x; } function migrateAll(uint amt) external { _repay(amt); } "
+       "function _repay(uint amt) internal { require(market.repayBorrowBehalf(msg.sender, amt) == 0, 'repay'); } }")
+check(flagged(recon.det_access, _rq, "migrateAll"),
+      "fix#48a TP: helper require(mkt.repayBorrowBehalf(msg.sender, amt) == 0) checks a return code, not the caller -> flagged")
+check(not flagged(recon.det_access, _rq.replace("require(market.repayBorrowBehalf(msg.sender, amt) == 0, 'repay');",
+                                                "require(isOperator(msg.sender), 'op'); market.repay(amt);"), "migrateAll"),
+      "fix#48a: helper require(isOperator(msg.sender)) is a caller predicate -> gate -> NOT flagged")
+check(flagged(recon.det_access, _rq.replace("require(market.repayBorrowBehalf(msg.sender, amt) == 0, 'repay');",
+                                            "require(token.approve(msg.sender, amt), 'approve');"), "migrateAll"),
+      "fix#48a TP: helper require(token.approve(msg.sender, amt)) is an ACTION's return, not a caller predicate -> flagged")
+# (b) FWAV2.sol:2017 recoverStuckNFT -- caller compared on the RIGHT in a rejecting if
+_st = ("contract F{ function setMin(uint x) external onlyOwner { minBacking = x; } "
+       "function recoverStuckNFT(uint256 id) external nonReentrant { if (stuckNFTRecipient[id] != msg.sender) revert NotStuckRecipient(); "
+       "delete stuckNFTRecipient[id]; _send(id, msg.sender); } }")
+check(not flagged(recon.det_access, _st, "recoverStuckNFT") and not flagged(recon.det_sibling, _st, "recoverStuckNFT"),
+      "fix#48b: `if (stuckNFTRecipient[id] != msg.sender) revert` is a caller gate (FWAV2 recoverStuckNFT)")
+check(flagged(recon.det_access, _st.replace("!= msg.sender", "== address(0)"), "recoverStuckNFT"),
+      "fix#48b TP: `if (stuckNFTRecipient[id] == address(0)) revert` checks no caller -> still flagged")
+check(flagged(recon.det_access, _st.replace("if (stuckNFTRecipient[id] != msg.sender)", "if (banned == msg.sender)"), "recoverStuckNFT"),
+      "fix#48b TP: `if (banned == msg.sender) revert` bans ONE caller (wrong polarity) -> still flagged")
+# (c) predix PlinkoGame:596 revokeSessionKey -- a thin wrapper relinquishing the CALLER's own entry
+_sk = ("contract G{ function setCap(uint x) external onlyOwner { cap = x; } "
+       "function revokeSessionKey(address key) external { _s().sessionRegistry.revoke(msg.sender, key); } }")
+check(not flagged(recon.det_access, _sk, "revokeSessionKey") and not flagged(recon.det_sibling, _sk, "revokeSessionKey"),
+      "fix#48c: self-service revoke(msg.sender, key) is not an ungated admin op (predix revokeSessionKey)")
+check(flagged(recon.det_access, _sk.replace("(address key) external { _s().sessionRegistry.revoke(msg.sender, key);",
+                                            "(address account, address key) external { _s().sessionRegistry.revoke(account, key);"), "revokeSessionKey"),
+      "fix#48c TP: revoke(account, key) on a caller-chosen account -> still flagged")
+check(flagged(recon.det_access, "contract G{ function revokeRole(bytes32 r, address a) external { _revokeRole(r, a); } }", "revokeRole"),
+      "fix#48c TP: ungated revokeRole(r, a) -> still flagged")
+check(flagged(recon.det_access, "contract G{ function setOwner() external { _setOwner(msg.sender); } }", "setOwner"),
+      "fix#48c TP: a GRANT to the caller (_setOwner(msg.sender)) is not a relinquish -> still flagged")
+check(flagged(recon.det_access, _sk.replace("revoke(msg.sender, key);", "revoke(msg.sender, key); paused = true;"), "revokeSessionKey"),
+      "fix#48c TP: a self-revoke plus another state write -> no longer a thin wrapper -> still flagged")
+
 print(f"\n{_p} passed, {_f} failed")
 sys.exit(1 if _f else 0)
