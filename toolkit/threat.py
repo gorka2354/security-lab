@@ -311,7 +311,7 @@ def main():
     print("  activity:      %s  (%s recent txns%s)" % (
         act_str, txcount if txcount is not None else "?",
         (", last tx %.1fd ago via %s" % (last_days, rec_src)) if last_days is not None else ", " + (rec_why or "?")))
-    val = ["eth %.4f" % (eth_wei / 1e18)]
+    val = ["%s %.4f" % (fs.native_symbol(chain), eth_wei / 1e18)]
     if supply is not None:
         val.append("totalSupply %s" % (("%.2f" % (supply / (10 ** (decimals or 0)))) if decimals else str(supply)))
     for t, b in token_bals:
