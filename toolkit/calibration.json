@@ -287,7 +287,7 @@
       "bounty_received": 0,
       "found": "2026-08-21",
       "updated": "2026-10-01",
-      "notes": "recheck 2026-09-26: STILL-VULN-LIVE, REACTIVATED 09-18 (111 APE open, ownerless, non-upgradeable) -> YES, prompt not emergency; channel: X DM; letter disclosures/head2head-monkebet-DISCLOSURE.md | 2026-10-01 watch DRAINED 111 APE -> 0 = NORMAL PLAY, not an exploit: 0xbe18b518 (regular, 3201 APE paid in lifetime) matched 0x181001ad's 1/10/100 APE bets 03:07-03:08 UTC, Entropy callbacks paid winners (199.78 to 0x1810, 21.55 to 0xbe18, 3x0.2232 fee). Exposure now 0 (no open bets); bug unchanged (immutable) -> still disclose, now non-urgent"
+      "notes": "recheck 2026-09-26: STILL-VULN-LIVE, REACTIVATED 09-18 (111 APE open, ownerless, non-upgradeable) -> YES, prompt not emergency; channel: X DM; letter disclosures/head2head-monkebet-DISCLOSURE.md | 2026-10-01 watch DRAINED 111 APE -> 0 = NORMAL PLAY, not an exploit: 0xbe18b518 (regular, 8494 APE paid in lifetime) matched 0x181001ad's 1/10/100 APE bets 03:07-03:08 UTC, Entropy callbacks paid winners (199.78 to 0x1810, 21.55 to 0xbe18, 3x0.2232 fee). Exposure now 0 (no open bets); bug unchanged (immutable) -> still disclose, now non-urgent"
     },
     {
       "id": "krystal-community-vault-0xff630c5d2fb9920c29c264b85e968d435f07e293-1",
