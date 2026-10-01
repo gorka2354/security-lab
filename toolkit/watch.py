@@ -9,6 +9,7 @@ already covers IMPL-UPGRADE (proxy-impl swap) + BOUNTY-OPEN; watch.py adds the V
   FUNDED   - value appeared where there was none  -> a finding may have gone LIVE (reassess + disclose)
   GREW     - tracked value rose >=2x              -> TVL growth -> a bounded finding is now worth more
   DRAINED  - tracked value dropped >=50%          -> POSSIBLE EXPLOIT / mass-withdrawal -> INVESTIGATE
+             (+ where it went: each recipient since the last check vs what it had put in -- payout or drain?)
   CODE-CHANGE - eth_getCode hash changed          -> redeploy / proxy-impl swap -> re-review the drift
   REACTIVATED - dormant (>30d) -> active (<7d)     -> usage resumed
 
@@ -26,17 +27,21 @@ toolkit/parkwatch.py, run daily by .github/workflows/watch.yml.
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
+import time
 import urllib.parse
 import tlsfix  # noqa: F401,E402  -- current CA bundle on stale-CA Windows hosts (see tlsfix.py)
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import fetch_source as fs  # noqa: E402  (RPC map + _rpc)
+import explorer as ex  # noqa: E402  (txlist / txlistinternal / tokentx behind one port; a miss says why)
+import fetch_source as fs  # noqa: E402  (RPC map + _rpc + native_symbol)
 import threat as T  # noqa: E402  (last_activity_days + _erc20_balance + token_meta + fmt_units)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,6 +54,11 @@ WATCH_RPC = fs.DEFAULT_RPC  # one RPC map for the whole toolkit (the exotic Game
 _DRAIN = 0.5   # value drop >= this fraction -> DRAINED
 _GROW = 2.0    # value rise >= this multiple -> GREW
 _HIGH = {"FUNDED", "DRAINED", "CODE-CHANGE"}
+_FLOW_LOOKBACK_S = 7 * 86400  # DRAINED with no usable baseline timestamp -> look this far back for the outflows
+_FLOW_SLACK_S = 3600          # host clock vs block time
+_FLOW_TOP = 4                 # recipients named in the alert; the rest are summed
+_FLOW_PAGE = 1000             # explorer rows per request
+_FLOW_PAGES = 5               # pages per action (Etherscan serves page*offset <= 10000); beyond -> the note says capped
 
 
 def _load(path, default):
@@ -90,20 +100,21 @@ def snapshot(entry, now_iso, _rpc=None):
         last_days = T.last_activity_days(addr, chain) if chain.isdigit() else None
     except Exception:
         last_days = None
-    return {"ts": now_iso, "code_hash": code_hash, "native": native, "token_val": tval,
-            "token_dec": tdec, "token_sym": tsym,
+    return {"ts": now_iso, "code_hash": code_hash, "native": native, "native_sym": fs.native_symbol(chain),
+            "token_val": tval, "token_dec": tdec, "token_sym": tsym,
             "value": None if value is None else int(value), "has_code": len(code) > 4, "last_days": last_days}
 
 
 def _fmtv(v, snap):
-    """Human-readable value using the snapshot's token decimals+symbol (e.g. '50.82 USD-T0'), else raw/ETH."""
+    """Human-readable value using the snapshot's token decimals+symbol (e.g. '50.82 USD-T0'), else the chain's
+    native symbol ('111 APE'; 'native' when unknown -- the old hard-coded ETH turned 111 APE into a 111-ETH alarm)."""
     v = int(v or 0)
     dec, sym = snap.get("token_dec"), snap.get("token_sym")
     if dec is not None:
         return "%s %s" % (T.fmt_units(v, dec), sym or "tokens")
     if sym or snap.get("token_val") is not None:
         return "%d %s" % (v, sym or "units")
-    return "%s ETH" % (("%.4f" % (v / 1e18)).rstrip("0").rstrip("."))
+    return "%s %s" % (("%.4f" % (v / 1e18)).rstrip("0").rstrip("."), snap.get("native_sym") or "native")
 
 
 def classify(prev, cur):
@@ -111,6 +122,7 @@ def classify(prev, cur):
     prev None = first-ever snapshot (baseline) -> no events. HIGH events push to Telegram + browser."""
     if prev is None:
         return []
+    prev = dict(prev, native_sym=prev.get("native_sym") or cur.get("native_sym"))  # baselines from before the field
     ev = []
     if cur.get("has_code") and prev.get("code_hash") and cur.get("code_hash") != prev["code_hash"]:
         ev.append({"type": "CODE-CHANGE", "sev": "HIGH",
@@ -135,6 +147,91 @@ def classify(prev, cur):
         ev.append({"type": "REACTIVATED", "sev": "MED",
                    "detail": "last-tx %.0fd ago -> %.1fd ago (dormant -> active again)" % (pd, cd)})
     return ev
+
+
+def _iso_ts(iso):
+    """A snapshot's ISO stamp -> unix seconds (naive = this host's local time, as run() writes it); None if unusable."""
+    try:
+        return datetime.datetime.fromisoformat(iso).timestamp()
+    except (TypeError, ValueError, OSError, OverflowError):  # Windows: pre-1970 local stamps raise OSError
+        return None
+
+
+def fetch_flows(entry, since, _query=None):
+    """Explorer rows of one target -> (out_rows, in_rows, why, capped). Network; _query injectable (explorer.query's
+    shape). Native value: txlist + txlistinternal; a tracked token: its tokentx. out = value that LEFT the target
+    at/after `since`; in = everything ever paid IN (the recipients' stakes). Reverted rows dropped. Paged newest-first
+    up to _FLOW_PAGES; capped = the history went further (or a later page failed) -> the sums are lower bounds.
+    First page refused -> (None, None, why, False)."""
+    q = _query or ex.query
+    me, tok = entry["addr"].lower(), entry.get("token")
+    base = {"module": "account", "address": entry["addr"], "sort": "desc", "offset": _FLOW_PAGE}
+    actions = [("tokentx", {"contractaddress": tok})] if tok else [("txlist", {}), ("txlistinternal", {})]
+    rows, capped = [], False
+    for action, extra in actions:
+        for page in range(1, _FLOW_PAGES + 1):
+            got, _src, why = q(str(entry["chain"]), dict(base, action=action, page=page, **extra))
+            if got is None:
+                if page == 1:
+                    return None, None, why, False
+                capped = True
+                break
+            rows += got
+            if len(got) < _FLOW_PAGE:
+                break
+        else:
+            capped = True
+    rows = [r for r in rows if str(r.get("isError") or "0") != "1"]
+    out = [r for r in rows if (r.get("from") or "").lower() == me and ex.row_ts(r) >= since]
+    inn = [r for r in rows if (r.get("to") or "").lower() == me]
+    return out, inn, None, capped
+
+
+def summarize_flows(out_rows, in_rows, fmt, capped=False):
+    """Where the value went, one line: each recipient's take vs what it had put in. PURE. fmt: raw int -> label.
+    An outsider drain = value to never-depositors; a game payout / withdrawal = value back to the addresses that paid
+    in. States facts, never downgrades the event: an inflate-then-redeem attacker is a depositor too, which is why
+    'put in' is printed next to 'got' instead of a payout/exploit verdict. capped -> says the sums are lower bounds.
+    A CREATE row carries its recipient in contractAddress (to is empty)."""
+    def amt(r):
+        try:
+            return int(r.get("value") or 0)
+        except (TypeError, ValueError):
+            return 0
+    got, put = {}, {}
+    for r in out_rows:
+        if amt(r):
+            to = (r.get("to") or r.get("contractAddress") or "?").lower()
+            got[to] = got.get(to, 0) + amt(r)
+    for r in in_rows:
+        frm = (r.get("from") or "?").lower()
+        put[frm] = put.get(frm, 0) + amt(r)
+    total = sum(got.values())
+    cap = "; explorer history capped at %d rows/action -> sums are lower bounds" % (_FLOW_PAGE * _FLOW_PAGES)
+    if not total:
+        return ("flows: no outflow on record since the last check (explorer lag, or value left without a transfer?)"
+                + (cap if capped else ""))
+    ranked = sorted(got.items(), key=lambda kv: -kv[1])
+    parts = ["%s -> %s.. (put in %s)" % (fmt(v), a[:10], fmt(put.get(a, 0))) for a, v in ranked[:_FLOW_TOP]]
+    if len(ranked) > _FLOW_TOP:
+        parts.append("+%d more: %s" % (len(ranked) - _FLOW_TOP, fmt(sum(v for _, v in ranked[_FLOW_TOP:]))))
+    back = sum(v for a, v in got.items() if put.get(a))
+    return "flows: %s out to %d addr: %s; %.0f%% to addresses that had paid in%s" % (
+        fmt(total), len(ranked), ", ".join(parts), 100.0 * back / total, cap if capped else "")
+
+
+def flow_note(entry, prev, cur, _fetch=None):
+    """DRAINED -> the summarize_flows line for the window since the baseline value was READ (value_ts: an unread
+    cycle keeps the old value but must not slide the window past the drain). Never raises: a lookup the explorer
+    can't answer says UNKNOWN and why (free tier refuses Base/BSC/OP), never a silent 'no outflow'."""
+    try:
+        since = _iso_ts(prev.get("value_ts") or prev.get("ts")) or (time.time() - _FLOW_LOOKBACK_S)
+        out, inn, why, capped = (_fetch or fetch_flows)(entry, since - _FLOW_SLACK_S)
+    except Exception as e:
+        out, inn, why, capped = None, None, ex._why(e), False
+    if out is None:
+        return "flows: UNKNOWN (%s)" % re.sub(r"apikey=[^&\s]+", "apikey=***", str(why))
+    return summarize_flows(out, inn, lambda v: _fmtv(v, cur), capped)
 
 
 def _notify_windows(title, msg):
@@ -167,9 +264,10 @@ def _notify_telegram(title, msg, _open=urllib.request.urlopen):
         return False
 
 
-def run(notify=False, now_iso="", prio_only=False, _snap=snapshot):
+def run(notify=False, now_iso="", prio_only=False, _snap=snapshot, _flows=None):
     """Snapshot each watchlist target, diff vs last state, emit + persist + notify. Returns the new events.
-    prio_only -> only entries flagged `prio` (the critical/live findings we check on a tighter cadence)."""
+    prio_only -> only entries flagged `prio` (the critical/live findings we check on a tighter cadence).
+    A DRAINED event carries flow_note() (where the value went); _flows is fetch_flows' injectable stand-in."""
     wl = _load(WATCHLIST, [])
     if prio_only:
         wl = [e for e in wl if e.get("prio")]
@@ -179,17 +277,21 @@ def run(notify=False, now_iso="", prio_only=False, _snap=snapshot):
         key = e["key"]
         try:
             cur = _snap(e, now_iso)
-        except Exception as ex:
-            print("  [%s] snapshot failed: %s" % (key, str(ex)[:80]))
+        except Exception as err:
+            print("  [%s] snapshot failed: %s" % (key, str(err)[:80]))
             continue
         prev = state.get(key)
         for ev in classify(prev, cur):
             ev.update({"key": key, "chain": str(e["chain"]), "addr": e["addr"], "ts": now_iso})
+            if ev["type"] == "DRAINED":
+                ev["detail"] += " | " + flow_note(e, prev, cur, _flows)
             all_events.append(ev)
         if prev:  # an unread field keeps the last good baseline, else the next good read diffs against nothing
             for f in ("value", "last_days"):
                 if cur.get(f) is None and prev.get(f) is not None:
                     cur = dict(cur, **{f: prev[f], f + "_unread": True})
+            if cur.get("value_unread"):  # the carried value was read back then -> a DRAINED flows window starts there
+                cur["value_ts"] = prev.get("value_ts") or prev.get("ts")
         new_state[key] = cur
     _save(STATE, new_state)
     if all_events:
@@ -202,7 +304,7 @@ def run(notify=False, now_iso="", prio_only=False, _snap=snapshot):
             print("%s%-11s [%s] %s @ %s -- %s" % (mark, ev["type"], ev["sev"], ev["key"], ev["chain"], ev["detail"]))
             if ev["sev"] == "HIGH":
                 title = "🚨 security-lab: %s %s" % (ev["type"], ev["key"])
-                _notify_telegram(title, "%s @ chain %s\n%s" % (ev["addr"], ev["chain"], ev["detail"][:600]))
+                _notify_telegram(title, "%s @ chain %s\n%s" % (ev["addr"], ev["chain"], ev["detail"][:1200]))
                 if notify:
                     _notify_windows(title, ev["detail"][:200])
     else:
