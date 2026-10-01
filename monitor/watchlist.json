@@ -45,6 +45,21 @@
           "https://mainnet-contest.sherlock.xyz/contests"
         ]
       }
+    },
+    {
+      "id": "popdex-bridge-unverified-impl",
+      "title": "Popdex Bridge (own bridge, Arbitrum+Morph, ~$66M USDT, BlockSec-audited 2026-07-03) - impl 0x3b07..bb67 behind proxy 0x0B15D6cF5e843C88034f64664D7fE66E5F79C5f2 is UNVERIFIED; finalize/challengePeriod, UPGRADER_ROLE and source-chain replay unchecked (wave 15 triage).",
+      "fire_means": "A Popdex bounty/contest opened -> DIG: heimdall decompile hunts/_volume/popdex-heim/out/decompiled.sol (1154 lines); start at withdrawal finalization (finalizers/challengePeriod), upgradeToAndCall/UPGRADER_ROLE, message replay by source chain; read the BlockSec report first. Morph side 0x71FB3a05d02B48d358E4DEB55D0D461Dcb7cF71d needs an RPC. See hunts/_fanout/2026-10-01-wave15-github-defillama.md.",
+      "check": {
+        "type": "url_appears",
+        "needle": "(?i)\"popdex\\b",
+        "urls": [
+          "https://immunefi.com/public-api/bounties.json",
+          "https://cantina.xyz/api/v0/competitions?status=active&limit=50",
+          "https://code4rena.com/api/v1/audits",
+          "https://mainnet-contest.sherlock.xyz/contests"
+        ]
+      }
     }
   ]
 }
