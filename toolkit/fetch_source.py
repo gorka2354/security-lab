@@ -45,6 +45,7 @@ DEFAULT_RPC = {
     "204": "https://opbnb-mainnet-rpc.bnbchain.org",  # opBNB (ClawKing)
     "80002": "https://polygon-amoy-bor-rpc.publicnode.com",  # Polygon Amoy testnet (PulsoMarket pre-launch)
     "10143": "https://testnet-rpc.monad.xyz",         # Monad testnet (wager-chess, the-arbiter-arena)
+    "5042": "https://5042.rpc.thirdweb.com",          # Arc (Circle's USDC L1; ArcLend). No eth_getLogs here
 }
 # chain id -> native gas-token symbol. watch.py printed every native balance as "ETH": 111 APE on ApeChain
 # (~$50) arrived as a "111 ETH -> 0 DRAINED" Telegram alarm (2026-10-01). Unknown chain -> "native", never a guess.
@@ -52,7 +53,7 @@ NATIVE_SYMBOL = {
     "1": "ETH", "8453": "ETH", "42161": "ETH", "10": "ETH", "59144": "ETH", "2741": "ETH", "4663": "ETH",
     "137": "POL", "80002": "POL", "56": "BNB", "204": "BNB", "5000": "MNT", "999": "HYPE", "31612": "BTC",
     "146": "S", "143": "MON", "10143": "MON", "100": "xDAI", "4114": "cBTC", "14": "FLR", "8217": "KAIA",
-    "196": "OKB", "33139": "APE",
+    "196": "OKB", "33139": "APE", "5042": "USDC",  # Arc: native USDC, 18 decimals
 }
 
 
