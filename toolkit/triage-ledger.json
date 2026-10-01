@@ -716,6 +716,28 @@
       "date": "2026-08-26"
     },
     {
+      "sig": "arckit-arclend|(fanout)|fanout|fanout triage: lend,oracle",
+      "target": "arckit-arclend",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lend,oracle",
+      "verdict": "todo",
+      "reason": "[DIG/wave15-github-defillama] VERIFIED by hand + forge PoC 4/4 (arckit-poc/): ArcTwapOracle 256-obs ring, 1 obs/s, public poke -> pokes <4.69s apart drop coverage <20min -> ArcLend borrow/withdrawCollateral OracleNotReady; organic load does it too; liquidation",
+      "date": "2026-10-01"
+    },
+    {
+      "sig": "arckit-arclend|src/arclend/ArcTwapOracle.sol|manual|function poke(PoolId poolId)",
+      "target": "arckit-arclend",
+      "file": "src/arclend/ArcTwapOracle.sol",
+      "line": 42,
+      "detector": "manual",
+      "snippet": "function poke(PoolId poolId)",
+      "verdict": "real",
+      "reason": "256-obs ring + public poke: pokes <4.69s apart -> coverage <20min -> ArcLend borrow/withdrawCollateral OracleNotReady; forge PoC arckit-poc 4/4; Low griefing",
+      "date": "2026-10-01"
+    },
+    {
       "sig": "arcus-perps|ArcusSettlement-0x006102b1-robinhood-4663|reasoning|",
       "target": "arcus-perps",
       "file": "ArcusSettlement-0x006102b1-robinhood-4663",
@@ -1332,6 +1354,17 @@
       "date": "2026-09-26"
     },
     {
+      "sig": "fathom-contracts|(fanout)|fanout|fanout triage: dex,damm",
+      "target": "fathom-contracts",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: dex,damm",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave15-github-defillama] deployed 6d ago, pools empty (protocolConfig/dammHook/dlmmFactory/router PRE-LAUNCH); 43 recon leads unread -> re-triage when funded (DlmmPair, Router, FathomHookBase).",
+      "date": "2026-10-01"
+    },
+    {
       "sig": "flex|src/trove_manager.vy:1402|signature|",
       "target": "flex",
       "file": "src/trove_manager.vy:1402",
@@ -1418,6 +1451,17 @@
       "verdict": "known",
       "reason": "RNG=off-chain ProofOfPlay VRF (VRFSystem 0xbdc8b6eb->0x629a6b9f), not block-based. Not grindable: request/keeper-delivery are separate txs (no observe-and-revert); requestId single-use (delete callbacks[id]+InvalidRequestId)->no re-roll; randomNumberCallback gated to VRF proxy; deliverRandomNumber gated VRF_SYSTEM_ROLE (40/40 live). getVrfSystemAddress non-zero->NO zero/PublicRandomSystem fallback. deliverSignedRandomNumber permissionless but needs VRF_SYSTEM_ROLE EIP712 sig (unused on-chain). Residual: storage-only callback reveal-gap lives in CONSUMER systems (out of scope here). PARK.",
       "date": "2026-06-15"
+    },
+    {
+      "sig": "goo-exchange-clmm|(fanout)|fanout|fanout triage: dex,clmm",
+      "target": "goo-exchange-clmm",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: dex,clmm",
+      "verdict": "known",
+      "reason": "[SKIP/wave15-github-defillama] GigaV3 = UniswapV3Pool line-for-line; only drift initialize() reads defaultFeeProtocol from factory (owner-only setter). CLEAN core; periphery not read.",
+      "date": "2026-10-01"
     },
     {
       "sig": "head2head-monkebet|HeadToHead.sol|manual|",
@@ -1519,6 +1563,17 @@
       "date": "2026-08-23"
     },
     {
+      "sig": "kerf-contracts|(fanout)|fanout|fanout triage: vault,zap",
+      "target": "kerf-contracts",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: vault,zap",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave15-github-defillama] ETH Vault totalSupply 0.03, caps 5 WETH/15k USDG, immutable; StructuredVault:78 inflation lead KILLED (OZ v5 ERC4626 virtual shares, offset 0 -> unprofitable); hedger-key trust documented (:60).",
+      "date": "2026-10-01"
+    },
+    {
       "sig": "kona-lend|oracle/AaveOracle.sol|oracle|AaveOracle.getAssetPrice() source.latestAnswer() (price>0 only) over Pyth getPriceUnsafe (no maxAge)",
       "target": "kona-lend",
       "file": "oracle/AaveOracle.sol",
@@ -1616,6 +1671,17 @@
       "verdict": "todo",
       "reason": "[DIG-CAREFUL/defillama-gamefi-wave] Live ~$1M USDC, greenfield, no third-party audit, full source reachable \u2014 genuinely attractive. BUT two dampeners: (1) the dominant risk is by-design centralization \u2014 RoleManager.owner == operator == multisig == treasury == ",
       "date": "2026-06-13"
+    },
+    {
+      "sig": "leanvault|(fanout)|fanout|fanout triage: vault,erc4626",
+      "target": "leanvault",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: vault,erc4626",
+      "verdict": "known",
+      "reason": "[UNREACHABLE/wave15-github-defillama] listed 0xBEEF0173.. is Steakhouse USDC MetaMorpho (an allocation target, not leanvault); README: testnet planned. Re-check if deployed.",
+      "date": "2026-10-01"
     },
     {
       "sig": "ledgity|src/protocol-v1/LToken.sol|reentrancy|function processBigQueuedRequest(uint256) onlyFund whenNotPaused",
@@ -2201,6 +2267,17 @@
       "date": "2026-08-25"
     },
     {
+      "sig": "popdex-bridge|(fanout)|fanout|fanout triage: bridge",
+      "target": "popdex-bridge",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: bridge",
+      "verdict": "wontfix",
+      "reason": "[PARK/wave15-github-defillama] own bridge (not Morph canonical), $66M on Arbitrum 0x0B15D6cF..; impl 0x3b07..bb67 UNVERIFIED (heimdall decompile in hunts/_volume/popdex-heim); audited, no bounty -> deep read not justified now; park on impl-verified / bounty-op",
+      "date": "2026-10-01"
+    },
+    {
       "sig": "posi-vaults|contracts/POSIAutoCompoundVault.sol|other|balanceOf(address user) returns userInfo[msg.sender].amount",
       "target": "posi-vaults",
       "file": "contracts/POSIAutoCompoundVault.sol",
@@ -2531,6 +2608,17 @@
       "date": "2026-06-15"
     },
     {
+      "sig": "shoalfi-monorepo|(fanout)|fanout|fanout triage: lend,oracle",
+      "target": "shoalfi-monorepo",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: lend,oracle",
+      "verdict": "known",
+      "reason": "[UNREACHABLE/wave15-github-defillama] 0x7Ec8.. on Base is an EOA; CapSteward is Sepolia-only; contracts 140 lines total.",
+      "date": "2026-10-01"
+    },
+    {
       "sig": "sodax-spoke-assetmanager-0x39E77f86|SpokeAssetManager.sol / SonicWallet.sol / MinimalWalletProxy.sol|det_delegatecall_target|delegatecall(implementation) / target.call{value}(data)",
       "target": "sodax-spoke-assetmanager-0x39E77f86",
       "file": "SpokeAssetManager.sol / SonicWallet.sol / MinimalWalletProxy.sol",
@@ -2760,6 +2848,17 @@
       "verdict": "known",
       "reason": "Verbatim Lagoon v0.5.0 fork (3rd one; forkdrift fingerprint+diff). No custom yield-aggregator drift. Missing v0.5.1 whitelist patch is MOOT: all 3 vaults isActivated=false (permissionless on-chain). CLEAN. Reachability via DefiLlama-Adapters core addrs.",
       "date": "2026-06-10"
+    },
+    {
+      "sig": "tandem|(fanout)|fanout|fanout triage: perp,clob",
+      "target": "tandem",
+      "file": "(fanout)",
+      "line": 0,
+      "detector": "fanout",
+      "snippet": "fanout triage: perp,clob",
+      "verdict": "known",
+      "reason": "[UNREACHABLE/wave15-github-defillama] listed address = local fork deploy; broadcast/143 address has no code; only Monad testnet 10143.",
+      "date": "2026-10-01"
     },
     {
       "sig": "tartswap|TartLPFarmV3.sol:277-285|reasoning|",

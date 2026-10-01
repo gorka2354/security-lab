@@ -44,5 +44,11 @@
   "chain": "33139",
   "addr": "0x88C1f4EcDe714Fba062853dA1f686171f560ebAA",
   "note": "Low-Med griefing freeze (payout pushed inside the Entropy callback, no rescue); REACTIVATED 2026-09-18 with 111 APE open -- the reactivation went unflagged because it was not watched"
+ },
+ {
+  "key": "arckit-arclend",
+  "chain": "5042",
+  "addr": "0xBF0aD5CAE94A9e4aBeAeFC7cA5816B7f28983793",
+  "note": "Low TWAP-ring compression -> borrow DoS (ArcTwapOracle 256 obs, public poke); 66 USDC 2026-10-01"
  }
 ]

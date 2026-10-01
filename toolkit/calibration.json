@@ -322,6 +322,23 @@
       "found": "2026-08-28",
       "updated": "2026-09-26",
       "notes": "recheck 2026-09-26: STILL-VULN-LIVE (same impl, role still not granted; eth_call withdrawReg reverts 0x03104826 now; 38 holders / 1,680 REG locked) -> YES; channel: email (ask for the RMM/REUSD team); letter realt-rmm-poc/DISCLOSURE.md"
+    },
+    {
+      "id": "arckit-arclend-1",
+      "target": "arckit-arclend",
+      "title": "ArcTwapOracle public poke compresses the 256-slot ring below ArcLend's 20-min coverage -> borrow/withdraw DoS",
+      "sev_claimed": "low",
+      "channel": "direct",
+      "file": "src/arclend/ArcTwapOracle.sol",
+      "line": 42,
+      "status": "drafted",
+      "sev_awarded": "",
+      "kind": "live",
+      "bounty_expected": 0,
+      "bounty_received": 0,
+      "found": "2026-10-01",
+      "updated": "2026-10-01",
+      "notes": "2026-10-01 wave 15: LIVE+ACTIVE+FUNDED 66 USDC (2d old, 5 markets), forge PoC arckit-poc 4/4 on deployed source; ~$19/day/market griefing, organic load trips it too; no audit/bounty; channel X @usearckit / t.me/usearckit (GitHub private reporting disabled); letter arckit-poc/DISCLOSURE.md"
     }
   ],
   "calibrations": [
