@@ -31,6 +31,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -56,6 +57,8 @@ _HIGH = {"FUNDED", "DRAINED", "CODE-CHANGE"}
 _FLOW_LOOKBACK_S = 7 * 86400  # DRAINED with no usable baseline timestamp -> look this far back for the outflows
 _FLOW_SLACK_S = 3600          # host clock vs block time
 _FLOW_TOP = 4                 # recipients named in the alert; the rest are summed
+_FLOW_PAGE = 1000             # explorer rows per request
+_FLOW_PAGES = 5               # pages per action (Etherscan serves page*offset <= 10000); beyond -> the note says capped
 
 
 def _load(path, default):
@@ -150,35 +153,46 @@ def _iso_ts(iso):
     """A snapshot's ISO stamp -> unix seconds (naive = this host's local time, as run() writes it); None if unusable."""
     try:
         return datetime.datetime.fromisoformat(iso).timestamp()
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OSError, OverflowError):  # Windows: pre-1970 local stamps raise OSError
         return None
 
 
 def fetch_flows(entry, since, _query=None):
-    """Explorer rows of one target -> (out_rows, in_rows, why). Network; _query injectable (explorer.query's shape).
-    Native value: txlist + txlistinternal; a tracked token: its tokentx. out = value that LEFT the target at/after
-    `since`; in = everything ever paid IN (the recipients' stakes). Reverted rows dropped. Miss -> (None, None, why)."""
+    """Explorer rows of one target -> (out_rows, in_rows, why, capped). Network; _query injectable (explorer.query's
+    shape). Native value: txlist + txlistinternal; a tracked token: its tokentx. out = value that LEFT the target
+    at/after `since`; in = everything ever paid IN (the recipients' stakes). Reverted rows dropped. Paged newest-first
+    up to _FLOW_PAGES; capped = the history went further (or a later page failed) -> the sums are lower bounds.
+    First page refused -> (None, None, why, False)."""
     q = _query or ex.query
     me, tok = entry["addr"].lower(), entry.get("token")
-    base = {"module": "account", "address": entry["addr"], "sort": "desc", "page": 1, "offset": 1000}
+    base = {"module": "account", "address": entry["addr"], "sort": "desc", "offset": _FLOW_PAGE}
     actions = [("tokentx", {"contractaddress": tok})] if tok else [("txlist", {}), ("txlistinternal", {})]
-    rows = []
+    rows, capped = [], False
     for action, extra in actions:
-        got, _src, why = q(str(entry["chain"]), dict(base, action=action, **extra))
-        if got is None:
-            return None, None, why
-        rows += got
+        for page in range(1, _FLOW_PAGES + 1):
+            got, _src, why = q(str(entry["chain"]), dict(base, action=action, page=page, **extra))
+            if got is None:
+                if page == 1:
+                    return None, None, why, False
+                capped = True
+                break
+            rows += got
+            if len(got) < _FLOW_PAGE:
+                break
+        else:
+            capped = True
     rows = [r for r in rows if str(r.get("isError") or "0") != "1"]
     out = [r for r in rows if (r.get("from") or "").lower() == me and ex.row_ts(r) >= since]
     inn = [r for r in rows if (r.get("to") or "").lower() == me]
-    return out, inn, None
+    return out, inn, None, capped
 
 
-def summarize_flows(out_rows, in_rows, fmt):
+def summarize_flows(out_rows, in_rows, fmt, capped=False):
     """Where the value went, one line: each recipient's take vs what it had put in. PURE. fmt: raw int -> label.
     An outsider drain = value to never-depositors; a game payout / withdrawal = value back to the addresses that paid
     in. States facts, never downgrades the event: an inflate-then-redeem attacker is a depositor too, which is why
-    'put in' is printed next to 'got' instead of a payout/exploit verdict."""
+    'put in' is printed next to 'got' instead of a payout/exploit verdict. capped -> says the sums are lower bounds.
+    A CREATE row carries its recipient in contractAddress (to is empty)."""
     def amt(r):
         try:
             return int(r.get("value") or 0)
@@ -187,34 +201,37 @@ def summarize_flows(out_rows, in_rows, fmt):
     got, put = {}, {}
     for r in out_rows:
         if amt(r):
-            to = (r.get("to") or "?").lower()
+            to = (r.get("to") or r.get("contractAddress") or "?").lower()
             got[to] = got.get(to, 0) + amt(r)
     for r in in_rows:
         frm = (r.get("from") or "?").lower()
         put[frm] = put.get(frm, 0) + amt(r)
     total = sum(got.values())
+    cap = "; explorer history capped at %d rows/action -> sums are lower bounds" % (_FLOW_PAGE * _FLOW_PAGES)
     if not total:
-        return "flows: no outflow on record since the last check (explorer lag, or value left without a transfer?)"
+        return ("flows: no outflow on record since the last check (explorer lag, or value left without a transfer?)"
+                + (cap if capped else ""))
     ranked = sorted(got.items(), key=lambda kv: -kv[1])
     parts = ["%s -> %s.. (put in %s)" % (fmt(v), a[:10], fmt(put.get(a, 0))) for a, v in ranked[:_FLOW_TOP]]
     if len(ranked) > _FLOW_TOP:
         parts.append("+%d more: %s" % (len(ranked) - _FLOW_TOP, fmt(sum(v for _, v in ranked[_FLOW_TOP:]))))
     back = sum(v for a, v in got.items() if put.get(a))
-    return "flows: %s out to %d addr: %s; %.0f%% to addresses that had paid in" % (
-        fmt(total), len(ranked), ", ".join(parts), 100.0 * back / total)
+    return "flows: %s out to %d addr: %s; %.0f%% to addresses that had paid in%s" % (
+        fmt(total), len(ranked), ", ".join(parts), 100.0 * back / total, cap if capped else "")
 
 
 def flow_note(entry, prev, cur, _fetch=None):
-    """DRAINED -> the summarize_flows line for the window since the previous snapshot. Never raises: a lookup the
-    explorer can't answer says UNKNOWN and why (free tier refuses Base/BSC/OP), never a silent 'no outflow'."""
-    since = _iso_ts(prev.get("ts")) or (time.time() - _FLOW_LOOKBACK_S)
+    """DRAINED -> the summarize_flows line for the window since the baseline value was READ (value_ts: an unread
+    cycle keeps the old value but must not slide the window past the drain). Never raises: a lookup the explorer
+    can't answer says UNKNOWN and why (free tier refuses Base/BSC/OP), never a silent 'no outflow'."""
     try:
-        out, inn, why = (_fetch or fetch_flows)(entry, since - _FLOW_SLACK_S)
+        since = _iso_ts(prev.get("value_ts") or prev.get("ts")) or (time.time() - _FLOW_LOOKBACK_S)
+        out, inn, why, capped = (_fetch or fetch_flows)(entry, since - _FLOW_SLACK_S)
     except Exception as e:
-        out, inn, why = None, None, ex._why(e)
+        out, inn, why, capped = None, None, ex._why(e), False
     if out is None:
-        return "flows: UNKNOWN (%s)" % why
-    return summarize_flows(out, inn, lambda v: _fmtv(v, cur))
+        return "flows: UNKNOWN (%s)" % re.sub(r"apikey=[^&\s]+", "apikey=***", str(why))
+    return summarize_flows(out, inn, lambda v: _fmtv(v, cur), capped)
 
 
 def _notify_windows(title, msg):
@@ -273,6 +290,8 @@ def run(notify=False, now_iso="", prio_only=False, _snap=snapshot, _flows=None):
             for f in ("value", "last_days"):
                 if cur.get(f) is None and prev.get(f) is not None:
                     cur = dict(cur, **{f: prev[f], f + "_unread": True})
+            if cur.get("value_unread"):  # the carried value was read back then -> a DRAINED flows window starts there
+                cur["value_ts"] = prev.get("value_ts") or prev.get("ts")
         new_state[key] = cur
     _save(STATE, new_state)
     if all_events:

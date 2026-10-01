@@ -11,6 +11,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "toolkit"))
 import watch as W  # noqa: E402
 
+W._notify_telegram = lambda title, msg: False  # a HIGH event in run() must never reach a real bot from the tests
+
 _p, _f = 0, 0
 
 
@@ -139,12 +141,13 @@ INTERNAL = [row(H2H, A, 199.7768, T1), row(H2H, B, 19.7768, T1), row(H2H, B, 1.7
 
 
 def fake_query(chain, params):
-    return {"txlist": TXLIST, "txlistinternal": INTERNAL}[params["action"]], "etherscan", None
+    rows = {"txlist": TXLIST, "txlistinternal": INTERNAL}[params["action"]]
+    return rows[(params["page"] - 1) * params["offset"]:params["page"] * params["offset"]], "etherscan", None
 
 
 _e = {"key": "h2h", "chain": "33139", "addr": H2H}
-_out, _in, _why = W.fetch_flows(_e, T0, _query=fake_query)
-check(_why is None and len(_out) == 6, "fetch_flows: only outflows at/after `since` (the old payout is out)")
+_out, _in, _why, _cap = W.fetch_flows(_e, T0, _query=fake_query)
+check(_why is None and len(_out) == 6 and not _cap, "fetch_flows: only outflows at/after `since` (the old payout is out)")
 check(all(r["isError"] != "1" for r in _in) and len(_in) == 6, "fetch_flows: a reverted deposit is not a stake")
 _note = W.summarize_flows(_out, _in, lambda v: W._fmtv(v, {"native_sym": "APE"}))
 check(_note.startswith("flows: 222 APE out to 3 addr"), "summary: total out + distinct recipients")
@@ -175,9 +178,60 @@ def _boom(e, s):
 check(W.flow_note(_e, {}, nsnap(0, "APE"), _fetch=_boom).startswith("flows: UNKNOWN ("),
       "a crashing lookup degrades to UNKNOWN, the DRAINED alert still goes out")
 _seen = []
-W.flow_note(_e, {"ts": "2026-09-26T10:00:00"}, nsnap(0, "APE"), _fetch=lambda e, s: _seen.append(s) or ([], [], None))
+W.flow_note(_e, {"ts": "2026-09-26T10:00:00"}, nsnap(0, "APE"),
+            _fetch=lambda e, s: _seen.append(s) or ([], [], None, False))
 check(_seen and abs(_seen[0] - (W._iso_ts("2026-09-26T10:00:00") - W._FLOW_SLACK_S)) < 1,
       "the window starts at the previous snapshot (minus clock slack)")
+_seen = []
+W.flow_note(_e, {"ts": "2026-09-26T14:00:00", "value_ts": "2026-09-26T10:00:00"}, nsnap(0, "APE"),
+            _fetch=lambda e, s: _seen.append(s) or ([], [], None, False))
+check(_seen and abs(_seen[0] - (W._iso_ts("2026-09-26T10:00:00") - W._FLOW_SLACK_S)) < 1,
+      "a carried (unread-cycle) value -> the window starts when it was READ, not at the unread check")
+check(W.flow_note(_e, {"ts": "1969-12-31T23:59:59"}, nsnap(0, "APE"),
+                  _fetch=lambda e, s: ([], [], None, False)).startswith("flows: "),
+      "an unconvertible baseline stamp (Windows pre-1970 OSError) never crashes flow_note")
+check("apikey=***" in W.flow_note(_e, {}, nsnap(0, "APE"),
+                                  _fetch=lambda e, s: (None, None, "etherscan: bad url ?apikey=SECRET123&x", False))
+      and "SECRET123" not in W.flow_note(_e, {}, nsnap(0, "APE"),
+                                         _fetch=lambda e, s: (None, None, "x apikey=SECRET123", False)),
+      "an explorer reason that echoes the key is masked before it reaches the alert")
+
+print("== flows: paging, CREATE recipients ==")
+_BIG = [row(A, H2H, 1, T0 - 10)] + [row(B, H2H, 1, T1)] * 2500  # A's stake sits behind 2500 newer rows
+_pages = []
+
+
+def big_query(chain, params):
+    _pages.append((params["action"], params["page"]))
+    rows = _BIG[::-1] if params["action"] == "txlist" else INTERNAL
+    return rows[(params["page"] - 1) * params["offset"]:params["page"] * params["offset"]], "etherscan", None
+
+
+_out, _in, _why, _cap = W.fetch_flows(_e, T0, _query=big_query)
+check(("txlist", 3) in _pages and not _cap and any((r["from"] == A) for r in _in),
+      "a stake older than the first 1000 rows is still found (paged until a short page)")
+_old = W._FLOW_PAGES
+W._FLOW_PAGES = 2
+try:
+    _out, _in, _why, _cap = W.fetch_flows(_e, T0, _query=big_query)
+finally:
+    W._FLOW_PAGES = _old
+check(_cap and "capped at" in W.summarize_flows(_out, _in, str, _cap),
+      "history beyond the page cap -> the note says the sums are lower bounds")
+
+
+def flaky_query(chain, params):
+    if params["page"] > 1:
+        return None, None, "etherscan: Max rate limit reached"
+    return big_query(chain, params)
+
+
+_out, _in, _why, _cap = W.fetch_flows(_e, T0, _query=flaky_query)
+check(_why is None and _cap, "a later page failing keeps the first pages and marks the result capped")
+_create = [dict(row(H2H, "", 3, T1), contractAddress="0x" + "c1" * 20, type="create"),
+           dict(row(H2H, "", 4, T1), contractAddress="0x" + "c2" * 20, type="create")]
+check("to 2 addr" in W.summarize_flows(_create, [], str) and "?.." not in W.summarize_flows(_create, [], str),
+      "CREATE transfers: the recipient is the created contract (contractAddress), not one '?' bucket")
 
 _tmp2 = tempfile.mkdtemp()
 _paths = (W.WATCHLIST, W.STATE, W.EVENTS, W.QUEUE)
@@ -191,6 +245,14 @@ try:
                 _flows=lambda e, s: W.fetch_flows(e, s, _query=fake_query))
     check(len(_ev) == 1 and _ev[0]["type"] == "DRAINED" and "| flows: " in _ev[0]["detail"]
           and "(put in 111 APE)" in _ev[0]["detail"], "run: a DRAINED event carries the flows line")
+    # unread cycle between the read baseline and the drain: value_ts keeps the window anchored at the last real read
+    with open(W.STATE, "w") as f:
+        json.dump({"h2h": dict(nsnap(111 * E18, "APE"), ts="2026-09-26T10:00:00")}, f)
+    W.run(now_iso="2026-09-26T14:00:00", _snap=lambda e, now: dict(nsnap(None, "APE"), ts=now))
+    with open(W.STATE) as f:
+        _st = json.load(f)["h2h"]
+    check(_st["value"] == 111 * E18 and _st["value_ts"] == "2026-09-26T10:00:00",
+          "run: an unread cycle records when the carried value was read (value_ts)")
 finally:
     W.WATCHLIST, W.STATE, W.EVENTS, W.QUEUE = _paths
 
